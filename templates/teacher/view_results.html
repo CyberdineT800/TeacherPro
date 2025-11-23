@@ -1,0 +1,64 @@
+{% extends "base.html" %}
+
+{% block title %}Imtihon natijalari{% endblock %}
+
+{% block content %}
+<div class="card">
+    <h2>Imtihon natijalari</h2>
+    
+    <div class="exam-info-box">
+        <h3>{{ exam_info.class_name }} - {{ exam_info.subject_name }} - {{ exam_info.quarter_name }}</h3>
+        <p><strong>Imtihon turi:</strong> {{ exam_info.exam_type_name }}</p>
+    </div>
+    
+    <div class="results-summary">
+        <p><strong>Maksimal ball:</strong> {{ total_max_score }}</p>
+    </div>
+    
+    <div class="score-table">
+        <table>
+            <thead>
+                <tr>
+                    <th rowspan="2">#</th>
+                    <th rowspan="2">F.I.O</th>
+                    <th rowspan="2">Guruh</th>
+                    {% for question in questions %}
+                    <th colspan="1">{{ question.question_number }}</th>
+                    {% endfor %}
+                    <th rowspan="2">Foiz</th>
+                    <th rowspan="2">Jami ball</th>
+                </tr>
+                <tr>
+                    {% for question in questions %}
+                    <th style="font-size: 0.8em;">(max: {{ question.max_score }})</th>
+                    {% endfor %}
+                </tr>
+            </thead>
+            <tbody>
+                {% for result in results %}
+                <tr>
+                    <td>{{ loop.index }}</td>
+                    <td><strong>{{ result.student_name }}</strong></td>
+                    <td>{{ result.group_number }}</td>
+                    {% for score in result.question_scores %}
+                    <td>{{ score }}</td>
+                    {% endfor %}
+                    <td><strong>{{ result.percentage }}%</strong></td>
+                    <td><strong>{{ result.total_score }}</strong></td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    
+    <div class="download-buttons">
+        <a href="{{ url_for('download_results', exam_id=exam.id, format='excel') }}" class="btn btn-success">Excel yuklab olish</a>
+        <a href="{{ url_for('download_results', exam_id=exam.id, format='pdf') }}" class="btn btn-danger">PDF yuklab olish</a>
+        <a href="{{ url_for('download_results', exam_id=exam.id, format='word') }}" class="btn btn-primary">Word yuklab olish</a>
+    </div>
+    
+    <div style="margin-top: 2rem; text-align: center;">
+        <p><strong>O'qituvchi:</strong> {{ exam_info.teacher_name }}</p>
+    </div>
+</div>
+{% endblock %}

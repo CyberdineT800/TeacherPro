@@ -1,0 +1,45 @@
+{% extends "base.html" %}
+
+{% block title %}Admin Bosh sahifa{% endblock %}
+
+{% block content %}
+<div class="card">
+    <h2>Admin Bosh sahifa</h2>
+    
+    <div class="stats-grid">
+        <div class="stat-card" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);">
+            <h3>{{ schools_count }}</h3>
+            <p>Maktablar</p>
+        </div>
+        
+        <div class="stat-card" style="background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);">
+            <h3>{{ employees_count }}</h3>
+            <p>Xodimlar</p>
+        </div>
+        
+        <div class="stat-card" style="background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);">
+            <h3>{{ classes_count }}</h3>
+            <p>Sinflar</p>
+        </div>
+        
+        <div class="stat-card" style="background: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%);">
+            <h3>{{ students_count }}</h3>
+            <p>O'quvchilar</p>
+        </div>
+    </div>
+    
+    <h3>Tez harakatlar</h3>
+    <div class="actions-grid">
+        <a href="{{ url_for('schools_list') }}" class="btn btn-primary">Maktablar</a>
+        <a href="{{ url_for('employees_list') }}" class="btn btn-primary">Xodimlar</a>
+        <a href="{{ url_for('classes_list') }}" class="btn btn-primary">Sinflar</a>
+        <a href="{{ url_for('students_list') }}" class="btn btn-primary">O'quvchilar</a>
+        <a href="{{ url_for('subjects_list') }}" class="btn btn-secondary">Fanlar</a>
+        <a href="{{ url_for('quarters_list') }}" class="btn btn-secondary">Choraklar</a>
+        <a href="{{ url_for('exam_names_list') }}" class="btn btn-secondary">Imtihon nomlari</a>
+        <a href="{{ url_for('exam_types_list') }}" class="btn btn-secondary">Imtihon turlari</a>
+        <a href="{{ url_for('question_types_list') }}" class="btn btn-secondary">Savol turlari</a>
+        <a href="{{ url_for('staff_titles_list') }}" class="btn btn-secondary">Lavozimlar</a>
+    </div>
+</div>
+{% endblock %}

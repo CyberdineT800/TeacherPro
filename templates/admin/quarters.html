@@ -1,0 +1,56 @@
+{% extends "base.html" %}
+
+{% block title %}Choraklar{% endblock %}
+
+{% block content %}
+<div class="card">
+    <h2>Choraklar</h2>
+    
+    <form method="POST" action="{{ url_for('add_quarter') }}" style="margin-bottom: 2rem;">
+        <div style="display: flex; gap: 1rem; align-items: end;">
+            <div class="form-group" style="flex: 1; margin-bottom: 0;">
+                <label for="name">Nomi</label>
+                <input type="text" id="name" name="name" required>
+            </div>
+            <div class="form-group" style="flex: 1; margin-bottom: 0;">
+                <label for="order_num">Tartib raqami</label>
+                <input type="number" id="order_num" name="order_num" min="1" max="4" required>
+            </div>
+            <button type="submit" class="btn btn-success">+ Qo'shish</button>
+        </div>
+    </form>
+    
+    {% if quarters %}
+    <table>
+        <thead>
+            <tr>
+                <th>Tartib raqami</th>
+                <th>Nomi</th>
+                <th>Harakatlar</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for quarter in quarters %}
+            <tr>
+                <td>{{ quarter.order_num }}</td>
+                <td>{{ quarter.name }}</td>
+                <td>
+                    <form method="POST" action="{{ url_for('delete_quarter', id=quarter.id) }}" style="display: inline;" onsubmit="return confirmDelete();">
+                        <button type="submit" class="btn btn-danger btn-sm">O'chirish</button>
+                    </form>
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    {% else %}
+    <p>Choraklar topilmadi.</p>
+    {% endif %}
+</div>
+
+<script>
+function confirmDelete() {
+    return confirm("Rostan ham o'chirmoqchimisiz?");
+}
+</script>
+{% endblock %}

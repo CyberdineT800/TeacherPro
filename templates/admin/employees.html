@@ -1,0 +1,106 @@
+{% extends "base.html" %}
+
+{% block title %}Xodimlar{% endblock %}
+
+{% block content %}
+<div class="card">
+    <h2>Xodimlar</h2>
+    
+    <div class="filter-box">
+        <form method="GET">
+            <div style="display: flex; gap: 1rem; align-items: end;">
+                <div class="form-group" style="flex: 1; margin-bottom: 0;">
+                    <label for="school_id">Maktab bo'yicha filtrlash</label>
+                    <select id="school_id" name="school_id" onchange="this.form.submit()">
+                        <option value="">Barchasi</option>
+                        {% for school in schools %}
+                        <option value="{{ school.id }}" {% if request.args.get('school_id') == school.id|string %}selected{% endif %}>
+                            {{ school.name }}
+                        </option>
+                        {% endfor %}
+                    </select>
+                </div>
+            </div>
+        </form>
+    </div>
+    
+    <div style="margin-bottom: 1rem;">
+        <a href="{{ url_for('add_employee') }}" class="btn btn-success">+ Yangi xodim</a>
+    </div>
+    
+    {% if employees %}
+    <table>
+        <thead>
+            <tr>
+                <th>Ism Familiya</th>
+                <th>Foydalanuvchi nomi</th>
+                <th>Maktab</th>
+                <th>Lavozim</th>
+                <th>Admin</th>
+                <th>Holati</th>
+                <th>Yangilangan</th>
+                <th>Harakatlar</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for employee in employees %}
+            <tr>
+                <td>{{ employee.first_name }} {{ employee.last_name }}</td>
+                <td>{{ employee.username }}</td>
+                <td>
+                    {% if employee.school_id %}
+                        {% for school in schools %}
+                            {% if school.id == employee.school_id %}
+                                {{ school.name }}
+                            {% endif %}
+                        {% endfor %}
+                    {% else %}
+                        -
+                    {% endif %}
+                </td>
+                <td>
+                    {% if employee.staff_title %}
+                        {{ employee.staff_title.title }}
+                    {% else %}
+                        -
+                    {% endif %}
+                </td>
+                <td>{% if employee.is_admin %}✓{% else %}-{% endif %}</td>
+                <td>
+                    {% if employee.is_active %}
+                        <span class="status-active">Faol</span>
+                    {% else %}
+                        <span class="status-inactive">Bloklangan</span>
+                    {% endif %}
+                </td>
+                <td>{{ employee.updated_at.strftime('%d.%m.%Y %H:%M') }}</td>
+                <td class="action-buttons">
+                    <a href="{{ url_for('edit_employee', id=employee.id) }}" class="btn btn-primary btn-sm">Tahrirlash</a>
+                    
+                    {% if employee.id != session.user_id %}
+                    <form method="POST" action="{{ url_for('toggle_employee_status', id=employee.id) }}" style="display: inline;">
+                        <button type="submit" class="btn btn-warning btn-sm">
+                            {% if employee.is_active %}Bloklash{% else %}Faollashtirish{% endif %}
+                        </button>
+                    </form>
+                    
+                    <form method="POST" action="{{ url_for('delete_employee', id=employee.id) }}" style="display: inline;" onsubmit="return confirmDelete();">
+                        <button type="submit" class="btn btn-danger btn-sm">O'chirish</button>
+                    </form>
+                    {% endif %}
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    {% else %}
+    <p>Xodimlar topilmadi.</p>
+    {% endif %}
+</div>
+
+<script>
+function confirmDelete() {
+    return confirm("Rostan ham o'chirmoqchimisiz?");
+}
+</script>
+{% endblock %}

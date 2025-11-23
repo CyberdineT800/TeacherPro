@@ -1,0 +1,44 @@
+{% extends "base.html" %}
+
+{% block title %}{{ title }}{% endblock %}
+
+{% block content %}
+<div class="card">
+    <h2>{{ title }}</h2>
+    
+    <form method="POST" action="{{ url_for(add_url) }}" style="margin-bottom: 2rem;">
+        <div style="display: flex; gap: 1rem; align-items: end;">
+            <div class="form-group" style="flex: 1; margin-bottom: 0;">
+                <label for="name">Yangi qo'shish</label>
+                <input type="text" id="name" name="name" required>
+            </div>
+            <button type="submit" class="btn btn-success">+ Qo'shish</button>
+        </div>
+    </form>
+    
+    {% if items %}
+    <table>
+        <thead>
+            <tr>
+                <th>Nomi</th>
+                <th>Harakatlar</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for item in items %}
+            <tr>
+                <td>{% if item.title %}{{ item.title }}{% else %}{{ item.name }}{% endif %}</td>
+                <td>
+                    <form method="POST" action="{{ url_for(delete_url, id=item.id) }}" style="display: inline;" onsubmit="return confirmDelete();">
+                        <button type="submit" class="btn btn-danger btn-sm">O'chirish</button>
+                    </form>
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    {% else %}
+    <p>Ma'lumotlar topilmadi.</p>
+    {% endif %}
+</div>
+{% endblock %}

@@ -1,0 +1,83 @@
+{% extends "base.html" %}
+
+{% block title %}Ballarni kiritish{% endblock %}
+
+{% block content %}
+<div class="card">
+    <h2>Ballarni kiritish</h2>
+    
+    <div class="exam-info-box">
+        <h3>{{ exam_info.class_name }} - {{ exam_info.subject_name }} - {{ exam_info.quarter_name }}</h3>
+        <p><strong>Imtihon turi:</strong> {{ exam_info.exam_type_name }}</p>
+        <p><strong>Imtihon nomi:</strong> {{ exam_info.exam_name }}</p>
+        
+        <!-- Guruh filtri -->
+        <div class="group-filter">
+            <strong>Guruh: </strong>
+            <a href="{{ url_for('enter_scores', exam_id=exam.id, group_filter='all') }}" 
+               class="btn btn-sm {% if group_filter == 'all' %}btn-primary{% else %}btn-secondary{% endif %}">
+                Barchasi
+            </a>
+            <a href="{{ url_for('enter_scores', exam_id=exam.id, group_filter='1') }}" 
+               class="btn btn-sm {% if group_filter == '1' %}btn-primary{% else %}btn-secondary{% endif %}">
+                1-guruh
+            </a>
+            <a href="{{ url_for('enter_scores', exam_id=exam.id, group_filter='2') }}" 
+               class="btn btn-sm {% if group_filter == '2' %}btn-primary{% else %}btn-secondary{% endif %}">
+                2-guruh
+            </a>
+        </div>
+    </div>
+    
+    <form method="POST">
+        <div class="score-table">
+            <table>
+                <thead>
+                    <tr>
+                        <th rowspan="2">#</th>
+                        <th rowspan="2">O'quvchi</th>
+                        <th rowspan="2">Guruh</th>
+                        {% for question in questions %}
+                        <th colspan="2">
+                            {{ question.question_number }}-savol
+                        </th>
+                        {% endfor %}
+                    </tr>
+                    <tr>
+                        {% for question in questions %}
+                        <th>Turi</th>
+                        <th>Ball (max: {{ question.max_score }})</th>
+                        {% endfor %}
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for student in students %}
+                    <tr>
+                        <td>{{ loop.index }}</td>
+                        <td>{{ student.first_name }} {{ student.last_name }}</td>
+                        <td>{{ student.group_number }}</td>
+                        {% for question in questions %}
+                        <td>{{ question_types[question.id] }}</td>
+                        <td>
+                            <input type="number" 
+                                   name="score_{{ student.id }}_{{ question.id }}" 
+                                   min="0" 
+                                   max="{{ question.max_score }}" 
+                                   step="0.1"
+                                   value="0"
+                                   style="width: 80px;">
+                        </td>
+                        {% endfor %}
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        
+        <div style="margin-top: 2rem;">
+            <button type="submit" class="btn btn-success">Natijalarni saqlash</button>
+            <a href="{{ url_for('teacher_dashboard') }}" class="btn btn-secondary">Bekor qilish</a>
+        </div>
+    </form>
+</div>
+{% endblock %}

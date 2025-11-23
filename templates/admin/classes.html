@@ -1,0 +1,82 @@
+{% extends "base.html" %}
+
+{% block title %}Sinflar{% endblock %}
+
+{% block content %}
+<div class="card">
+    <h2>Sinflar</h2>
+    
+    <div class="filter-box">
+        <form method="GET">
+            <div style="display: flex; gap: 1rem; align-items: end;">
+                <div class="form-group" style="flex: 1; margin-bottom: 0;">
+                    <label for="school_id">Maktab bo'yicha filtrlash</label>
+                    <select id="school_id" name="school_id" onchange="this.form.submit()">
+                        <option value="">Barchasi</option>
+                        {% for school in schools %}
+                        <option value="{{ school.id }}" {% if request.args.get('school_id')|string == school.id|string %}selected{% endif %}>
+                            {{ school.name }}
+                        </option>
+                        {% endfor %}
+                    </select>
+                </div>
+            </div>
+        </form>
+    </div>
+    
+    <div style="margin-bottom: 1rem;">
+        <a href="{{ url_for('add_class') }}" class="btn btn-success">+ Yangi sinf</a>
+    </div>
+    
+    {% if classes %}
+    <table>
+        <thead>
+            <tr>
+                <th>Nomi</th>
+                <th>Maktab</th>
+                <th>O'quvchilar soni</th>
+                <th>Harakatlar</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for class in classes %}
+            <tr>
+                <td><strong>{{ class.name }}</strong></td>
+                <td>
+                    {% for school in schools %}
+                        {% if school.id == class.school_id %}
+                            {{ school.name }}
+                        {% endif %}
+                    {% endfor %}
+                </td>
+                <td>
+                    {% set student_count = namespace(count=0) %}
+                    {% for student in students %}
+                        {% if student.class_id == class.id %}
+                            {% set student_count.count = student_count.count + 1 %}
+                        {% endif %}
+                    {% endfor %}
+                    {{ student_count.count }}
+                </td>
+                <td class="action-buttons">
+                    <a href="{{ url_for('edit_class', id=class.id) }}" class="btn btn-primary btn-sm">Tahrirlash</a>
+                    <a href="{{ url_for('students_list', class_id=class.id) }}" class="btn btn-secondary btn-sm">O'quvchilar</a>
+                    <form method="POST" action="{{ url_for('delete_class', id=class.id) }}" style="display: inline;" onsubmit="return confirmDelete();">
+                        <button type="submit" class="btn btn-danger btn-sm">O'chirish</button>
+                    </form>
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    {% else %}
+    <p>Sinflar topilmadi.</p>
+    {% endif %}
+</div>
+
+<script>
+function confirmDelete() {
+    return confirm("Rostan ham o'chirmoqchimisiz?");
+}
+</script>
+{% endblock %}

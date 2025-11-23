@@ -1,0 +1,38 @@
+{% extends "base.html" %}
+
+{% block title %}{% if school %}Maktabni tahrirlash{% else %}Yangi maktab{% endif %}{% endblock %}
+
+{% block content %}
+<div class="card">
+    <h2>{% if school %}Maktabni tahrirlash{% else %}Yangi maktab{% endif %}</h2>
+    
+    <form method="POST">
+        <div class="form-group">
+            <label for="name">Nomi *</label>
+            <input type="text" id="name" name="name" value="{{ school.name if school else '' }}" required>
+        </div>
+        
+        <div class="form-group">
+            <label for="address">Manzil</label>
+            <textarea id="address" name="address" rows="3">{{ school.address if school else '' }}</textarea>
+        </div>
+        
+        <div class="form-row">
+            <div class="form-group">
+                <label for="phone">Telefon</label>
+                <input type="text" id="phone" name="phone" value="{{ school.phone if school else '' }}">
+            </div>
+            
+            <div class="form-group">
+                <label for="email">Email</label>
+                <input type="email" id="email" name="email" value="{{ school.email if school else '' }}">
+            </div>
+        </div>
+        
+        <div style="margin-top: 2rem;">
+            <button type="submit" class="btn btn-success">Saqlash</button>
+            <a href="{{ url_for('schools_list') }}" class="btn btn-secondary">Bekor qilish</a>
+        </div>
+    </form>
+</div>
+{% endblock %}

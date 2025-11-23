@@ -1,0 +1,51 @@
+{% extends "base.html" %}
+
+{% block title %}O'qituvchi Bosh sahifa{% endblock %}
+
+{% block content %}
+<div class="card">
+    <h2>Xush kelibsiz, {{ session.full_name }}</h2>
+    
+    {% if school %}
+    <div class="exam-info-box">
+        <p><strong>Maktab:</strong> {{ school.name }}</p>
+    </div>
+    {% endif %}
+    
+    <div style="margin-bottom: 2rem;">
+        <a href="{{ url_for('create_exam') }}" class="btn btn-success">+ Yangi imtihon yaratish</a>
+    </div>
+    
+    {% if exams %}
+    <h3>Oxirgi imtihonlar</h3>
+    <table>
+        <thead>
+            <tr>
+                <th>Sinf</th>
+                <th>Fan</th>
+                <th>Chorak</th>
+                <th>Imtihon</th>
+                <th>Sana</th>
+                <th>Harakatlar</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for exam in exams %}
+            <tr>
+                <td>{{ exam.class_name }}</td>
+                <td>{{ exam.subject_name }}</td>
+                <td>{{ exam.quarter_name }}</td>
+                <td>{{ exam.exam_name }}</td>
+                <td>{{ exam.created_at.strftime('%d.%m.%Y %H:%M') }}</td>
+                <td class="action-buttons">
+                    <a href="{{ url_for('view_results', exam_id=exam.id) }}" class="btn btn-primary btn-sm">Ko'rish</a>
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    {% else %}
+    <p>Hozircha imtihonlar yo'q. Yangi imtihon yarating!</p>
+    {% endif %}
+</div>
+{% endblock %}

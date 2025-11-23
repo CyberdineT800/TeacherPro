@@ -1,0 +1,41 @@
+{% extends "base.html" %}
+
+{% block title %}{% if class_obj %}Sinfni tahrirlash{% else %}Yangi sinf{% endif %}{% endblock %}
+
+{% block content %}
+<div class="card">
+    <h2>{% if class_obj %}Sinfni tahrirlash{% else %}Yangi sinf{% endif %}</h2>
+    
+    <form method="POST" enctype="multipart/form-data">
+        <div class="form-group">
+            <label for="name">Sinf nomi *</label>
+            <input type="text" id="name" name="name" value="{{ class_obj.name if class_obj else '' }}" required>
+        </div>
+        
+        <div class="form-group">
+            <label for="school_id">Maktab *</label>
+            <select id="school_id" name="school_id" required>
+                <option value="">-- Tanlang --</option>
+                {% for school in schools %}
+                <option value="{{ school.id }}" {% if class_obj and class_obj.school_id == school.id %}selected{% endif %}>
+                    {{ school.name }}
+                </option>
+                {% endfor %}
+            </select>
+        </div>
+        
+        {% if not class_obj %}
+        <div class="form-group">
+            <label for="students_file">O'quvchilar ro'yxati (Excel fayl)</label>
+            <input type="file" id="students_file" name="students_file" accept=".xlsx,.xls">
+            <small>Excel fayl format: Ism-Familiya, Jins (1=o'g'il, 2=qiz), Guruh (ixtiyoriy)</small>
+        </div>
+        {% endif %}
+        
+        <div style="margin-top: 2rem;">
+            <button type="submit" class="btn btn-success">Saqlash</button>
+            <a href="{{ url_for('classes_list') }}" class="btn btn-secondary">Bekor qilish</a>
+        </div>
+    </form>
+</div>
+{% endblock %}
