@@ -2,6 +2,7 @@ from fastapi import APIRouter, Request, Depends, Form
 from fastapi.responses import HTMLResponse, RedirectResponse, StreamingResponse
 from fastapi.templating import Jinja2Templates
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.orm import selectinload
 from sqlalchemy import select, delete
 from typing import Optional
 from io import BytesIO
@@ -91,21 +92,15 @@ async def create_exam_page(
     """Display create exam form"""
     teacher_id = request.session.get('user_id')
     
-    # Get teacher info
-    teacher_result = await db.execute(select(Employee).where(Employee.id == teacher_id))
+    teacher_result = await db.execute(
+        select(Employee)
+        .options(selectinload(Employee.assigned_classes), selectinload(Employee.assigned_subjects))
+        .where(Employee.id == teacher_id)
+    )
     teacher = teacher_result.scalar_one_or_none()
     
-    # Get classes in teacher's school
-    classes = []
-    if teacher and teacher.school_id:
-        classes_result = await db.execute(
-            select(SchoolClass).where(SchoolClass.school_id == teacher.school_id)
-        )
-        classes = classes_result.scalars().all()
-    
-    # Get reference data
-    subjects_result = await db.execute(select(Subject))
-    subjects = subjects_result.scalars().all()
+    classes = teacher.assigned_classes if teacher else []
+    subjects = teacher.assigned_subjects if teacher else []
     
     quarters_result = await db.execute(select(Quarter).order_by(Quarter.order_num))
     quarters = quarters_result.scalars().all()
@@ -128,6 +123,10 @@ async def create_exam_page(
         'exam_types': exam_types,
         'question_types': question_types
     })
+    
+    if not classes or not subjects:
+        flash(request, 'Sizga sinf yoki fan biriktirilmagan. Administrator bilan bog\'laning.', 'warning')
+    
     return templates.TemplateResponse('teacher/create_exam.html', context)
 
 @router.post("/create-exam")
@@ -144,7 +143,27 @@ async def create_exam(
     """Create new exam"""
     teacher_id = request.session.get('user_id')
     
-    # Create exam
+    teacher_result = await db.execute(
+        select(Employee)
+        .options(selectinload(Employee.assigned_classes), selectinload(Employee.assigned_subjects))
+        .where(Employee.id == teacher_id)
+    )
+    teacher = teacher_result.scalar_one_or_none()
+    
+    if not teacher:
+        flash(request, 'Foydalanuvchi topilmadi', 'danger')
+        return RedirectResponse(url="/teacher/dashboard", status_code=303)
+    
+    assigned_class_ids = [cls.id for cls in teacher.assigned_classes]
+    if class_id not in assigned_class_ids:
+        flash(request, 'Siz bu sinf uchun imtihon yarata olmaysiz', 'danger')
+        return RedirectResponse(url="/teacher/create-exam", status_code=303)
+    
+    assigned_subject_ids = [subj.id for subj in teacher.assigned_subjects]
+    if subject_id not in assigned_subject_ids:
+        flash(request, 'Siz bu fan uchun imtihon yarata olmaysiz', 'danger')
+        return RedirectResponse(url="/teacher/create-exam", status_code=303)
+    
     exam = Exam(
         class_id=class_id,
         subject_id=subject_id,
@@ -156,10 +175,8 @@ async def create_exam(
     db.add(exam)
     await db.flush()
     
-    # Get form data
     form_data = await request.form()
     
-    # Add questions
     for i in range(1, num_questions + 1):
         question_type_id = form_data.get(f'question_type_{i}')
         max_score = form_data.get(f'max_score_{i}')

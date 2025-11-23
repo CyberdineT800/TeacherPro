@@ -5,75 +5,110 @@
 {% block content %}
 <div class="card">
     <h2>{% if employee %}Xodimni tahrirlash{% else %}Yangi xodim{% endif %}</h2>
-    
+
     <form method="POST">
         <div class="form-row">
             <div class="form-group">
                 <label for="first_name">Ism *</label>
-                <input type="text" id="first_name" name="first_name" value="{{ employee.first_name if employee else '' }}" required>
+                <input type="text" id="first_name" name="first_name"
+                    value="{{ employee.first_name if employee else '' }}" required>
             </div>
-            
+
             <div class="form-group">
                 <label for="last_name">Familiya *</label>
-                <input type="text" id="last_name" name="last_name" value="{{ employee.last_name if employee else '' }}" required>
+                <input type="text" id="last_name" name="last_name" value="{{ employee.last_name if employee else '' }}"
+                    required>
             </div>
         </div>
-        
+
         <div class="form-row">
             <div class="form-group">
                 <label for="username">Foydalanuvchi nomi *</label>
-                <input type="text" id="username" name="username" value="{{ employee.username if employee else '' }}" required>
+                <input type="text" id="username" name="username" value="{{ employee.username if employee else '' }}"
+                    required>
             </div>
-            
+
             <div class="form-group">
                 <label for="email">Email</label>
                 <input type="email" id="email" name="email" value="{{ employee.email if employee else '' }}">
             </div>
         </div>
-        
+
         <div class="form-group">
-            <label for="password">Parol {% if not employee %}*{% else %}(bo'sh qoldiring, agar o'zgartirmasangiz){% endif %}</label>
+            <label for="password">Parol {% if not employee %}*{% else %}(bo'sh qoldiring, agar o'zgartirmasangiz){%
+                endif %}</label>
             <input type="password" id="password" name="password" {% if not employee %}required{% endif %}>
         </div>
-        
+
         <div class="form-row">
             <div class="form-group">
                 <label for="school_id">Maktab</label>
                 <select id="school_id" name="school_id">
                     <option value="">-- Tanlang --</option>
                     {% for school in schools %}
-                    <option value="{{ school.id }}" {% if employee and employee.school_id == school.id %}selected{% endif %}>
+                    <option value="{{ school.id }}" {% if employee and employee.school_id==school.id %}selected{% endif
+                        %}>
                         {{ school.name }}
                     </option>
                     {% endfor %}
                 </select>
             </div>
-            
+
             <div class="form-group">
                 <label for="staff_title_id">Lavozim</label>
                 <select id="staff_title_id" name="staff_title_id">
                     <option value="">-- Tanlang --</option>
                     {% for title in titles %}
-                    <option value="{{ title.id }}" {% if employee and employee.staff_title_id == title.id %}selected{% endif %}>
+                    <option value="{{ title.id }}" {% if employee and employee.staff_title_id==title.id %}selected{%
+                        endif %}>
                         {{ title.title }}
                     </option>
                     {% endfor %}
                 </select>
             </div>
         </div>
-        
+
+        <div class="form-group">
+            <label>Biriktirilgan sinflar</label>
+            <div class="checkbox-group">
+                {% for class in classes %}
+                <div class="checkbox-item">
+                    <input type="checkbox" id="class_{{ class.id }}" name="assigned_classes" value="{{ class.id }}" {%
+                        if employee and class in employee.assigned_classes %}checked{% endif %}>
+                    <label for="class_{{ class.id }}">{{ class.name }}</label>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+
+        <div class="form-group">
+            <label>Biriktirilgan fanlar</label>
+            <div class="checkbox-group">
+                {% for subject in subjects %}
+                <div class="checkbox-item">
+                    <input type="checkbox" id="subject_{{ subject.id }}" name="assigned_subjects"
+                        value="{{ subject.id }}" {% if employee and subject in employee.assigned_subjects %}checked{%
+                        endif %}>
+                    <label for="subject_{{ subject.id }}">{{ subject.name }}</label>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+
         <div class="checkbox-group">
             <div class="checkbox-item">
-                <input type="checkbox" id="is_admin" name="is_admin" {% if employee and employee.is_admin %}checked{% endif %}>
+                <input type="checkbox" id="is_admin" name="is_admin" {% if employee and employee.is_admin %}checked{%
+                    endif %}>
                 <label for="is_admin">Admin huquqi</label>
             </div>
-            
+
             <div class="checkbox-item">
-                <input type="checkbox" id="is_active" name="is_active" {% if not employee or employee.is_active %}checked{% endif %}>
+                <input type="checkbox" id="is_active" name="is_active" {% if not employee or employee.is_active
+                    %}checked{% endif %}>
                 <label for="is_active">Faol xodim</label>
             </div>
         </div>
-        
+
         {% if employee %}
         <div class="timestamp-info">
             <div class="timestamp-item">
@@ -84,7 +119,7 @@
             </div>
         </div>
         {% endif %}
-        
+
         <div style="margin-top: 2rem;">
             <button type="submit" class="btn btn-success">Saqlash</button>
             <a href="{{ url_for('employees_list') }}" class="btn btn-secondary">Bekor qilish</a>
