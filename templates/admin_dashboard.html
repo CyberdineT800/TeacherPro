@@ -1,45 +1,107 @@
 {% extends "base.html" %}
 
-{% block title %}Admin Bosh sahifa{% endblock %}
+{% block title %}{{ _('admin') }} {{ _('dashboard') }}{% endblock %}
 
 {% block content %}
 <div class="card">
-    <h2>Admin Bosh sahifa</h2>
-    
+    <h2>{{ _('admin') }} {{ _('dashboard') }}</h2>
+
     <div class="stats-grid">
-        <div class="stat-card" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);">
-            <h3>{{ schools_count }}</h3>
-            <p>Maktablar</p>
+        <div class="stat-card">
+            <div class="stat-icon school-icon">
+                <span>🏫</span>
+            </div>
+            <div class="stat-content">
+                <h3>{{ schools_count }}</h3>
+                <p>{{ _('schools') }}</p>
+            </div>
+            <div class="stat-trend">
+                <span class="trend-up">↗</span>
+            </div>
         </div>
-        
-        <div class="stat-card" style="background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);">
-            <h3>{{ employees_count }}</h3>
-            <p>Xodimlar</p>
+
+        <div class="stat-card">
+            <div class="stat-icon employee-icon">
+                <span>👨‍👩‍👧‍👦</span>
+            </div>
+            <div class="stat-content">
+                <h3>{{ employees_count }}</h3>
+                <p>{{ _('employees') }}</p>
+            </div>
+            <div class="stat-trend">
+                <span class="trend-up">↗</span>
+            </div>
         </div>
-        
-        <div class="stat-card" style="background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);">
-            <h3>{{ classes_count }}</h3>
-            <p>Sinflar</p>
+
+        <div class="stat-card">
+            <div class="stat-icon class-icon">
+                <span>📚</span>
+            </div>
+            <div class="stat-content">
+                <h3>{{ classes_count }}</h3>
+                <p>{{ _('classes') }}</p>
+            </div>
+            <div class="stat-trend">
+                <span class="trend-up">↗</span>
+            </div>
         </div>
-        
-        <div class="stat-card" style="background: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%);">
-            <h3>{{ students_count }}</h3>
-            <p>O'quvchilar</p>
+
+        <div class="stat-card">
+            <div class="stat-icon student-icon">
+                <span>🎓</span>
+            </div>
+            <div class="stat-content">
+                <h3>{{ students_count }}</h3>
+                <p>{{ _('students') }}</p>
+            </div>
+            <div class="stat-trend">
+                <span class="trend-up">↗</span>
+            </div>
         </div>
     </div>
-    
-    <h3>Tez harakatlar</h3>
+
+    <h3>{{ _('quick_actions') }}</h3>
     <div class="actions-grid">
-        <a href="{{ url_for('schools_list') }}" class="btn btn-primary">Maktablar</a>
-        <a href="{{ url_for('employees_list') }}" class="btn btn-primary">Xodimlar</a>
-        <a href="{{ url_for('classes_list') }}" class="btn btn-primary">Sinflar</a>
-        <a href="{{ url_for('students_list') }}" class="btn btn-primary">O'quvchilar</a>
-        <a href="{{ url_for('subjects_list') }}" class="btn btn-secondary">Fanlar</a>
-        <a href="{{ url_for('quarters_list') }}" class="btn btn-secondary">Choraklar</a>
-        <a href="{{ url_for('exam_names_list') }}" class="btn btn-secondary">Imtihon nomlari</a>
-        <a href="{{ url_for('exam_types_list') }}" class="btn btn-secondary">Imtihon turlari</a>
-        <a href="{{ url_for('question_types_list') }}" class="btn btn-secondary">Savol turlari</a>
-        <a href="{{ url_for('staff_titles_list') }}" class="btn btn-secondary">Lavozimlar</a>
+        <a href="{{ url_for('schools_list') }}" class="action-btn">
+            <span class="action-icon">🏫</span>
+            <span class="action-text">{{ _('schools') }}</span>
+        </a>
+        <a href="{{ url_for('employees_list') }}" class="action-btn">
+            <span class="action-icon">👨‍👩‍👧‍👦</span>
+            <span class="action-text">{{ _('employees') }}</span>
+        </a>
+        <a href="{{ url_for('classes_list') }}" class="action-btn">
+            <span class="action-icon">📚</span>
+            <span class="action-text">{{ _('classes') }}</span>
+        </a>
+        <a href="{{ url_for('students_list') }}" class="action-btn">
+            <span class="action-icon">🎓</span>
+            <span class="action-text">{{ _('students') }}</span>
+        </a>
+        <a href="{{ url_for('subjects_list') }}" class="action-btn secondary">
+            <span class="action-icon">📖</span>
+            <span class="action-text">{{ _('subjects') }}</span>
+        </a>
+        <a href="{{ url_for('quarters_list') }}" class="action-btn secondary">
+            <span class="action-icon">📅</span>
+            <span class="action-text">{{ _('quarters') }}</span>
+        </a>
+        <a href="{{ url_for('exam_names_list') }}" class="action-btn secondary">
+            <span class="action-icon">📝</span>
+            <span class="action-text">{{ _('exam_names') }}</span>
+        </a>
+        <a href="{{ url_for('exam_types_list') }}" class="action-btn secondary">
+            <span class="action-icon">🔍</span>
+            <span class="action-text">{{ _('exam_types') }}</span>
+        </a>
+        <a href="{{ url_for('question_types_list') }}" class="action-btn secondary">
+            <span class="action-icon">❓</span>
+            <span class="action-text">{{ _('question_types') }}</span>
+        </a>
+        <a href="{{ url_for('staff_titles_list') }}" class="action-btn secondary">
+            <span class="action-icon">💼</span>
+            <span class="action-text">{{ _('staff_titles') }}</span>
+        </a>
     </div>
 </div>
 {% endblock %}

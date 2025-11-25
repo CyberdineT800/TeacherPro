@@ -1,52 +1,52 @@
 {% extends "base.html" %}
 
-{% block title %}Ballarni kiritish{% endblock %}
+{% block title %}{{ _('enter_scores') }}{% endblock %}
 
 {% block content %}
 <div class="card">
-    <h2>Ballarni kiritish</h2>
-    
+    <h2>{{ _('enter_scores') }}</h2>
+
     <div class="exam-info-box">
         <h3>{{ exam_info.class_name }} - {{ exam_info.subject_name }} - {{ exam_info.quarter_name }}</h3>
-        <p><strong>Imtihon turi:</strong> {{ exam_info.exam_type_name }}</p>
-        <p><strong>Imtihon nomi:</strong> {{ exam_info.exam_name }}</p>
-        
+        <p><strong>{{ _('exam_type') }}:</strong> {{ exam_info.exam_type_name }}</p>
+        <p><strong>{{ _('exam_name') }}:</strong> {{ exam_info.exam_name }}</p>
+
         <!-- Guruh filtri -->
         <div class="group-filter">
-            <strong>Guruh: </strong>
-            <a href="{{ url_for('enter_scores', exam_id=exam.id, group_filter='all') }}" 
-               class="btn btn-sm {% if group_filter == 'all' %}btn-primary{% else %}btn-secondary{% endif %}">
-                Barchasi
+            <strong>{{ _('group') }}: </strong>
+            <a href="{{ url_for('enter_scores', exam_id=exam.id, group_filter='all') }}"
+                class="btn btn-sm {% if group_filter == 'all' %}btn-primary{% else %}btn-secondary{% endif %}">
+                {{ _('all') }}
             </a>
-            <a href="{{ url_for('enter_scores', exam_id=exam.id, group_filter='1') }}" 
-               class="btn btn-sm {% if group_filter == '1' %}btn-primary{% else %}btn-secondary{% endif %}">
-                1-guruh
+            <a href="{{ url_for('enter_scores', exam_id=exam.id, group_filter='1') }}"
+                class="btn btn-sm {% if group_filter == '1' %}btn-primary{% else %}btn-secondary{% endif %}">
+                1-{{ _('group') }}
             </a>
-            <a href="{{ url_for('enter_scores', exam_id=exam.id, group_filter='2') }}" 
-               class="btn btn-sm {% if group_filter == '2' %}btn-primary{% else %}btn-secondary{% endif %}">
-                2-guruh
+            <a href="{{ url_for('enter_scores', exam_id=exam.id, group_filter='2') }}"
+                class="btn btn-sm {% if group_filter == '2' %}btn-primary{% else %}btn-secondary{% endif %}">
+                2-{{ _('group') }}
             </a>
         </div>
     </div>
-    
+
     <form method="POST">
         <div class="score-table">
             <table>
                 <thead>
                     <tr>
                         <th rowspan="2">#</th>
-                        <th rowspan="2">O'quvchi</th>
-                        <th rowspan="2">Guruh</th>
+                        <th rowspan="2">{{ _('student') }}</th>
+                        <th rowspan="2">{{ _('group') }}</th>
                         {% for question in questions %}
                         <th colspan="2">
-                            {{ question.question_number }}-savol
+                            {{ question.question_number }}-{{ _('question') }}
                         </th>
                         {% endfor %}
                     </tr>
                     <tr>
                         {% for question in questions %}
-                        <th>Turi</th>
-                        <th>Ball (max: {{ question.max_score }})</th>
+                        <th>{{ _('question_type') }}</th>
+                        <th>{{ _('score') }} ({{ _('max') }}: {{ question.max_score }})</th>
                         {% endfor %}
                     </tr>
                 </thead>
@@ -59,13 +59,8 @@
                         {% for question in questions %}
                         <td>{{ question_types[question.id] }}</td>
                         <td>
-                            <input type="number" 
-                                   name="score_{{ student.id }}_{{ question.id }}" 
-                                   min="0" 
-                                   max="{{ question.max_score }}" 
-                                   step="0.1"
-                                   value="0"
-                                   style="width: 80px;">
+                            <input type="number" name="score_{{ student.id }}_{{ question.id }}" min="0"
+                                max="{{ question.max_score }}" step="0.1" value="0" style="width: 80px;">
                         </td>
                         {% endfor %}
                     </tr>
@@ -73,10 +68,10 @@
                 </tbody>
             </table>
         </div>
-        
+
         <div style="margin-top: 2rem;">
-            <button type="submit" class="btn btn-success">Natijalarni saqlash</button>
-            <a href="{{ url_for('teacher_dashboard') }}" class="btn btn-secondary">Bekor qilish</a>
+            <button type="submit" class="btn btn-success">{{ _('save_results') }}</button>
+            <a href="{{ url_for('teacher_dashboard') }}" class="btn btn-secondary">{{ _('cancel') }}</a>
         </div>
     </form>
 </div>

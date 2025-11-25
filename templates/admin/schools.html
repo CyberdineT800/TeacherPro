@@ -1,46 +1,55 @@
 {% extends "base.html" %}
 
-{% block title %}Maktablar{% endblock %}
+{% block title %}{{ _('schools') }}{% endblock %}
 
 {% block content %}
 <div class="card">
-    <h2>Maktablar</h2>
-    
+    <h2>{{ _('schools') }}</h2>
+
     <div style="margin-bottom: 1rem;">
-        <a href="{{ url_for('add_school') }}" class="btn btn-success">+ Yangi maktab</a>
+        <a href="{{ url_for('add_school') }}" class="btn btn-success">+ {{ _('new_school') }}</a>
     </div>
-    
+
     {% if schools %}
-    <table>
-        <thead>
-            <tr>
-                <th>Nomi</th>
-                <th>Manzil</th>
-                <th>Telefon</th>
-                <th>Email</th>
-                <th>Harakatlar</th>
-            </tr>
-        </thead>
-        <tbody>
-            {% for school in schools %}
-            <tr>
-                <td><strong>{{ school.name }}</strong></td>
-                <td>{{ school.address if school.address else '-' }}</td>
-                <td>{{ school.phone if school.phone else '-' }}</td>
-                <td>{{ school.email if school.email else '-' }}</td>
-                <td class="action-buttons">
-                    <a href="{{ url_for('edit_school', id=school.id) }}" class="btn btn-primary btn-sm">Tahrirlash</a>
-                    <a href="{{ url_for('classes_list', school_id=school.id) }}" class="btn btn-secondary btn-sm">Sinflar</a>
-                    <form method="POST" action="{{ url_for('delete_school', id=school.id) }}" style="display: inline;" onsubmit="return confirmDelete();">
-                        <button type="submit" class="btn btn-danger btn-sm">O'chirish</button>
-                    </form>
-                </td>
-            </tr>
-            {% endfor %}
-        </tbody>
-    </table>
+    <div class="table-container">
+        <table>
+            <thead>
+                <tr>
+                    <th width="60">{{ _('number') }}</th>
+                    <th>{{ _('name') }}</th>
+                    <th>{{ _('address') }}</th>
+                    <th>{{ _('phone') }}</th>
+                    <th>{{ _('email') }}</th>
+                    <th>{{ _('actions') }}</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for school in schools %}
+                <tr>
+                    <td class="row-number">{{ loop.index }}</td>
+                    <td><strong>{{ school.name }}</strong></td>
+                    <td>{{ school.address if school.address else '-' }}</td>
+                    <td>{{ school.phone if school.phone else '-' }}</td>
+                    <td>{{ school.email if school.email else '-' }}</td>
+                    <td class="action-buttons">
+                        <a href="{{ url_for('edit_school', id=school.id) }}" class="btn btn-primary btn-sm">{{ _('edit')
+                            }}</a>
+                        <a href="{{ url_for('classes_list', school_id=school.id) }}" class="btn btn-secondary btn-sm">{{
+                            _('classes') }}</a>
+                        <form method="POST" action="{{ url_for('delete_school', id=school.id) }}"
+                            style="display: inline;" onsubmit="return confirmDelete();">
+                            <button type="submit" class="btn btn-danger btn-sm">{{ _('delete') }}</button>
+                        </form>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
     {% else %}
-    <p>Maktablar topilmadi.</p>
+    <div class="no-data">
+        <p>{{ _('no_data') }}</p>
+    </div>
     {% endif %}
 </div>
 {% endblock %}

@@ -18,6 +18,7 @@ from utils import process_student_excel
 router = APIRouter(prefix="/admin", dependencies=[Depends(require_admin)])
 templates = Jinja2Templates(directory="templates")
 
+
 # ============================================================================
 # DASHBOARD
 # ============================================================================
@@ -41,6 +42,92 @@ async def admin_dashboard(
         'students_count': len(students_count)
     })
     return templates.TemplateResponse('admin_dashboard.html', context)
+
+# ============================================================================
+# LANGUAGE MANAGEMENT
+# ============================================================================
+
+@router.get("/languages", response_class=HTMLResponse)
+async def manage_languages(
+    request: Request,
+    db: AsyncSession = Depends(get_db)
+):
+    """Manage translation keys"""
+    from language import language_manager
+    
+    # Get all unique keys across all languages
+    all_keys = set()
+    for lang_translations in language_manager.translations.values():
+        all_keys.update(lang_translations.keys())
+    
+    # Build translation data
+    translations_data = []
+    for key in sorted(all_keys):
+        translations_data.append({
+            'key': key,
+            'uz': language_manager.get(key, 'uz', ''),
+            'ru': language_manager.get(key, 'ru', ''),
+            'en': language_manager.get(key, 'en', '')
+        })
+    
+    context = await get_template_context(request, db)
+    context.update({
+        'translations': translations_data,
+        'languages': language_manager.get_available_languages()
+    })
+    return templates.TemplateResponse('admin/languages.html', context)
+
+@router.post("/languages/save")
+async def save_translation(
+    request: Request,
+    key: str = Form(...),
+    value_uz: str = Form(""),
+    value_ru: str = Form(""),
+    value_en: str = Form(""),
+    original_key: str = Form(""),
+    db: AsyncSession = Depends(get_db)
+):
+    """Save translation for all languages"""
+    from language import language_manager
+    
+    try:
+        # If key was changed, delete old key
+        if original_key and original_key != key:
+            for lang in ['uz', 'ru', 'en']:
+                language_manager.delete_translation(lang, original_key)
+        
+        # Save new translations
+        if value_uz:
+            language_manager.save_translation('uz', key, value_uz)
+        if value_ru:
+            language_manager.save_translation('ru', key, value_ru)
+        if value_en:
+            language_manager.save_translation('en', key, value_en)
+        
+        flash(request, 'Tarjima saqlandi', 'success')
+    except Exception as e:
+        flash(request, f'Xatolik: {str(e)}', 'danger')
+    
+    return RedirectResponse(url="/admin/languages", status_code=303)
+
+@router.post("/languages/delete/{key}")
+async def delete_translation(
+    request: Request,
+    key: str,
+    db: AsyncSession = Depends(get_db)
+):
+    """Delete translation key from all languages"""
+    from language import language_manager
+    
+    try:
+        for lang in ['uz', 'ru', 'en']:
+            language_manager.delete_translation(lang, key)
+        flash(request, 'Tarjima o\'chirildi', 'success')
+    except Exception as e:
+        flash(request, f'Xatolik: {str(e)}', 'danger')
+    
+    return RedirectResponse(url="/admin/languages", status_code=303)
+
 
 # ============================================================================
 # SCHOOL MANAGEMENT
@@ -755,11 +842,14 @@ async def subjects_list(
     """List all subjects"""
     result = await db.execute(select(Subject))
     subjects = result.scalars().all()
+
+    from language import language_manager
+    lang = request.session.get('language', 'uz')
     
     context = await get_template_context(request)
     context.update({
         'items': subjects,
-        'title': 'Fanlar',
+        'title': language_manager.get('subjects', lang),
         'add_url': 'add_subject',
         'delete_url': 'delete_subject'
     })
@@ -861,11 +951,14 @@ async def exam_names_list(
     """List all exam names"""
     result = await db.execute(select(ExamName))
     exam_names = result.scalars().all()
+
+    from language import language_manager
+    lang = request.session.get('language', 'uz')
     
     context = await get_template_context(request)
     context.update({
         'items': exam_names,
-        'title': 'Imtihon nomlari',
+        'title': language_manager.get('exam_names', lang),
         'add_url': 'add_exam_name',
         'delete_url': 'delete_exam_name'
     })
@@ -908,11 +1001,14 @@ async def exam_types_list(
     """List all exam types"""
     result = await db.execute(select(ExamType))
     exam_types = result.scalars().all()
+
+    from language import language_manager
+    lang = request.session.get('language', 'uz')
     
     context = await get_template_context(request)
     context.update({
         'items': exam_types,
-        'title': 'Imtihon turlari',
+        'title': language_manager.get('exam_types', lang),
         'add_url': 'add_exam_type',
         'delete_url': 'delete_exam_type'
     })
@@ -955,11 +1051,14 @@ async def question_types_list(
     """List all question types"""
     result = await db.execute(select(QuestionType))
     question_types = result.scalars().all()
+
+    from language import language_manager
+    lang = request.session.get('language', 'uz')
     
     context = await get_template_context(request)
     context.update({
         'items': question_types,
-        'title': 'Savol turlari',
+        'title': language_manager.get('question_types', lang),
         'add_url': 'add_question_type',
         'delete_url': 'delete_question_type'
     })
@@ -1002,11 +1101,14 @@ async def staff_titles_list(
     """List all staff titles"""
     result = await db.execute(select(StaffTitle))
     staff_titles = result.scalars().all()
+
+    from language import language_manager
+    lang = request.session.get('language', 'uz')
     
     context = await get_template_context(request)
     context.update({
         'items': staff_titles,
-        'title': 'Xodim lavozim nomlari',
+        'title': language_manager.get('staff_titles', lang),
         'add_url': 'add_staff_title',
         'delete_url': 'delete_staff_title'
     })

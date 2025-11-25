@@ -1,56 +1,57 @@
 {% extends "base.html" %}
 
-{% block title %}Choraklar{% endblock %}
+{% block title %}{{ _('quarters') }}{% endblock %}
 
 {% block content %}
 <div class="card">
-    <h2>Choraklar</h2>
-    
+    <h2>{{ _('quarters') }}</h2>
+
     <form method="POST" action="{{ url_for('add_quarter') }}" style="margin-bottom: 2rem;">
         <div style="display: flex; gap: 1rem; align-items: end;">
             <div class="form-group" style="flex: 1; margin-bottom: 0;">
-                <label for="name">Nomi</label>
+                <label for="name">{{ _('name') }}</label>
                 <input type="text" id="name" name="name" required>
             </div>
             <div class="form-group" style="flex: 1; margin-bottom: 0;">
-                <label for="order_num">Tartib raqami</label>
+                <label for="order_num">{{ _('order_number') }}</label>
                 <input type="number" id="order_num" name="order_num" min="1" max="4" required>
             </div>
-            <button type="submit" class="btn btn-success">+ Qo'shish</button>
+            <button type="submit" class="btn btn-success">+ {{ _('add') }}</button>
         </div>
     </form>
-    
+
     {% if quarters %}
-    <table>
-        <thead>
-            <tr>
-                <th>Tartib raqami</th>
-                <th>Nomi</th>
-                <th>Harakatlar</th>
-            </tr>
-        </thead>
-        <tbody>
-            {% for quarter in quarters %}
-            <tr>
-                <td>{{ quarter.order_num }}</td>
-                <td>{{ quarter.name }}</td>
-                <td>
-                    <form method="POST" action="{{ url_for('delete_quarter', id=quarter.id) }}" style="display: inline;" onsubmit="return confirmDelete();">
-                        <button type="submit" class="btn btn-danger btn-sm">O'chirish</button>
-                    </form>
-                </td>
-            </tr>
-            {% endfor %}
-        </tbody>
-    </table>
+    <div class="table-container">
+        <table>
+            <thead>
+                <tr>
+                    <th width="60">{{ _('number') }}</th>
+                    <th>{{ _('order_number') }}</th>
+                    <th>{{ _('name') }}</th>
+                    <th>{{ _('actions') }}</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for quarter in quarters %}
+                <tr>
+                    <td class="row-number">{{ loop.index }}</td>
+                    <td>{{ quarter.order_num }}</td>
+                    <td>{{ quarter.name }}</td>
+                    <td>
+                        <form method="POST" action="{{ url_for('delete_quarter', id=quarter.id) }}"
+                            style="display: inline;" onsubmit="return confirmDelete();">
+                            <button type="submit" class="btn btn-danger btn-sm">{{ _('delete') }}</button>
+                        </form>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
     {% else %}
-    <p>Choraklar topilmadi.</p>
+    <div class="no-data">
+        <p>{{ _('no_data') }}</p>
+    </div>
     {% endif %}
 </div>
-
-<script>
-function confirmDelete() {
-    return confirm("Rostan ham o'chirmoqchimisiz?");
-}
-</script>
 {% endblock %}

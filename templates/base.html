@@ -1,100 +1,128 @@
 <!DOCTYPE html>
-<html lang="uz">
+<html lang="{{ current_language }}">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🎓</text></svg>">
-    <title>{% block title %}TeacherPro{% endblock %}</title>
+    <link rel="icon"
+        href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🎓</text></svg>">
+    <title>{% block title %}{{ _('app_name') }}{% endblock %}</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
     {% block extra_css %}{% endblock %}
 </head>
+
 <body>
     <nav class="navbar">
         <div class="nav-brand">
             <div class="nav-icon">🎓</div>
-            <h1>TeacherPro</h1>
+            <h1>{{ _('app_name') }}</h1>
         </div>
-        
+
         <button class="hamburger-menu" id="hamburgerMenu">
             <span></span>
             <span></span>
             <span></span>
         </button>
-        
+
         <div class="nav-links">
             {% if session.user_id %}
-                <div class="nav-menu" id="navMenu">
-                    {% if session.is_admin %}
-                        <a href="{{ url_for('admin_dashboard') }}" class="nav-link {% if request.endpoint == 'admin_dashboard' %}active{% endif %}">
-                            <span class="nav-icon">🏠</span>
-                            Bosh sahifa
-                        </a>
-                        <a href="{{ url_for('schools_list') }}" class="nav-link {% if request.endpoint == 'schools_list' %}active{% endif %}">
-                            <span class="nav-icon">🏫</span>
-                            Maktablar
-                        </a>
-                        <a href="{{ url_for('employees_list') }}" class="nav-link {% if request.endpoint == 'employees_list' %}active{% endif %}">
-                            <span class="nav-icon">👨‍👦‍👦</span>
-                            Xodimlar
-                        </a>
-                        <div class="nav-dropdown" id="settingsDropdown">
-                            <a href="#" class="nav-link">
-                                <span class="nav-icon">⚙️</span>
-                                Sozlamalar
-                                <span class="dropdown-arrow">▼</span>
-                            </a>
-                            <div class="dropdown-menu" style="background: #638ba7;">
-                                <a href="{{ url_for('subjects_list') }}" class="dropdown-link">Fanlar</a>
-                                <a href="{{ url_for('quarters_list') }}" class="dropdown-link">Choraklar</a>
-                                <a href="{{ url_for('exam_names_list') }}" class="dropdown-link">Imtihon nomlari</a>
-                                <a href="{{ url_for('exam_types_list') }}" class="dropdown-link">Imtihon turlari</a>
-                                <a href="{{ url_for('question_types_list') }}" class="dropdown-link">Savol turlari</a>
-                                <a href="{{ url_for('staff_titles_list') }}" class="dropdown-link">Lavozimlar</a>
-                            </div>
-                        </div>
-                    {% else %}
-                        <a href="{{ url_for('teacher_dashboard') }}" class="nav-link {% if request.endpoint == 'teacher_dashboard' %}active{% endif %}">
-                            <span class="nav-icon">🏠</span>
-                            Bosh sahifa
-                        </a>
-                        <a href="{{ url_for('create_exam') }}" class="nav-link {% if request.endpoint == 'create_exam' %}active{% endif %}">
-                            <span class="nav-icon">📝</span>
-                            Yangi imtihon
-                        </a>
-                    {% endif %}
-                </div>
-                
-                <div class="nav-user" id="navUser">
-                    <div class="user-info">
-                        <span class="user-avatar">👩‍💻</span>
-                        <div class="user-details">
-                            <span class="user-name">{{ session.full_name }}</span>
-                            <span class="user-role">{% if session.is_admin %}Administrator{% else %}O'qituvchi{% endif %}</span>
-                        </div>
-                    </div>
-                    <a href="{{ url_for('logout') }}" class="logout-btn">
-                        <span class="logout-icon">🚪</span>
-                        Chiqish
+            <div class="nav-menu" id="navMenu">
+                {% if session.is_admin %}
+                <a href="{{ url_for('admin_dashboard') }}"
+                    class="nav-link {% if request.endpoint == 'admin_dashboard' %}active{% endif %}">
+                    {{ _('dashboard') }}
+                </a>
+                <a href="{{ url_for('schools_list') }}"
+                    class="nav-link {% if request.endpoint == 'schools_list' %}active{% endif %}">
+                    {{ _('schools') }}
+                </a>
+                <a href="{{ url_for('employees_list') }}"
+                    class="nav-link {% if request.endpoint == 'employees_list' %}active{% endif %}">
+                    {{ _('employees') }}
+                </a>
+                <div class="nav-dropdown" id="settingsDropdown">
+                    <a href="#" class="nav-link">
+                        {{ _('settings') }}
+                        <span class="dropdown-arrow">▼</span>
                     </a>
+                    <div class="dropdown-menu" style="background: #638ba7;">
+                        <a href="{{ url_for('subjects_list') }}" class="dropdown-link">{{ _('subjects') }}</a>
+                        <a href="{{ url_for('quarters_list') }}" class="dropdown-link">{{ _('quarters') }}</a>
+                        <a href="{{ url_for('exam_names_list') }}" class="dropdown-link">{{ _('exam_names') }}</a>
+                        <a href="{{ url_for('exam_types_list') }}" class="dropdown-link">{{ _('exam_types') }}</a>
+                        <a href="{{ url_for('question_types_list') }}" class="dropdown-link">{{ _('question_types')
+                            }}</a>
+                        <a href="{{ url_for('staff_titles_list') }}" class="dropdown-link">{{ _('staff_titles') }}</a>
+                        <a href="{{ url_for('manage_languages') }}" class="dropdown-link">{{ _('manage_languages')
+                            }}</a>
+                    </div>
                 </div>
+                {% else %}
+                <a href="{{ url_for('teacher_dashboard') }}"
+                    class="nav-link {% if request.endpoint == 'teacher_dashboard' %}active{% endif %}">
+                    {{ _('dashboard') }}
+                </a>
+                <a href="{{ url_for('create_exam') }}"
+                    class="nav-link {% if request.endpoint == 'create_exam' %}active{% endif %}">
+                    {{ _('create_exam') }}
+                </a>
+                {% endif %}
+            </div>
+
+            <div class="nav-user" id="navUser">
+                <div class="user-info-compact">
+                    <span class="user-avatar">👩‍💻</span>
+                    <span class="user-name-short">{{ session.full_name.split(' ')[0] }}</span>
+                </div>
+
+                <!-- Compact Language Selector with Flags -->
+                <div class="language-selector-compact">
+                    <div class="language-current" id="languageCurrent">
+                        {% if current_language == 'uz' %}🇺🇿{% endif %}
+                        {% if current_language == 'ru' %}🇷🇺{% endif %}
+                        {% if current_language == 'en' %}🇬🇧{% endif %}
+                    </div>
+                    <div class="language-dropdown-compact" id="languageDropdown">
+                        <button type="button" onclick="changeLanguage('uz')"
+                            class="language-option {% if current_language == 'uz' %}active{% endif %}">
+                            <span class="language-flag">🇺🇿</span>
+                            <span class="language-name">O'Z</span>
+                        </button>
+                        <button type="button" onclick="changeLanguage('ru')"
+                            class="language-option {% if current_language == 'ru' %}active{% endif %}">
+                            <span class="language-flag">🇷🇺</span>
+                            <span class="language-name">RU</span>
+                        </button>
+                        <button type="button" onclick="changeLanguage('en')"
+                            class="language-option {% if current_language == 'en' %}active{% endif %}">
+                            <span class="language-flag">🇬🇧</span>
+                            <span class="language-name">EN</span>
+                        </button>
+                    </div>
+                </div>
+
+                <a href="{{ url_for('logout') }}" class="logout-btn-compact" title="{{ _('logout') }}">
+                    <span class="logout-icon">🚪</span>
+                </a>
+            </div>
             {% endif %}
         </div>
     </nav>
-    
+
     <!-- Mobile Overlay -->
     <div class="mobile-overlay" id="mobileOverlay"></div>
-    
+
     <div class="container">
         {% with messages = get_flashed_messages(with_categories=true) %}
-            {% if messages %}
-                {% for category, message in messages %}
-                    <div class="alert alert-{{ category }}">
-                        {{ message }}
-                    </div>
-                {% endfor %}
-            {% endif %}
+        {% if messages %}
+        {% for category, message in messages %}
+        <div class="alert alert-{{ category }}">
+            {{ message }}
+        </div>
+        {% endfor %}
+        {% endif %}
         {% endwith %}
-        
+
         {% block content %}{% endblock %}
     </div>
 
@@ -102,12 +130,12 @@
     <footer class="footer">
         <div class="footer-content">
             <div class="footer-section">
-                <h3>TeacherPro</h3>
-                <p>Maktab o'qituvchilari uchun imtihon natijalarini boshqarish tizimi</p>
+                <h3>{{ _('app_name') }}</h3>
+                <p>{{ _('footer_description') }}</p>
             </div>
-            
+
             <div class="footer-section">
-                <h4>Dasturchilar</h4>
+                <h4>{{ _('developers') }}</h4>
                 <div class="developer-info">
                     <div class="developer">
                         <strong>Abdug'afforov Javohir</strong>
@@ -118,7 +146,7 @@
                             </a>
                         </div>
                     </div>
-                    
+
                     <div class="developer">
                         <strong>Mo'minov Asrorbek</strong>
                         <div class="developer-contacts">
@@ -130,23 +158,24 @@
                     </div>
                 </div>
             </div>
-            
+
             <div class="footer-section">
-                <h4>Aloqa</h4>
-                <p>Taklif va shikoyatlaringiz bo'lsa, dasturchilar bilan bog'laning</p>
+                <h4>{{ _('contact') }}</h4>
+                <p>{{ _('footer_description') }}</p>
                 <div class="footer-links">
                     <a href="https://t.me/AbdJavohir" class="footer-link" target="_blank">Telegram</a>
-                    <a href="tel:+998931497856" class="footer-link">Telefon</a>
+                    <a href="tel:+998931497856" class="footer-link">{{ _('phone') }}</a>
                 </div>
             </div>
         </div>
-        
+
         <div class="footer-bottom">
-            <p>&copy; 2025 TeacherPro. Barcha huquqlar himoyalangan.</p>
+            <p>&copy; 2025 {{ _('app_name') }}. {{ _('all_rights_reserved') }}</p>
         </div>
     </footer>
-    
+
     <script src="{{ url_for('static', filename='script.js') }}"></script>
     {% block extra_js %}{% endblock %}
 </body>
+
 </html>

@@ -1,20 +1,21 @@
 {% extends "base.html" %}
 
-{% block title %}O'quvchilar{% endblock %}
+{% block title %}{{ _('students') }}{% endblock %}
 
 {% block content %}
 <div class="card">
-    <h2>O'quvchilar</h2>
-    
+    <h2>{{ _('students') }}</h2>
+
     <div class="filter-box">
         <form method="GET">
             <div style="display: flex; gap: 1rem; align-items: end;">
                 <div class="form-group" style="flex: 1; margin-bottom: 0;">
-                    <label for="class_id">Sinf bo'yicha filtrlash</label>
+                    <label for="class_id">{{ _('filter_by_class') }}</label>
                     <select id="class_id" name="class_id" onchange="this.form.submit()">
-                        <option value="">Barchasi</option>
+                        <option value="">{{ _('all') }}</option>
                         {% for class in classes %}
-                        <option value="{{ class.id }}" {% if request.args.get('class_id')|string == class.id|string %}selected{% endif %}>
+                        <option value="{{ class.id }}" {% if request.args.get('class_id')|string==class.id|string
+                            %}selected{% endif %}>
                             {{ class.name }} ({{ class.school.name }})
                         </option>
                         {% endfor %}
@@ -23,62 +24,65 @@
             </div>
         </form>
     </div>
-    
+
     <div style="margin-bottom: 1rem;">
-        <a href="{{ url_for('add_student') }}" class="btn btn-success">+ Yangi o'quvchi</a>
+        <a href="{{ url_for('add_student') }}" class="btn btn-success">+ {{ _('new_student') }}</a>
     </div>
-    
+
     {% if selected_class %}
     <div class="exam-info-box">
-        <p><strong>Sinf:</strong> {{ selected_class.name }}</p>
-        <p><strong>Maktab:</strong> {{ selected_class.school.name }}</p>
+        <p><strong>{{ _('class') }}:</strong> {{ selected_class.name }}</p>
+        <p><strong>{{ _('school') }}:</strong> {{ selected_class.school.name }}</p>
     </div>
     {% endif %}
-    
+
     {% if students %}
-    <table>
-        <thead>
-            <tr>
-                <th>Ism</th>
-                <th>Familiya</th>
-                <th>Jins</th>
-                <th>Guruh</th>
-                <th>Sinf</th>
-                <th>Harakatlar</th>
-            </tr>
-        </thead>
-        <tbody>
-            {% for student in students %}
-            <tr>
-                <td>{{ student.first_name }}</td>
-                <td>{{ student.last_name }}</td>
-                <td>{% if student.gender == 1 %}O'g'il{% else %}Qiz{% endif %}</td>
-                <td>{{ student.group_number }}-guruh</td>
-                <td>
-                    {% for class in classes %}
+    <div class="table-container">
+        <table>
+            <thead>
+                <tr>
+                    <th width="60">{{ _('number') }}</th>
+                    <th>{{ _('first_name') }}</th>
+                    <th>{{ _('last_name') }}</th>
+                    <th>{{ _('gender') }}</th>
+                    <th>{{ _('group') }}</th>
+                    <th>{{ _('class') }}</th>
+                    <th>{{ _('actions') }}</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for student in students %}
+                <tr>
+                    <td class="row-number">{{ loop.index }}</td>
+                    <td>{{ student.first_name }}</td>
+                    <td>{{ student.last_name }}</td>
+                    <td>{% if student.gender == 1 %}{{ _('male') }}{% else %}{{ _('female') }}{% endif %}</td>
+                    <td>{{ student.group_number }}-{{ _('group') }}</td>
+                    <td>
+                        {% for class in classes %}
                         {% if class.id == student.class_id %}
-                            {{ class.name }}
+                        {{ class.name }}
                         {% endif %}
-                    {% endfor %}
-                </td>
-                <td class="action-buttons">
-                    <a href="{{ url_for('edit_student', id=student.id) }}" class="btn btn-primary btn-sm">Tahrirlash</a>
-                    <form method="POST" action="{{ url_for('delete_student', id=student.id) }}" style="display: inline;" onsubmit="return confirmDelete();">
-                        <button type="submit" class="btn btn-danger btn-sm">O'chirish</button>
-                    </form>
-                </td>
-            </tr>
-            {% endfor %}
-        </tbody>
-    </table>
+                        {% endfor %}
+                    </td>
+                    <td class="action-buttons">
+                        <a href="{{ url_for('edit_student', id=student.id) }}" class="btn btn-primary btn-sm">{{
+                            _('edit')
+                            }}</a>
+                        <form method="POST" action="{{ url_for('delete_student', id=student.id) }}"
+                            style="display: inline;" onsubmit="return confirmDelete();">
+                            <button type="submit" class="btn btn-danger btn-sm">{{ _('delete') }}</button>
+                        </form>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
     {% else %}
-    <p>O'quvchilar topilmadi.</p>
+    <div class="no-data">
+        <p>{{ _('no_data') }}</p>
+    </div>
     {% endif %}
 </div>
-
-<script>
-function confirmDelete() {
-    return confirm("Rostan ham o'chirmoqchimisiz?");
-}
-</script>
 {% endblock %}

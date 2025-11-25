@@ -7,7 +7,7 @@ from starlette.middleware.sessions import SessionMiddleware
 import os
 
 from models import init_db
-from routers import auth, admin, teacher
+from routers import auth, admin, teacher, language
 from dependencies import get_flashed_messages
 
 # Lifespan context manager for startup/shutdown events
@@ -74,6 +74,9 @@ async def add_template_context(request: Request, call_next):
             'teacher_dashboard': '/teacher/dashboard', 'create_exam': '/teacher/create-exam',
             'enter_scores': '/teacher/enter-scores/{exam_id}', 'view_results': '/teacher/results/{exam_id}',
             'download_results': '/teacher/download/{exam_id}/{format}',
+            'manage_languages': '/admin/languages',
+            'save_translation': '/admin/languages/save',
+            'delete_translation': '/admin/languages/delete/{key}',
         }
         
         base_path = route_map.get(name, f'/{name}')
@@ -100,6 +103,7 @@ async def add_template_context(request: Request, call_next):
 app.include_router(auth.router, tags=["Authentication"])
 app.include_router(admin.router, tags=["Admin"])
 app.include_router(teacher.router, tags=["Teacher"])
+app.include_router(language.router, tags=["Language"])
 
 # Root redirect (handled by auth router)
 # Additional routes can be added here if needed

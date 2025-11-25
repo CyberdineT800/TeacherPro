@@ -1,21 +1,21 @@
 {% extends "base.html" %}
 
-{% block title %}{% if employee %}Xodimni tahrirlash{% else %}Yangi xodim{% endif %}{% endblock %}
+{% block title %}{% if employee %}{{ _('edit_employee') }}{% else %}{{ _('new_employee') }}{% endif %}{% endblock %}
 
 {% block content %}
 <div class="card">
-    <h2>{% if employee %}Xodimni tahrirlash{% else %}Yangi xodim{% endif %}</h2>
+    <h2>{% if employee %}{{ _('edit_employee') }}{% else %}{{ _('new_employee') }}{% endif %}</h2>
 
     <form method="POST">
         <div class="form-row">
             <div class="form-group">
-                <label for="first_name">Ism *</label>
+                <label for="first_name">{{ _('first_name') }} *</label>
                 <input type="text" id="first_name" name="first_name"
                     value="{{ employee.first_name if employee else '' }}" required>
             </div>
 
             <div class="form-group">
-                <label for="last_name">Familiya *</label>
+                <label for="last_name">{{ _('last_name') }} *</label>
                 <input type="text" id="last_name" name="last_name" value="{{ employee.last_name if employee else '' }}"
                     required>
             </div>
@@ -23,28 +23,28 @@
 
         <div class="form-row">
             <div class="form-group">
-                <label for="username">Foydalanuvchi nomi *</label>
+                <label for="username">{{ _('username') }} *</label>
                 <input type="text" id="username" name="username" value="{{ employee.username if employee else '' }}"
                     required>
             </div>
 
             <div class="form-group">
-                <label for="email">Email</label>
+                <label for="email">{{ _('email') }}</label>
                 <input type="email" id="email" name="email" value="{{ employee.email if employee else '' }}">
             </div>
         </div>
 
         <div class="form-group">
-            <label for="password">Parol {% if not employee %}*{% else %}(bo'sh qoldiring, agar o'zgartirmasangiz){%
-                endif %}</label>
+            <label for="password">{{ _('password') }} {% if not employee %}*{% else %}({{ _('password_leave_blank')
+                }}){% endif %}</label>
             <input type="password" id="password" name="password" {% if not employee %}required{% endif %}>
         </div>
 
         <div class="form-row">
             <div class="form-group">
-                <label for="school_id">Maktab</label>
+                <label for="school_id">{{ _('school') }}</label>
                 <select id="school_id" name="school_id">
-                    <option value="">-- Tanlang --</option>
+                    <option value="">{{ _('select') }}</option>
                     {% for school in schools %}
                     <option value="{{ school.id }}" {% if employee and employee.school_id==school.id %}selected{% endif
                         %}>
@@ -55,9 +55,9 @@
             </div>
 
             <div class="form-group">
-                <label for="staff_title_id">Lavozim</label>
+                <label for="staff_title_id">{{ _('staff_title') }}</label>
                 <select id="staff_title_id" name="staff_title_id">
-                    <option value="">-- Tanlang --</option>
+                    <option value="">{{ _('select') }}</option>
                     {% for title in titles %}
                     <option value="{{ title.id }}" {% if employee and employee.staff_title_id==title.id %}selected{%
                         endif %}>
@@ -69,7 +69,7 @@
         </div>
 
         <div class="form-group">
-            <label>Biriktirilgan sinflar</label>
+            <label>{{ _('assigned_classes') }}</label>
             <div class="checkbox-group">
                 {% for class in classes %}
                 <div class="checkbox-item">
@@ -82,7 +82,7 @@
         </div>
 
         <div class="form-group">
-            <label>Biriktirilgan fanlar</label>
+            <label>{{ _('assigned_subjects') }}</label>
             <div class="checkbox-group">
                 {% for subject in subjects %}
                 <div class="checkbox-item">
@@ -99,30 +99,30 @@
             <div class="checkbox-item">
                 <input type="checkbox" id="is_admin" name="is_admin" {% if employee and employee.is_admin %}checked{%
                     endif %}>
-                <label for="is_admin">Admin huquqi</label>
+                <label for="is_admin">{{ _('admin_rights') }}</label>
             </div>
 
             <div class="checkbox-item">
                 <input type="checkbox" id="is_active" name="is_active" {% if not employee or employee.is_active
                     %}checked{% endif %}>
-                <label for="is_active">Faol xodim</label>
+                <label for="is_active">{{ _('active_employee') }}</label>
             </div>
         </div>
 
         {% if employee %}
         <div class="timestamp-info">
             <div class="timestamp-item">
-                <strong>Yaratilgan:</strong> {{ employee.created_at.strftime('%d.%m.%Y %H:%M') }}
+                <strong>{{ _('created_at') }}:</strong> {{ employee.created_at.strftime('%d.%m.%Y %H:%M') }}
             </div>
             <div class="timestamp-item">
-                <strong>Yangilangan:</strong> {{ employee.updated_at.strftime('%d.%m.%Y %H:%M') }}
+                <strong>{{ _('updated_at') }}:</strong> {{ employee.updated_at.strftime('%d.%m.%Y %H:%M') }}
             </div>
         </div>
         {% endif %}
 
         <div style="margin-top: 2rem;">
-            <button type="submit" class="btn btn-success">Saqlash</button>
-            <a href="{{ url_for('employees_list') }}" class="btn btn-secondary">Bekor qilish</a>
+            <button type="submit" class="btn btn-success">{{ _('save') }}</button>
+            <a href="{{ url_for('employees_list') }}" class="btn btn-secondary">{{ _('cancel') }}</a>
         </div>
     </form>
 </div>

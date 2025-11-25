@@ -1,32 +1,32 @@
 {% extends "base.html" %}
 
-{% block title %}O'qituvchi Bosh sahifa{% endblock %}
+{% block title %}{{ _('teacher') }} {{ _('dashboard') }}{% endblock %}
 
 {% block content %}
 <div class="card">
-    <h2>Xush kelibsiz, {{ session.full_name }}</h2>
-    
+    <h2>{{ _('welcome') }}, {{ session.full_name }}</h2>
+
     {% if school %}
     <div class="exam-info-box">
-        <p><strong>Maktab:</strong> {{ school.name }}</p>
+        <p><strong>{{ _('school') }}:</strong> {{ school.name }}</p>
     </div>
     {% endif %}
-    
+
     <div style="margin-bottom: 2rem;">
-        <a href="{{ url_for('create_exam') }}" class="btn btn-success">+ Yangi imtihon yaratish</a>
+        <a href="{{ url_for('create_exam') }}" class="btn btn-success">+ {{ _('create_exam') }}</a>
     </div>
-    
+
     {% if exams %}
-    <h3>Oxirgi imtihonlar</h3>
+    <h3>{{ _('recent_exams') }}</h3>
     <table>
         <thead>
             <tr>
-                <th>Sinf</th>
-                <th>Fan</th>
-                <th>Chorak</th>
-                <th>Imtihon</th>
-                <th>Sana</th>
-                <th>Harakatlar</th>
+                <th>{{ _('class') }}</th>
+                <th>{{ _('subject') }}</th>
+                <th>{{ _('quarter') }}</th>
+                <th>{{ _('exam') }}</th>
+                <th>{{ _('created_at') }}</th>
+                <th>{{ _('actions') }}</th>
             </tr>
         </thead>
         <tbody>
@@ -38,14 +38,15 @@
                 <td>{{ exam.exam_name }}</td>
                 <td>{{ exam.created_at.strftime('%d.%m.%Y %H:%M') }}</td>
                 <td class="action-buttons">
-                    <a href="{{ url_for('view_results', exam_id=exam.id) }}" class="btn btn-primary btn-sm">Ko'rish</a>
+                    <a href="{{ url_for('view_results', exam_id=exam.id) }}" class="btn btn-primary btn-sm">{{
+                        _('view_results') }}</a>
                 </td>
             </tr>
             {% endfor %}
         </tbody>
     </table>
     {% else %}
-    <p>Hozircha imtihonlar yo'q. Yangi imtihon yarating!</p>
+    <p>{{ _('no_exams_yet') }}</p>
     {% endif %}
 </div>
 {% endblock %}

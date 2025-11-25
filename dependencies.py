@@ -4,6 +4,7 @@ from fastapi.responses import RedirectResponse
 from sqlalchemy.ext.asyncio import AsyncSession
 from models import get_db, Employee
 from sqlalchemy import select
+from language import language_manager
 
 def get_flashed_messages(request: Request, with_categories: bool = False):
     """Get flash messages from session (compatible with Flask)"""
@@ -58,12 +59,19 @@ async def require_admin(
         )
     return current_user
 
-async def get_template_context(request: Request) -> Dict[str, Any]:
+async def get_current_language(request: Request) -> str:
+    """Get current language from session"""
+    return request.session.get('language', 'uz')
+
+async def get_template_context(request: Request, db: AsyncSession = None) -> Dict[str, Any]:
+    """Get template context with language support and all necessary utilities"""
+    # Setup url_for function
     url_for = getattr(request.state, 'url_for_custom', None)
     if not url_for:
         def url_for(name: str, **params):
             return f"/{name}"
     
+    # Setup request args wrapper for query params
     class RequestArgsWrapper:
         def __init__(self, query_params):
             self._params = query_params
@@ -80,9 +88,26 @@ async def get_template_context(request: Request) -> Dict[str, Any]:
     if not hasattr(request, 'args'):
         request.args = RequestArgsWrapper(request.query_params)
     
-    return {
+    # Get language settings
+    lang_code = request.session.get('language', 'uz')
+    
+    # Build context
+    context = {
         'request': request,
         'session': request.session,
         'get_flashed_messages': lambda with_categories=False: get_flashed_messages(request, with_categories),
-        'url_for': url_for  
+        'url_for': url_for,
+        'current_language': lang_code,
+        'languages': language_manager.get_available_languages(),
+        '_': lambda key: language_manager.get(key, lang_code)
     }
+    
+    # Add user if available
+    user_id = request.session.get('user_id')
+    if user_id and db:
+        result = await db.execute(select(Employee).where(Employee.id == user_id))
+        employee = result.scalar_one_or_none()
+        if employee:
+            context['user'] = employee
+    
+    return context

@@ -1,163 +1,135 @@
 {% extends "base.html" %}
 
-{% block title %}Yangi imtihon yaratish{% endblock %}
+{% block title %}{{ _('create_exam') }}{% endblock %}
 
 {% block content %}
 <div class="card">
-    <h2>Yangi imtihon yaratish</h2>
-    
+    <h2>{{ _('create_exam') }}</h2>
+
     <form method="POST" id="exam_form">
         <div class="form-row">
             <div class="form-group">
-                <label for="class_id">Sinf *</label>
+                <label for="class_id">{{ _('class') }} *</label>
                 <select id="class_id" name="class_id" required onchange="updateGroupFilter()">
-                    <option value="">-- Tanlang --</option>
+                    <option value="">{{ _('select') }}</option>
                     {% for cls in classes %}
                     <option value="{{ cls.id }}">{{ cls.name }}</option>
                     {% endfor %}
                 </select>
             </div>
-            
+
             <div class="form-group">
-                <label for="subject_id">Fan *</label>
+                <label for="subject_id">{{ _('subject') }} *</label>
                 <select id="subject_id" name="subject_id" required>
-                    <option value="">-- Tanlang --</option>
+                    <option value="">{{ _('select') }}</option>
                     {% for subject in subjects %}
                     <option value="{{ subject.id }}">{{ subject.name }}</option>
                     {% endfor %}
                 </select>
             </div>
         </div>
-        
+
         <div class="form-row">
             <div class="form-group">
-                <label for="quarter_id">Chorak *</label>
+                <label for="quarter_id">{{ _('quarter') }} *</label>
                 <select id="quarter_id" name="quarter_id" required>
-                    <option value="">-- Tanlang --</option>
+                    <option value="">{{ _('select') }}</option>
                     {% for quarter in quarters %}
                     <option value="{{ quarter.id }}">{{ quarter.name }}</option>
                     {% endfor %}
                 </select>
             </div>
-            
+
             <div class="form-group">
-                <label for="exam_name_id">Imtihon nomi *</label>
+                <label for="exam_name_id">{{ _('exam_name') }} *</label>
                 <select id="exam_name_id" name="exam_name_id" required>
-                    <option value="">-- Tanlang --</option>
+                    <option value="">{{ _('select') }}</option>
                     {% for exam_name in exam_names %}
                     <option value="{{ exam_name.id }}">{{ exam_name.name }}</option>
                     {% endfor %}
                 </select>
             </div>
         </div>
-        
+
         <div class="form-row">
             <div class="form-group">
-                <label for="exam_type_id">Imtihon turi *</label>
+                <label for="exam_type_id">{{ _('exam_type') }} *</label>
                 <select id="exam_type_id" name="exam_type_id" required>
-                    <option value="">-- Tanlang --</option>
+                    <option value="">{{ _('select') }}</option>
                     {% for exam_type in exam_types %}
                     <option value="{{ exam_type.id }}">{{ exam_type.name }}</option>
                     {% endfor %}
                 </select>
             </div>
-            
-            <!-- <div class="form-group">
-                <label for="group_filter">Guruh bo'yicha filtrlash</label>
-                <select id="group_filter" name="group_filter">
-                    <option value="all">Barcha guruhlar</option>
-                    <option value="1">1-guruh</option>
-                    <option value="2">2-guruh</option>
-                </select>
-                <small>Ballarni kiritish bosqichida tanlangan guruh ko'rsatiladi</small>
-            </div> -->
         </div>
-        
+
         <div class="form-group">
-            <label for="num_questions">Savollar soni *</label>
-            <input type="number" id="num_questions" name="num_questions" 
-                   min="1" max="100" required onchange="generateQuestionFields()">
+            <label for="num_questions">{{ _('num_questions') }} *</label>
+            <input type="number" id="num_questions" name="num_questions" min="1" max="100" required
+                onchange="generateQuestionFields()">
         </div>
-        
+
         <!-- Hidden template for question types -->
         <select id="question_type_template" style="display: none;">
-            <option value="">-- Tanlang --</option>
+            <option value="">{{ _('select') }}</option>
             {% for qt in question_types %}
             <option value="{{ qt.id }}">{{ qt.name }}</option>
             {% endfor %}
         </select>
-        
+
         <div id="questions_container"></div>
-        
+
         <div style="margin-top: 2rem;">
-            <button type="submit" class="btn btn-success">Yaratish va balllarni kiritish</button>
-            <a href="{{ url_for('teacher_dashboard') }}" class="btn btn-secondary">Bekor qilish</a>
+            <button type="submit" class="btn btn-success">{{ _('create_and_enter_scores') }}</button>
+            <a href="{{ url_for('teacher_dashboard') }}" class="btn btn-secondary">{{ _('cancel') }}</a>
         </div>
     </form>
 </div>
 
 <script>
-function generateQuestionFields() {
-    const numQuestions = document.getElementById('num_questions').value;
-    const container = document.getElementById('questions_container');
-    const template = document.getElementById('question_type_template');
-    
-    container.innerHTML = '';
-    
-    if (numQuestions > 0) {
-        const questionHeader = document.createElement('h3');
-        questionHeader.textContent = 'Savollar';
-        container.appendChild(questionHeader);
-        
-        for (let i = 1; i <= numQuestions; i++) {
-            const questionDiv = document.createElement('div');
-            questionDiv.className = 'question-item';
-            
-            questionDiv.innerHTML = `
-                <h4>${i}-savol</h4>
+    function generateQuestionFields() {
+        const numQuestions = document.getElementById('num_questions').value;
+        const container = document.getElementById('questions_container');
+        const template = document.getElementById('question_type_template');
+
+        container.innerHTML = '';
+
+        if (numQuestions > 0) {
+            const questionHeader = document.createElement('h3');
+            questionHeader.textContent = '{{ _("questions") }}';
+            container.appendChild(questionHeader);
+
+            for (let i = 1; i <= numQuestions; i++) {
+                const questionDiv = document.createElement('div');
+                questionDiv.className = 'question-item';
+
+                questionDiv.innerHTML = `
+                <h4>${i}-{{ _("question") }}</h4>
                 <div class="form-row">
                     <div class="form-group">
-                        <label for="question_type_${i}">Savol turi *</label>
+                        <label for="question_type_${i}">{{ _("question_type") }} *</label>
                         <select id="question_type_${i}" name="question_type_${i}" required>
                             ${template.innerHTML}
                         </select>
                     </div>
                     <div class="form-group">
-                        <label for="max_score_${i}">Maksimal ball *</label>
+                        <label for="max_score_${i}">{{ _("max_score") }} *</label>
                         <input type="number" id="max_score_${i}" name="max_score_${i}" 
                                step="0.1" min="0.1" required>
                     </div>
                 </div>
             `;
-            
-            container.appendChild(questionDiv);
+
+                container.appendChild(questionDiv);
+            }
         }
     }
-}
 
-function updateGroupFilter() {
-    const classId = document.getElementById('class_id').value;
-    const groupFilter = document.getElementById('group_filter');
-    
-    if (classId) {
-        // Guruh filtri faollashtiriladi
-        groupFilter.disabled = false;
-    } else {
-        // Sinf tanlanmagan, guruh filtri bloklanadi
-        groupFilter.disabled = true;
-        groupFilter.value = 'all';
-    }
-}
-
-// Auto-generate question fields on page load if num_questions has value
-document.addEventListener('DOMContentLoaded', function() {
-    const numQuestions = document.getElementById('num_questions');
-    if (numQuestions && numQuestions.value) {
-        generateQuestionFields();
-    }
-    
-    // Guruh filtri dastlabki holatini sozlash
-    updateGroupFilter();
-});
+    document.addEventListener('DOMContentLoaded', function () {
+        const numQuestions = document.getElementById('num_questions');
+        if (numQuestions && numQuestions.value) {
+            generateQuestionFields();
+        }
+    });
 </script>
 {% endblock %}
