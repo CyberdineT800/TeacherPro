@@ -158,5 +158,10 @@
     "translation_saved": "Перевод сохранен",
     "translation_deleted": "Перевод удален",
     "translation_error": "Ошибка при сохранении перевода",
-    "add_new": "Добавить новый"
+    "add_new": "Добавить новый",
+    "class_leader": "Класс руководитель",
+    "class_leader_first_name": "Имя класс руководителя",
+    "class_leader_last_name": "Фамилия класс руководителя",
+    "class_leader_phone": "Телефон класс руководителя",
+    "not_set": "Не установлено"
 }

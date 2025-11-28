@@ -157,5 +157,10 @@
     "delete_translation": "Delete Translation",
     "translation_saved": "Translation Saved",
     "translation_deleted": "Translation Deleted",
-    "translation_error": "Translation Error"
+    "translation_error": "Translation Error",
+    "class_leader": "Class Leader",
+    "class_leader_first_name": "Class Leader First Name",
+    "class_leader_last_name": "Class Leader Last Name",
+    "class_leader_phone": "Class Leader Phone",
+    "not_set": "Not set"
 }

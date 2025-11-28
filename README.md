@@ -6,12 +6,40 @@ A modern, async school grading management system built with FastAPI and async SQ
 
 ## Features
 
-- 🚀 **Async Operations** - All database and I/O operations are asynchronous
-- 👥 **Role-Based Access** - Admin and Teacher roles with different permissions
-- 📊 **Exam Management** - Create exams, enter scores, view results
-- 📄 **Report Generation** - Export results to Excel, PDF, and Word formats
-- 🏫 **School Management** - Manage schools, classes, students, and employees
-- 📁 **Excel Import** - Bulk import students from Excel files
+### Core Functionality
+- 🚀 **Async Operations** - All database and I/O operations are fully asynchronous for maximum performance
+- 👥 **Role-Based Access Control** - Admin and Teacher roles with granular permissions
+- 🌐 **Multi-Language Support** - Full internationalization with Uzbek, Russian, and English languages
+- 🔐 **Secure Authentication** - Session-based authentication with password hashing
+
+### Admin Features
+- 🏫 **School Management** - Create, edit, and delete schools with contact information
+- 👨‍💼 **Employee Management** - Manage teachers and staff with role assignments
+- 👨‍🎓 **Student Management** - Add, edit, and organize students by class and group
+- 📚 **Class Management** - Create and manage classes with school associations
+- 🎯 **Teacher Assignments** - Assign specific classes and subjects to teachers
+- � **Bulk Import** - Import students from Excel files with automatic parsing
+- 🗂️ **Reference Data Management** - Manage subjects, quarters, exam types, exam names, question types, and staff titles
+- 🌍 **Language Administration** - Manage translation keys and values for all supported languages
+
+### Teacher Features
+- 📝 **Exam Creation** - Create exams with customizable questions and scoring
+- ✍️ **Score Entry** - Enter and update student scores with group filtering (all, group 1, group 2)
+- � **Results Viewing** - View comprehensive exam results with statistics
+- 📄 **Multi-Format Reports** - Export exam results to:
+  - **Excel** (.xlsx) - Formatted spreadsheets with styling
+  - **PDF** - Professional PDF documents with tables
+  - **Word** (.docx) - Editable Word documents
+- � **Class Filtering** - Access only assigned classes and subjects
+- 📈 **Performance Analytics** - View average scores, highest/lowest scores, and pass rates
+
+### Technical Features
+- ⚡ **FastAPI Framework** - Modern, high-performance async web framework
+- 🗄️ **Async SQLAlchemy** - Asynchronous ORM with SQLite backend
+- 🎨 **Jinja2 Templates** - Server-side rendering with template inheritance
+- � **Data Processing** - Advanced Excel/PDF/Word generation with formatting
+- 🔄 **Auto-reload** - Development mode with hot reload support
+- 📚 **API Documentation** - Automatic Swagger UI and ReDoc documentation
 
 ## Quick Start
 

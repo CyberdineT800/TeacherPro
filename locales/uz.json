@@ -158,5 +158,10 @@
     "translation_saved": "Tarjima saqlandi",
     "translation_deleted": "Tarjima o'chirildi",
     "translation_error": "Tarjimani saqlashda xatolik",
-    "add_new": "Yangi qo'shish"
+    "add_new": "Yangi qo'shish",
+    "class_leader": "Sinf rahbari",
+    "class_leader_first_name": "Sinf rahbarining ismi",
+    "class_leader_last_name": "Sinf rahbarining familiyasi",
+    "class_leader_phone": "Sinf rahbarining telefoni",
+    "not_set": "Belgilanmagan"
 }

@@ -33,6 +33,9 @@
     <div class="exam-info-box">
         <p><strong>{{ _('class') }}:</strong> {{ selected_class.name }}</p>
         <p><strong>{{ _('school') }}:</strong> {{ selected_class.school.name }}</p>
+        <p><strong>{{ _('class_leader') }}:</strong> {{ selected_class.leader_first_name }} {{
+            selected_class.leader_last_name }}</p>
+        <p><strong>{{ _('class_leader_phone') }}:</strong> {{ selected_class.leader_phone }}</p>
     </div>
     {% endif %}
 

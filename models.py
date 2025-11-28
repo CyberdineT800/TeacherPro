@@ -98,6 +98,9 @@ class SchoolClass(Base):
     id = Column(Integer, primary_key=True)
     name = Column(String(100), nullable=False)
     school_id = Column(Integer, ForeignKey('schools.id'), nullable=False)
+    leader_first_name = Column(String(100), nullable=True)
+    leader_last_name = Column(String(100), nullable=True)
+    leader_phone = Column(String(50), nullable=True)
     created_at = Column(DateTime, default=datetime.utcnow)
     
     school = relationship('School', back_populates='classes')

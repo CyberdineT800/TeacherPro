@@ -25,6 +25,24 @@
             </select>
         </div>
 
+        <div class="form-group">
+            <label for="leader_first_name">{{ _('class_leader_first_name') }}</label>
+            <input type="text" id="leader_first_name" name="leader_first_name"
+                value="{{ class_obj.leader_first_name if class_obj else '' }}">
+        </div>
+
+        <div class="form-group">
+            <label for="leader_last_name">{{ _('class_leader_last_name') }}</label>
+            <input type="text" id="leader_last_name" name="leader_last_name"
+                value="{{ class_obj.leader_last_name if class_obj else '' }}">
+        </div>
+
+        <div class="form-group">
+            <label for="leader_phone">{{ _('class_leader_phone') }}</label>
+            <input type="text" id="leader_phone" name="leader_phone"
+                value="{{ class_obj.leader_phone if class_obj else '' }}">
+        </div>
+
         {% if not class_obj %}
         <div class="form-group">
             <label for="students_file">{{ _('upload_students_excel') }}</label>

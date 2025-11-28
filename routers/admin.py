@@ -572,11 +572,20 @@ async def add_class(
     request: Request,
     name: str = Form(...),
     school_id: int = Form(...),
+    leader_first_name: Optional[str] = Form(None),
+    leader_last_name: Optional[str] = Form(None),
+    leader_phone: Optional[str] = Form(None),
     students_file: Optional[UploadFile] = File(None),
     db: AsyncSession = Depends(get_db)
 ):
     """Create new class"""
-    class_obj = SchoolClass(name=name, school_id=school_id)
+    class_obj = SchoolClass(
+        name=name, 
+        school_id=school_id,
+        leader_first_name=leader_first_name,
+        leader_last_name=leader_last_name,
+        leader_phone=leader_phone
+    )
     db.add(class_obj)
     await db.flush()
     
@@ -598,7 +607,7 @@ async def add_class(
     await db.commit()
     flash(request, 'Sinf va o\'quvchilar qo\'shildi', 'success')
     return RedirectResponse(url="/admin/classes", status_code=303)
-
+    
 @router.get("/classes/edit/{id}", response_class=HTMLResponse)
 async def edit_class_page(
     request: Request,
@@ -625,6 +634,9 @@ async def edit_class(
     id: int,
     name: str = Form(...),
     school_id: int = Form(...),
+    leader_first_name: Optional[str] = Form(None),
+    leader_last_name: Optional[str] = Form(None),
+    leader_phone: Optional[str] = Form(None),
     db: AsyncSession = Depends(get_db)
 ):
     """Update class"""
@@ -636,6 +648,10 @@ async def edit_class(
     
     class_obj.name = name
     class_obj.school_id = school_id
+    class_obj.leader_first_name = leader_first_name
+    class_obj.leader_last_name = leader_last_name
+    class_obj.leader_phone = leader_phone
+    
     await db.commit()
     flash(request, 'Sinf ma\'lumotlari yangilandi', 'success')
     return RedirectResponse(url="/admin/classes", status_code=303)

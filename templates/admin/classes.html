@@ -37,6 +37,7 @@
                     <th width="60">{{ _('number') }}</th>
                     <th>{{ _('name') }}</th>
                     <th>{{ _('school') }}</th>
+                    <th>{{ _('class_leader') }}</th>
                     <th>{{ _('student_count') }}</th>
                     <th>{{ _('actions') }}</th>
                 </tr>
@@ -52,6 +53,16 @@
                         {{ school.name }}
                         {% endif %}
                         {% endfor %}
+                    </td>
+                    <td>
+                        {% if class.leader_first_name or class.leader_last_name %}
+                        {{ class.leader_first_name or '' }} {{ class.leader_last_name or '' }}
+                        {% if class.leader_phone %}
+                        <br><small>{{ class.leader_phone }}</small>
+                        {% endif %}
+                        {% else %}
+                        <span style="color: #999;">{{ _('not_set') }}</span>
+                        {% endif %}
                     </td>
                     <td>
                         {% set student_count = namespace(count=0) %}
