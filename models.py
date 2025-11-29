@@ -158,6 +158,8 @@ class Exam(Base):
     exam_type_id = Column(Integer, ForeignKey('exam_types.id'), nullable=False)
     teacher_id = Column(Integer, ForeignKey('employees.id'), nullable=False)
     created_at = Column(DateTime, default=datetime.utcnow)
+
+    is_bsb_exam = Column(Boolean, default=False)
     
     school_class = relationship('SchoolClass', back_populates='exams')
     subject = relationship('Subject')

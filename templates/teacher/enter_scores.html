@@ -10,6 +10,11 @@
         <h3>{{ exam_info.class_name }} - {{ exam_info.subject_name }} - {{ exam_info.quarter_name }}</h3>
         <p><strong>{{ _('exam_type') }}:</strong> {{ exam_info.exam_type_name }}</p>
         <p><strong>{{ _('exam_name') }}:</strong> {{ exam_info.exam_name }}</p>
+        {% if exam.is_bsb_exam %}
+        <div class="alert alert-info">
+            <strong>BSB imtihoni:</strong> 5 ta savol, har biri 5 ball (Jami: 25 ball)
+        </div>
+        {% endif %}
 
         <!-- Guruh filtri -->
         <div class="group-filter">

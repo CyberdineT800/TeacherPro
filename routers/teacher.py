@@ -164,31 +164,55 @@ async def create_exam(
         flash(request, 'Siz bu fan uchun imtihon yarata olmaysiz', 'danger')
         return RedirectResponse(url="/teacher/create-exam", status_code=303)
     
+    # Get exam name to check if it's BSB exam
+    exam_name_result = await db.execute(select(ExamName).where(ExamName.id == exam_name_id))
+    exam_name = exam_name_result.scalar_one_or_none()
+    
+    # Check if this is a BSB exam
+    is_bsb_exam = exam_name and "bsb" in exam_name.name.lower()
+    
     exam = Exam(
         class_id=class_id,
         subject_id=subject_id,
         quarter_id=quarter_id,
         exam_name_id=exam_name_id,
         exam_type_id=exam_type_id,
-        teacher_id=teacher_id
+        teacher_id=teacher_id,
+        is_bsb_exam=is_bsb_exam
     )
     db.add(exam)
     await db.flush()
     
     form_data = await request.form()
     
-    for i in range(1, num_questions + 1):
-        question_type_id = form_data.get(f'question_type_{i}')
-        max_score = form_data.get(f'max_score_{i}')
+    # For BSB exams, override the number of questions and max scores
+    if is_bsb_exam:
+        num_questions = 5  # Always 5 questions for BSB exams
+        # Get the default question type (assuming "Knowledge" type exists with ID 1)
+        default_question_type_id = 1
         
-        if question_type_id and max_score:
+        for i in range(1, num_questions + 1):
             question = Question(
                 exam_id=exam.id,
                 question_number=i,
-                question_type_id=int(question_type_id),
-                max_score=float(max_score)
+                question_type_id=default_question_type_id,
+                max_score=5.0  # Always 5 points per question for BSB exams
             )
             db.add(question)
+    else:
+        # Regular exam creation logic
+        for i in range(1, num_questions + 1):
+            question_type_id = form_data.get(f'question_type_{i}')
+            max_score = form_data.get(f'max_score_{i}')
+            
+            if question_type_id and max_score:
+                question = Question(
+                    exam_id=exam.id,
+                    question_number=i,
+                    question_type_id=int(question_type_id),
+                    max_score=float(max_score)
+                )
+                db.add(question)
     
     await db.commit()
     

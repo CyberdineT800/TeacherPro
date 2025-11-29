@@ -42,10 +42,10 @@
 
             <div class="form-group">
                 <label for="exam_name_id">{{ _('exam_name') }} *</label>
-                <select id="exam_name_id" name="exam_name_id" required>
+                <select id="exam_name_id" name="exam_name_id" required onchange="checkBSBExam()">
                     <option value="">{{ _('select') }}</option>
                     {% for exam_name in exam_names %}
-                    <option value="{{ exam_name.id }}">{{ exam_name.name }}</option>
+                    <option value="{{ exam_name.id }}" data-name="{{ exam_name.name.lower() }}">{{ exam_name.name }}</option>
                     {% endfor %}
                 </select>
             </div>
@@ -54,7 +54,7 @@
         <div class="form-row">
             <div class="form-group">
                 <label for="exam_type_id">{{ _('exam_type') }} *</label>
-                <select id="exam_type_id" name="exam_type_id" required>
+                <select id="exam_type_id" name="exam_type_id" required onchange="checkBSBExam()">
                     <option value="">{{ _('select') }}</option>
                     {% for exam_type in exam_types %}
                     <option value="{{ exam_type.id }}">{{ exam_type.name }}</option>
@@ -63,10 +63,15 @@
             </div>
         </div>
 
-        <div class="form-group">
+        <div class="form-group" id="num_questions_group">
             <label for="num_questions">{{ _('num_questions') }} *</label>
             <input type="number" id="num_questions" name="num_questions" min="1" max="100" required
                 onchange="generateQuestionFields()">
+        </div>
+
+        <!-- BSB Exam Info -->
+        <div id="bsb_info" class="alert alert-info" style="display: none;">
+            <strong>BSB imtihoni:</strong> Bu imtihon avtomatik ravishda 5 ta savol bilan yaratiladi. Har bir savol 5 ballga baholanadi (Jami: 25 ball).
         </div>
 
         <!-- Hidden template for question types -->
@@ -87,6 +92,32 @@
 </div>
 
 <script>
+    function checkBSBExam() {
+        const examNameSelect = document.getElementById('exam_name_id');
+        const selectedOption = examNameSelect.options[examNameSelect.selectedIndex];
+        const examName = selectedOption.getAttribute('data-name');
+        const isBSB = examName && examName.includes('bsb');
+        
+        const bsbInfo = document.getElementById('bsb_info');
+        const numQuestionsGroup = document.getElementById('num_questions_group');
+        const questionsContainer = document.getElementById('questions_container');
+        
+        if (isBSB) {
+            // Hide number of questions input and show BSB info
+            numQuestionsGroup.style.display = 'none';
+            bsbInfo.style.display = 'block';
+            questionsContainer.innerHTML = '';
+            
+            // Automatically set number of questions to 5 for backend
+            document.getElementById('num_questions').value = 5;
+        } else {
+            // Show normal form
+            numQuestionsGroup.style.display = 'block';
+            bsbInfo.style.display = 'none';
+            generateQuestionFields();
+        }
+    }
+
     function generateQuestionFields() {
         const numQuestions = document.getElementById('num_questions').value;
         const container = document.getElementById('questions_container');
@@ -95,6 +126,15 @@
         container.innerHTML = '';
 
         if (numQuestions > 0) {
+            const examNameSelect = document.getElementById('exam_name_id');
+            const selectedOption = examNameSelect.options[examNameSelect.selectedIndex];
+            const examName = selectedOption.getAttribute('data-name');
+            const isBSB = examName && examName.includes('bsb');
+            
+            if (isBSB) {
+                return;
+            }
+
             const questionHeader = document.createElement('h3');
             questionHeader.textContent = '{{ _("questions") }}';
             container.appendChild(questionHeader);
