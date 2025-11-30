@@ -9,6 +9,9 @@
     <div class="exam-info-box">
         <h3>{{ exam_info.class_name }} - {{ exam_info.subject_name }} - {{ exam_info.quarter_name }}</h3>
         <p><strong>{{ _('exam_type') }}:</strong> {{ exam_info.exam_type_name }}</p>
+        <p><strong>{{ _('exam_name') }}:</strong> {{ exam_info.exam_name }}</p>
+        <p><strong>{{ _('class_leader') }}:</strong> {{ exam_info.leader_fullname }}</p>
+        <p><strong>{{ _('class_leader_phone') }}:</strong> {{ exam_info.leader_phone }}</p>
     </div>
 
     <div class="results-summary">
@@ -21,7 +24,9 @@
                 <tr>
                     <th rowspan="2">#</th>
                     <th rowspan="2">{{ _('student_name') }}</th>
+                    {% if exam.group_filter != 0 %}
                     <th rowspan="2">{{ _('group') }}</th>
+                    {% endif %}
                     {% if exam.is_chsb_exam %}
                         {% for question_type in question_types_summary %}
                         <th colspan="1">{{ question_type.name }}</th>
@@ -51,7 +56,9 @@
                 <tr>
                     <td>{{ loop.index }}</td>
                     <td><strong>{{ result.student_name }}</strong></td>
+                    {% if exam.group_filter != 0 %}
                     <td>{{ result.group_number }}</td>
+                    {% endif %}
                     {% for score in result.question_scores %}
                     <td>{{ "%.1f"|format(score) }}</td>
                     {% endfor %}

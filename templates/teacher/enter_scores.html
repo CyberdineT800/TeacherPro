@@ -10,6 +10,8 @@
         <h3>{{ exam_info.class_name }} - {{ exam_info.subject_name }} - {{ exam_info.quarter_name }}</h3>
         <p><strong>{{ _('exam_type') }}:</strong> {{ exam_info.exam_type_name }}</p>
         <p><strong>{{ _('exam_name') }}:</strong> {{ exam_info.exam_name }}</p>
+        <p><strong>{{ _('class_leader') }}:</strong> {{ exam_info.leader_fullname }}</p>
+        <p><strong>{{ _('class_leader_phone') }}:</strong> {{ exam_info.leader_phone }}</p>
         
         {% if exam.is_bsb_exam %}
         <div class="alert alert-info">
@@ -22,22 +24,6 @@
             <strong>CHSB imtihoni:</strong> 10 ta savol, har biri 4 ball (Jami: 40 ball). Ballar har bir savol turi boʻyicha umumiy koʻrinishda kiritiladi.
         </div>
         {% endif %}
-
-        <div class="group-filter">
-            <strong>{{ _('group') }}: </strong>
-            <a href="{{ url_for('enter_scores', exam_id=exam.id, group_filter='all') }}"
-                class="btn btn-sm {% if group_filter == 'all' %}btn-primary{% else %}btn-secondary{% endif %}">
-                {{ _('all') }}
-            </a>
-            <a href="{{ url_for('enter_scores', exam_id=exam.id, group_filter='1') }}"
-                class="btn btn-sm {% if group_filter == '1' %}btn-primary{% else %}btn-secondary{% endif %}">
-                1-{{ _('group') }}
-            </a>
-            <a href="{{ url_for('enter_scores', exam_id=exam.id, group_filter='2') }}"
-                class="btn btn-sm {% if group_filter == '2' %}btn-primary{% else %}btn-secondary{% endif %}">
-                2-{{ _('group') }}
-            </a>
-        </div>
     </div>
 
     <form method="POST">
@@ -47,7 +33,9 @@
                     <tr>
                         <th rowspan="2">#</th>
                         <th rowspan="2">{{ _('student') }}</th>
+                        {% if exam.group_filter != 0 %}
                         <th rowspan="2">{{ _('group') }}</th>
+                        {% endif %}
                         {% if exam.is_chsb_exam %}
                             {% for question_type in question_types_summary %}
                             <th colspan="1">{{ question_type.name }}</th>
@@ -78,14 +66,16 @@
                     <tr>
                         <td>{{ loop.index }}</td>
                         <td>{{ student.first_name }} {{ student.last_name }}</td>
+                        {% if exam.group_filter != 0 %}
                         <td>{{ student.group_number }}</td>
+                        {% endif %}
                         
                         {% if exam.is_chsb_exam %}
                             {% for question_type in question_types_summary %}
                             <td>
                                 <input type="number" name="chsb_score_{{ student.id }}_{{ question_type.id }}" 
                                        min="0" max="{{ question_type.total_max_score }}" step="0.1" value="0" 
-                                       style="width: 80px;">
+                                       onfocus="this.select()" style="width: 80px;">
                             </td>
                             {% endfor %}
                         {% else %}
@@ -93,7 +83,8 @@
                             <td>{{ question_types[question.id] }}</td>
                             <td>
                                 <input type="number" name="score_{{ student.id }}_{{ question.id }}" min="0"
-                                    max="{{ question.max_score }}" step="0.1" value="0" style="width: 80px;">
+                                    max="{{ question.max_score }}" step="0.1" value="0" onfocus="this.select()" 
+                                    style="width: 80px;">
                             </td>
                             {% endfor %}
                         {% endif %}

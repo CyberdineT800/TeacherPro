@@ -142,6 +142,8 @@ async def create_exam(
     exam_name_id: int = Form(...),
     exam_type_id: int = Form(...),
     num_questions: int = Form(...),
+    gender_filter: int = Form(...),
+    group_filter: int = Form(...),
     db: AsyncSession = Depends(get_db)
 ):
     """Create new exam"""
@@ -189,7 +191,9 @@ async def create_exam(
         exam_type_id=exam_type_id,
         teacher_id=teacher_id,
         is_bsb_exam=is_bsb_exam,
-        is_chsb_exam=is_chsb_exam
+        is_chsb_exam=is_chsb_exam,
+        gender_filter=gender_filter, 
+        group_filter=group_filter
     )
     db.add(exam)
     await db.flush()
@@ -266,7 +270,6 @@ async def create_exam(
 async def enter_scores_page(
     request: Request,
     exam_id: int,
-    group_filter: str = 'all',
     db: AsyncSession = Depends(get_db)
 ):
     """Display enter scores form"""
@@ -276,26 +279,17 @@ async def enter_scores_page(
         flash(request, 'Imtihon topilmadi', 'danger')
         return RedirectResponse(url="/teacher/dashboard", status_code=303)
     
-    if group_filter == '1':
-        students_result = await db.execute(
-            select(Student)
-            .where(Student.class_id == exam.class_id, Student.group_number == 1)
-            .order_by(Student.last_name, Student.first_name)
-        )
-    elif group_filter == '2':
-        students_result = await db.execute(
-            select(Student)
-            .where(Student.class_id == exam.class_id, Student.group_number == 2)
-            .order_by(Student.last_name, Student.first_name)
-        )
-    else:
-        students_result = await db.execute(
-            select(Student)
-            .where(Student.class_id == exam.class_id)
-            .order_by(Student.last_name, Student.first_name)
-        )
-    students = students_result.scalars().all()
+    student_query = select(Student).where(Student.class_id == exam.class_id)
     
+    if exam.gender_filter != 0:
+        student_query = student_query.where(Student.gender == exam.gender_filter)
+    if exam.group_filter != 0:
+        student_query = student_query.where(Student.group_number == exam.group_filter)
+    
+    student_query = student_query.order_by(Student.last_name, Student.first_name)
+    students_result = await db.execute(student_query)
+    students = students_result.scalars().all()
+
     questions_result = await db.execute(
         select(Question)
         .where(Question.exam_id == exam_id)
@@ -320,6 +314,8 @@ async def enter_scores_page(
     
     exam_info = {
         'class_name': class_obj.name if class_obj else '',
+        'leader_fullname': f"{class_obj.leader_first_name} {class_obj.leader_last_name}" if class_obj else '',
+        'leader_phone': class_obj.leader_phone if class_obj else '',
         'subject_name': subject.name if subject else '',
         'quarter_name': quarter.name if quarter else '',
         'exam_name': exam_name.name if exam_name else '',
@@ -370,9 +366,9 @@ async def enter_scores_page(
         'questions': questions,
         'question_types': question_types_dict,
         'question_types_summary': question_types_summary, 
-        'group_filter': group_filter
+        'group_filter': exam.group_filter
     })
-    context['debug_qtypes'] = question_types_summary
+
     return templates.TemplateResponse('teacher/enter_scores.html', context)
 
 @router.post("/enter-scores/{exam_id}")
@@ -388,7 +384,13 @@ async def enter_scores(
         flash(request, 'Imtihon topilmadi', 'danger')
         return RedirectResponse(url="/teacher/dashboard", status_code=303)
     
-    students_result = await db.execute(select(Student).where(Student.class_id == exam.class_id))
+    student_query = select(Student).where(Student.class_id == exam.class_id)
+    if exam.gender_filter != 0:
+        student_query = student_query.where(Student.gender == exam.gender_filter)
+    if exam.group_filter != 0:
+        student_query = student_query.where(Student.group_number == exam.group_filter)
+    
+    students_result = await db.execute(student_query)
     students = students_result.scalars().all()
     
     questions_result = await db.execute(select(Question).where(Question.exam_id == exam_id))
@@ -467,11 +469,14 @@ async def view_results(
         flash(request, 'Imtihon topilmadi', 'danger')
         return RedirectResponse(url="/teacher/dashboard", status_code=303)
     
-    students_result = await db.execute(
-        select(Student)
-        .where(Student.class_id == exam.class_id)
-        .order_by(Student.last_name, Student.first_name)
-    )
+    student_query = select(Student).where(Student.class_id == exam.class_id)
+    if exam.gender_filter != 0:
+        student_query = student_query.where(Student.gender == exam.gender_filter)
+    if exam.group_filter != 0:
+        student_query = student_query.where(Student.group_number == exam.group_filter)
+    
+    student_query = student_query.order_by(Student.last_name, Student.first_name)
+    students_result = await db.execute(student_query)
     students = students_result.scalars().all()
     
     questions_result = await db.execute(
@@ -492,15 +497,21 @@ async def view_results(
     
     exam_type_result = await db.execute(select(ExamType).where(ExamType.id == exam.exam_type_id))
     exam_type = exam_type_result.scalar_one_or_none()
+
+    exam_name_result = await db.execute(select(ExamName).where(ExamName.id == exam.exam_name_id))
+    exam_name = exam_name_result.scalar_one_or_none()
     
     teacher_result = await db.execute(select(Employee).where(Employee.id == exam.teacher_id))
     teacher = teacher_result.scalar_one_or_none()
     
     exam_info = {
         'class_name': class_obj.name if class_obj else '',
+        'leader_fullname': f"{class_obj.leader_first_name} {class_obj.leader_last_name}" if class_obj else '',
+        'leader_phone': class_obj.leader_phone if class_obj else '',
         'subject_name': subject.name if subject else '',
         'quarter_name': quarter.name if quarter else '',
         'exam_type_name': exam_type.name if exam_type else '',
+        'exam_name': exam_name.name if exam_name else '',
         'teacher_name': f"{teacher.first_name} {teacher.last_name}" if teacher else ''
     }
     
@@ -508,7 +519,6 @@ async def view_results(
     
     question_types_summary = []
     if exam.is_chsb_exam:
-        # Get CHSB assignments
         chsb_assignments_result = await db.execute(
             select(CHSBQuestionAssignment)
             .where(CHSBQuestionAssignment.exam_id == exam_id)
@@ -602,22 +612,22 @@ async def download_results(
     db: AsyncSession = Depends(get_db)
 ):
     """Download exam results in specified format"""
-    # Get exam
     exam_result = await db.execute(select(Exam).where(Exam.id == exam_id))
     exam = exam_result.scalar_one_or_none()
     if not exam:
         flash(request, 'Imtihon topilmadi', 'danger')
         return RedirectResponse(url="/teacher/dashboard", status_code=303)
     
-    # Get students
-    students_result = await db.execute(
-        select(Student)
-        .where(Student.class_id == exam.class_id)
-        .order_by(Student.last_name, Student.first_name)
-    )
+    student_query = select(Student).where(Student.class_id == exam.class_id)
+    if exam.gender_filter != 0:
+        student_query = student_query.where(Student.gender == exam.gender_filter)
+    if exam.group_filter != 0:
+        student_query = student_query.where(Student.group_number == exam.group_filter)
+    
+    student_query = student_query.order_by(Student.last_name, Student.first_name)
+    students_result = await db.execute(student_query)
     students = students_result.scalars().all()
     
-    # Get questions
     questions_result = await db.execute(
         select(Question)
         .where(Question.exam_id == exam_id)
@@ -625,7 +635,6 @@ async def download_results(
     )
     questions = questions_result.scalars().all()
     
-    # Get exam info
     class_result = await db.execute(select(SchoolClass).where(SchoolClass.id == exam.class_id))
     class_obj = class_result.scalar_one_or_none()
     
@@ -637,21 +646,21 @@ async def download_results(
     
     exam_type_result = await db.execute(select(ExamType).where(ExamType.id == exam.exam_type_id))
     exam_type = exam_type_result.scalar_one_or_none()
+
+    exam_name_result = await db.execute(select(ExamName).where(ExamName.id == exam.exam_name_id))
+    exam_name = exam_name_result.scalar_one_or_none()
     
     teacher_result = await db.execute(select(Employee).where(Employee.id == exam.teacher_id))
     teacher = teacher_result.scalar_one_or_none()
     
-    header = f"{class_obj.name} - {subject.name} - {quarter.name}\n{exam_type.name}"
+    header = f"{class_obj.name} - {subject.name} - {quarter.name}\n{exam_type.name} - {exam_name.name}"
     teacher_name = f"{teacher.first_name} {teacher.last_name}" if teacher else ''
     exam_date = exam.created_at.strftime('%d.%m.%Y') if exam.created_at else ''
     
-    # Calculate max score
     total_max_score = sum(q.max_score for q in questions)
     
-    # Prepare student data
     students_data = []
     for student in students:
-        # Get student results
         student_results_query = await db.execute(
             select(ExamResult)
             .where(ExamResult.exam_id == exam_id, ExamResult.student_id == student.id)
@@ -677,7 +686,6 @@ async def download_results(
             'Foiz': f"{round(percentage, 1)}%"
         }
         
-        # Add question scores
         for i, score in enumerate(scores, 1):
             student_row[f'Savol {i}'] = score
         
@@ -690,7 +698,6 @@ async def download_results(
         'students': students_data
     }
     
-    # Generate file based on format
     try:
         if format == 'excel':
             output = await generate_excel_report(exam_data)
