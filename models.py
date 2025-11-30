@@ -160,6 +160,8 @@ class Exam(Base):
     created_at = Column(DateTime, default=datetime.utcnow)
 
     is_bsb_exam = Column(Boolean, default=False)
+    is_chsb_exam = Column(Boolean, default=False)
+    chsb_config = Column(Text, nullable=True)
     
     school_class = relationship('SchoolClass', back_populates='exams')
     subject = relationship('Subject')
@@ -169,6 +171,17 @@ class Exam(Base):
     teacher = relationship('Employee')
     questions = relationship('Question', back_populates='exam', cascade='all, delete-orphan')
     results = relationship('ExamResult', back_populates='exam', cascade='all, delete-orphan')
+
+class CHSBQuestionAssignment(Base):
+    __tablename__ = 'chsb_question_assignments'
+    id = Column(Integer, primary_key=True)
+    exam_id = Column(Integer, ForeignKey('exams.id'), nullable=False)
+    question_number = Column(Integer, nullable=False)
+    question_type_id = Column(Integer, ForeignKey('question_types.id'), nullable=False)
+    max_score = Column(Float, nullable=False)
+    
+    exam = relationship('Exam')
+    question_type = relationship('QuestionType')
 
 class Question(Base):
     __tablename__ = 'questions'

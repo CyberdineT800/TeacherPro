@@ -22,16 +22,28 @@
                     <th rowspan="2">#</th>
                     <th rowspan="2">{{ _('student_name') }}</th>
                     <th rowspan="2">{{ _('group') }}</th>
-                    {% for question in questions %}
-                    <th colspan="1">{{ question.question_number }}</th>
-                    {% endfor %}
-                    <th rowspan="2">{{ _('percentage') }}</th>
+                    {% if exam.is_chsb_exam %}
+                        {% for question_type in question_types_summary %}
+                        <th colspan="1">{{ question_type.name }}</th>
+                        {% endfor %}
+                    {% else %}
+                        {% for question in questions %}
+                        <th colspan="1">{{ question.question_number }}</th>
+                        {% endfor %}
+                    {% endif %}
                     <th rowspan="2">{{ _('total_score') }}</th>
+                    <th rowspan="2">{{ _('percentage') }}</th>
                 </tr>
                 <tr>
-                    {% for question in questions %}
-                    <th style="font-size: 0.8em;">({{ _('max') }}: {{ question.max_score }})</th>
-                    {% endfor %}
+                    {% if exam.is_chsb_exam %}
+                        {% for question_type in question_types_summary %}
+                        <th style="font-size: 0.8em;">({{ _('max') }}: {{ question_type.total_max_score }})</th>
+                        {% endfor %}
+                    {% else %}
+                        {% for question in questions %}
+                        <th style="font-size: 0.8em;">({{ _('max') }}: {{ question.max_score }})</th>
+                        {% endfor %}
+                    {% endif %}
                 </tr>
             </thead>
             <tbody>
@@ -41,10 +53,10 @@
                     <td><strong>{{ result.student_name }}</strong></td>
                     <td>{{ result.group_number }}</td>
                     {% for score in result.question_scores %}
-                    <td>{{ score }}</td>
+                    <td>{{ "%.1f"|format(score) }}</td>
                     {% endfor %}
+                    <td><strong>{{ "%.1f"|format(result.total_score) }}</strong></td>
                     <td><strong>{{ result.percentage }}%</strong></td>
-                    <td><strong>{{ result.total_score }}</strong></td>
                 </tr>
                 {% endfor %}
             </tbody>

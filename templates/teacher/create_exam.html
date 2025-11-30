@@ -42,7 +42,7 @@
 
             <div class="form-group">
                 <label for="exam_name_id">{{ _('exam_name') }} *</label>
-                <select id="exam_name_id" name="exam_name_id" required onchange="checkBSBExam()">
+                <select id="exam_name_id" name="exam_name_id" required onchange="checkSpecialExam()">
                     <option value="">{{ _('select') }}</option>
                     {% for exam_name in exam_names %}
                     <option value="{{ exam_name.id }}" data-name="{{ exam_name.name.lower() }}">{{ exam_name.name }}</option>
@@ -54,7 +54,7 @@
         <div class="form-row">
             <div class="form-group">
                 <label for="exam_type_id">{{ _('exam_type') }} *</label>
-                <select id="exam_type_id" name="exam_type_id" required onchange="checkBSBExam()">
+                <select id="exam_type_id" name="exam_type_id" required onchange="checkSpecialExam()">
                     <option value="">{{ _('select') }}</option>
                     {% for exam_type in exam_types %}
                     <option value="{{ exam_type.id }}">{{ exam_type.name }}</option>
@@ -69,12 +69,14 @@
                 onchange="generateQuestionFields()">
         </div>
 
-        <!-- BSB Exam Info -->
         <div id="bsb_info" class="alert alert-info" style="display: none;">
             <strong>BSB imtihoni:</strong> Bu imtihon avtomatik ravishda 5 ta savol bilan yaratiladi. Har bir savol 5 ballga baholanadi (Jami: 25 ball).
         </div>
 
-        <!-- Hidden template for question types -->
+        <div id="chsb_info" class="alert alert-info" style="display: none;">
+            <strong>CHSB imtihoni:</strong> 10 ta savol, har biri 4 ball (Jami: 40 ball). Har bir savol uchun savol turini tanlang.
+        </div>
+
         <select id="question_type_template" style="display: none;">
             <option value="">{{ _('select') }}</option>
             {% for qt in question_types %}
@@ -92,29 +94,82 @@
 </div>
 
 <script>
-    function checkBSBExam() {
+    function checkSpecialExam() {
         const examNameSelect = document.getElementById('exam_name_id');
         const selectedOption = examNameSelect.options[examNameSelect.selectedIndex];
         const examName = selectedOption.getAttribute('data-name');
         const isBSB = examName && examName.includes('bsb');
+        const isCHSB = examName && examName.includes('chsb');
         
         const bsbInfo = document.getElementById('bsb_info');
+        const chsbInfo = document.getElementById('chsb_info');
         const numQuestionsGroup = document.getElementById('num_questions_group');
         const questionsContainer = document.getElementById('questions_container');
+        const examTypeSelect = document.getElementById('exam_type_id');
         
         if (isBSB) {
-            // Hide number of questions input and show BSB info
             numQuestionsGroup.style.display = 'none';
             bsbInfo.style.display = 'block';
+            chsbInfo.style.display = 'none';
             questionsContainer.innerHTML = '';
-            
-            // Automatically set number of questions to 5 for backend
             document.getElementById('num_questions').value = 5;
+        } else if (isCHSB) {
+            numQuestionsGroup.style.display = 'none';
+            bsbInfo.style.display = 'none';
+            chsbInfo.style.display = 'block';
+            
+            const testOption = Array.from(examTypeSelect.options).find(opt => 
+                opt.text.includes('Test') || opt.text.includes('test')
+            );
+            if (testOption) {
+                examTypeSelect.value = testOption.value;
+            }
+            
+            generateCHSBQuestionFields();
+            document.getElementById('num_questions').value = 10;
         } else {
-            // Show normal form
             numQuestionsGroup.style.display = 'block';
             bsbInfo.style.display = 'none';
+            chsbInfo.style.display = 'none';
             generateQuestionFields();
+        }
+    }
+
+    function generateCHSBQuestionFields() {
+        const container = document.getElementById('questions_container');
+        const template = document.getElementById('question_type_template');
+
+        container.innerHTML = '';
+
+        const questionHeader = document.createElement('h3');
+        questionHeader.textContent = 'CHSB Savol Turlarini Tanlang';
+        container.appendChild(questionHeader);
+
+        const infoText = document.createElement('p');
+        infoText.className = 'text-muted';
+        infoText.textContent = 'Har bir savol raqami uchun savol turini tanlang:';
+        container.appendChild(infoText);
+
+        for (let i = 1; i <= 10; i++) {
+            const questionDiv = document.createElement('div');
+            questionDiv.className = 'question-item chsb-question';
+
+            questionDiv.innerHTML = `
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="chsb_question_type_${i}">Savol ${i} turi *</label>
+                        <select id="chsb_question_type_${i}" name="chsb_question_type_${i}" required>
+                            ${template.innerHTML}
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>Maksimal ball</label>
+                        <input type="text" value="4" disabled style="width: 80px; background-color: #f8f9fa;">
+                    </div>
+                </div>
+            `;
+
+            container.appendChild(questionDiv);
         }
     }
 
@@ -130,8 +185,9 @@
             const selectedOption = examNameSelect.options[examNameSelect.selectedIndex];
             const examName = selectedOption.getAttribute('data-name');
             const isBSB = examName && examName.includes('bsb');
+            const isCHSB = examName && examName.includes('chsb');
             
-            if (isBSB) {
+            if (isBSB || isCHSB) {
                 return;
             }
 
@@ -172,4 +228,12 @@
         }
     });
 </script>
+
+<style>
+    .chsb-question {
+        border-left: 4px solid #007bff;
+        padding-left: 10px;
+        margin-bottom: 15px;
+    }
+</style>
 {% endblock %}

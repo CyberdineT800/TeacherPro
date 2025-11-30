@@ -10,13 +10,19 @@
         <h3>{{ exam_info.class_name }} - {{ exam_info.subject_name }} - {{ exam_info.quarter_name }}</h3>
         <p><strong>{{ _('exam_type') }}:</strong> {{ exam_info.exam_type_name }}</p>
         <p><strong>{{ _('exam_name') }}:</strong> {{ exam_info.exam_name }}</p>
+        
         {% if exam.is_bsb_exam %}
         <div class="alert alert-info">
             <strong>BSB imtihoni:</strong> 5 ta savol, har biri 5 ball (Jami: 25 ball)
         </div>
         {% endif %}
+        
+        {% if exam.is_chsb_exam %}
+        <div class="alert alert-info">
+            <strong>CHSB imtihoni:</strong> 10 ta savol, har biri 4 ball (Jami: 40 ball). Ballar har bir savol turi boʻyicha umumiy koʻrinishda kiritiladi.
+        </div>
+        {% endif %}
 
-        <!-- Guruh filtri -->
         <div class="group-filter">
             <strong>{{ _('group') }}: </strong>
             <a href="{{ url_for('enter_scores', exam_id=exam.id, group_filter='all') }}"
@@ -42,17 +48,29 @@
                         <th rowspan="2">#</th>
                         <th rowspan="2">{{ _('student') }}</th>
                         <th rowspan="2">{{ _('group') }}</th>
-                        {% for question in questions %}
-                        <th colspan="2">
-                            {{ question.question_number }}-{{ _('question') }}
-                        </th>
-                        {% endfor %}
+                        {% if exam.is_chsb_exam %}
+                            {% for question_type in question_types_summary %}
+                            <th colspan="1">{{ question_type.name }}</th>
+                            {% endfor %}
+                        {% else %}
+                            {% for question in questions %}
+                            <th colspan="2">
+                                {{ question.question_number }}-{{ _('question') }}
+                            </th>
+                            {% endfor %}
+                        {% endif %}
                     </tr>
                     <tr>
-                        {% for question in questions %}
-                        <th>{{ _('question_type') }}</th>
-                        <th>{{ _('score') }} ({{ _('max') }}: {{ question.max_score }})</th>
-                        {% endfor %}
+                        {% if exam.is_chsb_exam %}
+                            {% for question_type in question_types_summary %}
+                            <th style="font-size: 0.8em;">({{ _('max') }}: {{ question_type.total_max_score }})</th>
+                            {% endfor %}
+                        {% else %}
+                            {% for question in questions %}
+                            <th>{{ _('question_type') }}</th>
+                            <th>{{ _('score') }} ({{ _('max') }}: {{ question.max_score }})</th>
+                            {% endfor %}
+                        {% endif %}
                     </tr>
                 </thead>
                 <tbody>
@@ -61,13 +79,24 @@
                         <td>{{ loop.index }}</td>
                         <td>{{ student.first_name }} {{ student.last_name }}</td>
                         <td>{{ student.group_number }}</td>
-                        {% for question in questions %}
-                        <td>{{ question_types[question.id] }}</td>
-                        <td>
-                            <input type="number" name="score_{{ student.id }}_{{ question.id }}" min="0"
-                                max="{{ question.max_score }}" step="0.1" value="0" style="width: 80px;">
-                        </td>
-                        {% endfor %}
+                        
+                        {% if exam.is_chsb_exam %}
+                            {% for question_type in question_types_summary %}
+                            <td>
+                                <input type="number" name="chsb_score_{{ student.id }}_{{ question_type.id }}" 
+                                       min="0" max="{{ question_type.total_max_score }}" step="0.1" value="0" 
+                                       style="width: 80px;">
+                            </td>
+                            {% endfor %}
+                        {% else %}
+                            {% for question in questions %}
+                            <td>{{ question_types[question.id] }}</td>
+                            <td>
+                                <input type="number" name="score_{{ student.id }}_{{ question.id }}" min="0"
+                                    max="{{ question.max_score }}" step="0.1" value="0" style="width: 80px;">
+                            </td>
+                            {% endfor %}
+                        {% endif %}
                     </tr>
                     {% endfor %}
                 </tbody>
