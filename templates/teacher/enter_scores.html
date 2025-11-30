@@ -7,11 +7,33 @@
     <h2>{{ _('enter_scores') }}</h2>
 
     <div class="exam-info-box">
+        {% set gender_map = {
+            0: _('all'),
+            1: _('male'),
+            2: _('female')
+        } %}
+
+        {% set group_map = {
+            0: _('all'),
+            1: '1-' ~ _('group'),
+            2: '2-' ~ _('group')
+        } %}
+
         <h3>{{ exam_info.class_name }} - {{ exam_info.subject_name }} - {{ exam_info.quarter_name }}</h3>
-        <p><strong>{{ _('exam_type') }}:</strong> {{ exam_info.exam_type_name }}</p>
-        <p><strong>{{ _('exam_name') }}:</strong> {{ exam_info.exam_name }}</p>
-        <p><strong>{{ _('class_leader') }}:</strong> {{ exam_info.leader_fullname }}</p>
-        <p><strong>{{ _('class_leader_phone') }}:</strong> {{ exam_info.leader_phone }}</p>
+        <div style="display: flex; gap: 40px;">
+            <div class="col-left">
+                <p><strong>{{ _('class_leader') }}:</strong> {{ exam_info.leader_fullname }}</p>
+                <p><strong>{{ _('class_leader_phone') }}:</strong> {{ exam_info.leader_phone }}</p>
+                <p><strong>{{ _('gender') }}:</strong> {{ gender_map.get(exam_info.gender_filter, _('all')) }}</p>
+                <p><strong>{{ _('group') }}:</strong> {{ group_map.get(exam_info.group_filter, _('all')) }}</p>
+            </div>
+
+            <div class="col-right">
+                <p><strong>{{ _('exam_type') }}:</strong> {{ exam_info.exam_type_name }}</p>
+                <p><strong>{{ _('exam_name') }}:</strong> {{ exam_info.exam_name }}</p>
+                <p><strong>{{ _('variant') }}:</strong> {{ exam.variant }}</p>
+            </div>
+        </div>
         
         {% if exam.is_bsb_exam %}
         <div class="alert alert-info">
@@ -22,6 +44,12 @@
         {% if exam.is_chsb_exam %}
         <div class="alert alert-info">
             <strong>CHSB imtihoni:</strong> 10 ta savol, har biri 4 ball (Jami: 40 ball). Ballar har bir savol turi boʻyicha umumiy koʻrinishda kiritiladi.
+        </div>
+        {% endif %}
+
+        {% if exam.is_project_exam %}
+        <div class="alert alert-info">
+            <strong>Loyiha ishi:</strong> 1 ta savol, maksimal ball: 15
         </div>
         {% endif %}
     </div>
@@ -36,7 +64,9 @@
                         {% if exam.group_filter != 0 %}
                         <th rowspan="2">{{ _('group') }}</th>
                         {% endif %}
-                        {% if exam.is_chsb_exam %}
+                        {% if exam.is_project_exam %}
+                            <th colspan="1">{{ _('score') }}</th>
+                        {% elif exam.is_chsb_exam %}
                             {% for question_type in question_types_summary %}
                             <th colspan="1">{{ question_type.name }}</th>
                             {% endfor %}
@@ -49,7 +79,9 @@
                         {% endif %}
                     </tr>
                     <tr>
-                        {% if exam.is_chsb_exam %}
+                        {% if exam.is_project_exam %}
+                            <th style="font-size: 0.8em;">({{ _('max') }}: {{ questions[0].max_score if questions else 15 }})</th>
+                        {% elif exam.is_chsb_exam %}
                             {% for question_type in question_types_summary %}
                             <th style="font-size: 0.8em;">({{ _('max') }}: {{ question_type.total_max_score }})</th>
                             {% endfor %}
@@ -70,7 +102,14 @@
                         <td>{{ student.group_number }}</td>
                         {% endif %}
                         
-                        {% if exam.is_chsb_exam %}
+                        {% if exam.is_project_exam %}
+                            <td>
+                                <input type="number" name="score_{{ student.id }}_{{ questions[0].id }}" 
+                                       min="0" max="{{ questions[0].max_score if questions else 15 }}" 
+                                       step="0.1" value="0" 
+                                       onfocus="this.select()" style="width: 80px;">
+                            </td>
+                        {% elif exam.is_chsb_exam %}
                             {% for question_type in question_types_summary %}
                             <td>
                                 <input type="number" name="chsb_score_{{ student.id }}_{{ question_type.id }}" 

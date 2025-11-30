@@ -73,6 +73,15 @@
 
         <div class="form-row">
             <div class="form-group">
+                <label for="variant">{{ _('variant') }}</label>
+                <select id="variant" name="variant">
+                    <option value=1>1</option>
+                    <option value=2>2</option>
+                    <option value=3>3</option>
+                </select>
+            </div>
+
+            <div class="form-group">
                 <label for="quarter_id">{{ _('quarter') }} *</label>
                 <select id="quarter_id" name="quarter_id" required>
                     <option value="">{{ _('select') }}</option>
@@ -95,6 +104,10 @@
 
         <div id="chsb_info" class="alert alert-info" style="display: none;">
             <strong>CHSB imtihoni:</strong> 10 ta savol, har biri 4 ball (Jami: 40 ball). Har bir savol uchun savol turini tanlang.
+        </div>
+
+        <div id="project_info" class="alert alert-info" style="display: none;">
+            <strong>Loyiha ishi:</strong> Bu imtihon 1 ta savol bilan yaratiladi. Maksimal ball: 15. Imtihon turi faqat "Practical" bo'ladi.
         </div>
 
         <select id="question_type_template" style="display: none;">
@@ -139,31 +152,31 @@
         if (!selectedOption) return;
         
         const examName = selectedOption.getAttribute('data-name');
-        //console.error('Selected exam name:', examName);
         const isBSB = examName && examName.includes('bsb');
         const isCHSB = examName && examName.includes('chsb');
+        const isProject = examName && (examName.includes('project') || examName.includes('loyiha'));
         
         const bsbInfo = document.getElementById('bsb_info');
         const chsbInfo = document.getElementById('chsb_info');
+        const projectInfo = document.getElementById('project_info');
         const numQuestionsGroup = document.getElementById('num_questions_group');
         const numQuestionsInput = document.getElementById('num_questions');
         const questionsContainer = document.getElementById('questions_container');
         const examTypeSelect = document.getElementById('exam_type_id');
         
-        //if (!bsbInfo || !chsbInfo) return;
-
         if (isBSB) {
             numQuestionsGroup.style.display = 'none';
             if(bsbInfo) bsbInfo.style.display = 'block';
             if (chsbInfo) chsbInfo.style.display = 'none';
+            if (projectInfo) projectInfo.style.display = 'none';
             questionsContainer.innerHTML = '';
             numQuestionsInput.value = 5;
             numQuestionsInput.removeAttribute('required');
-            //console.error('BSB exam selected, setting number of questions to 5');
         } else if (isCHSB) {
             numQuestionsGroup.style.display = 'none';
             if(bsbInfo) bsbInfo.style.display = 'none';
             if(chsbInfo) chsbInfo.style.display = 'block';
+            if (projectInfo) projectInfo.style.display = 'none';
             
             const testOption = Array.from(examTypeSelect.options).find(opt => 
                 opt.text.includes('Test') || opt.text.includes('test')
@@ -175,16 +188,84 @@
             generateCHSBQuestionFields();
             numQuestionsInput.value = 10;
             numQuestionsInput.removeAttribute('required');
-            //console.error('Generating CHSB question fields');
+        } else if (isProject) {
+            numQuestionsGroup.style.display = 'none';
+            if(bsbInfo) bsbInfo.style.display = 'none';
+            if(chsbInfo) chsbInfo.style.display = 'none';
+            if(projectInfo) projectInfo.style.display = 'block';
+            
+            const practicalOption = Array.from(examTypeSelect.options).find(opt => 
+                opt.text.includes('Practical') || opt.text.includes('practical') || 
+                opt.text.includes('Amaliy') || opt.text.includes('amaliy')
+            );
+            if (practicalOption) {
+                examTypeSelect.value = practicalOption.value;
+                examTypeSelect.style.backgroundColor = '#f8f9fa';
+                examTypeSelect.style.cursor = 'not-allowed';
+                
+                let hiddenField = document.getElementById('practical_exam_type');
+                if (!hiddenField) {
+                    hiddenField = document.createElement('input');
+                    hiddenField.type = 'hidden';
+                    hiddenField.id = 'practical_exam_type';
+                    hiddenField.name = 'exam_type_id';
+                    hiddenField.value = practicalOption.value;
+                    examTypeSelect.parentNode.appendChild(hiddenField);
+                } else {
+                    hiddenField.value = practicalOption.value;
+                }
+            }
+            
+            questionsContainer.innerHTML = '';
+            numQuestionsInput.value = 1;
+            numQuestionsInput.removeAttribute('required');
+            
+            generateProjectQuestionField();
         } else {
             numQuestionsGroup.style.display = 'block';
-            bsbInfo.style.display = 'none';
-            chsbInfo.style.display = 'none';
+            if(bsbInfo) bsbInfo.style.display = 'none';
+            if(chsbInfo) chsbInfo.style.display = 'none';
+            if(projectInfo) projectInfo.style.display = 'none';
+            examTypeSelect.disabled = false;
             numQuestionsInput.setAttribute('required', 'required');
             if (numQuestionsInput.value) {
                 generateQuestionFields();
             }
         }
+    }
+
+    function generateProjectQuestionField() {
+        const container = document.getElementById('questions_container');
+        const template = document.getElementById('question_type_template');
+
+        container.innerHTML = '';
+
+        const questionHeader = document.createElement('h3');
+        questionHeader.textContent = '{{ _("questions") }}';
+        container.appendChild(questionHeader);
+
+        const questionDiv = document.createElement('div');
+        questionDiv.className = 'question-item';
+
+        questionDiv.innerHTML = `
+            <h4>1-{{ _("question") }}</h4>
+            <div class="form-row">
+                <div class="form-group">
+                    <label for="question_type_1">{{ _("question_type") }} *</label>
+                    <select id="question_type_1" name="question_type_1" required>
+                        ${template.innerHTML}
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label for="max_score_1">{{ _("max_score") }} *</label>
+                    <input type="number" id="max_score_1" name="max_score_1" 
+                           value="15" step="0.1" min="0.1" required readonly
+                           style="background-color: #f8f9fa;">
+                </div>
+            </div>
+        `;
+
+        container.appendChild(questionDiv);
     }
 
     function generateCHSBQuestionFields() {

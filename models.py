@@ -161,10 +161,12 @@ class Exam(Base):
 
     is_bsb_exam = Column(Boolean, default=False)
     is_chsb_exam = Column(Boolean, default=False)
+    is_project_exam = Column(Boolean, default=False)  
     chsb_config = Column(Text, nullable=True)
 
     gender_filter = Column(Integer, nullable=True) 
     group_filter = Column(Integer, nullable=True)
+    variant = Column(Integer, default=1)
     
     school_class = relationship('SchoolClass', back_populates='exams')
     subject = relationship('Subject')

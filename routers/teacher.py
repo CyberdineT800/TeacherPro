@@ -144,6 +144,7 @@ async def create_exam(
     num_questions: int = Form(...),
     gender_filter: int = Form(...),
     group_filter: int = Form(...),
+    variant: int = Form(1),  
     db: AsyncSession = Depends(get_db)
 ):
     """Create new exam"""
@@ -176,9 +177,15 @@ async def create_exam(
     exam_name_lower = exam_name.name.lower() if exam_name else ""
     is_bsb_exam = "bsb" in exam_name_lower
     is_chsb_exam = "chsb" in exam_name_lower
+    is_project_exam = "project" in exam_name_lower or "loyiha" in exam_name_lower
     
-    if is_chsb_exam:
-        exam_type_result = await db.execute(select(ExamType).where(ExamType.name == "Test"))
+    if is_project_exam:
+        exam_type_result = await db.execute(select(ExamType).where(
+            (ExamType.name == "Practical") | 
+            (ExamType.name == "Amaliy") |
+            (ExamType.name.ilike("%practical%")) |
+            (ExamType.name.ilike("%amaliy%"))
+        ))
         forced_exam_type = exam_type_result.scalar_one_or_none()
         if forced_exam_type:
             exam_type_id = forced_exam_type.id
@@ -192,8 +199,10 @@ async def create_exam(
         teacher_id=teacher_id,
         is_bsb_exam=is_bsb_exam,
         is_chsb_exam=is_chsb_exam,
+        is_project_exam=is_project_exam,
         gender_filter=gender_filter, 
-        group_filter=group_filter
+        group_filter=group_filter,
+        variant=variant 
     )
     db.add(exam)
     await db.flush()
@@ -242,6 +251,22 @@ async def create_exam(
                 max_score=4.0
             )
             db.add(question)
+
+    elif is_project_exam:
+        num_questions = 1
+        
+        for i in range(1, num_questions + 1):
+            question_type_id = form_data.get(f'question_type_{i}')
+            max_score = form_data.get(f'max_score_{i}')
+            
+            if question_type_id and max_score:
+                question = Question(
+                    exam_id=exam.id,
+                    question_number=i,
+                    question_type_id=int(question_type_id),
+                    max_score=float(max_score)
+                )
+                db.add(question)
 
     else:
         for i in range(1, num_questions + 1):
@@ -311,11 +336,13 @@ async def enter_scores_page(
     
     exam_type_result = await db.execute(select(ExamType).where(ExamType.id == exam.exam_type_id))
     exam_type = exam_type_result.scalar_one_or_none()
-    
+
     exam_info = {
         'class_name': class_obj.name if class_obj else '',
         'leader_fullname': f"{class_obj.leader_first_name} {class_obj.leader_last_name}" if class_obj else '',
         'leader_phone': class_obj.leader_phone if class_obj else '',
+        'group_filter': exam.group_filter,
+        'gender_filter': exam.gender_filter,
         'subject_name': subject.name if subject else '',
         'quarter_name': quarter.name if quarter else '',
         'exam_name': exam_name.name if exam_name else '',
@@ -508,6 +535,8 @@ async def view_results(
         'class_name': class_obj.name if class_obj else '',
         'leader_fullname': f"{class_obj.leader_first_name} {class_obj.leader_last_name}" if class_obj else '',
         'leader_phone': class_obj.leader_phone if class_obj else '',
+        'group_filter': exam.group_filter,
+        'gender_filter': exam.gender_filter,
         'subject_name': subject.name if subject else '',
         'quarter_name': quarter.name if quarter else '',
         'exam_type_name': exam_type.name if exam_type else '',
