@@ -132,90 +132,27 @@ function generateQuestionFields() {
 }
 
 function initMobileMenu() {
+    // Completely disable mobile menu functionality
     const hamburgerMenu = document.getElementById('hamburgerMenu');
+    const mobileOverlay = document.getElementById('mobileOverlay');
+    
+    if (hamburgerMenu) {
+        hamburgerMenu.style.display = 'none';
+    }
+    if (mobileOverlay) {
+        mobileOverlay.style.display = 'none';
+    }
+    
+    // Ensure navigation is always visible
     const navMenu = document.getElementById('navMenu');
     const navUser = document.getElementById('navUser');
-    const mobileOverlay = document.getElementById('mobileOverlay');
-    const settingsDropdown = document.getElementById('settingsDropdown');
-
-    if (!hamburgerMenu) return;
-
-    function toggleMobileMenu() {
-        const isActive = hamburgerMenu.classList.contains('active');
-
-        hamburgerMenu.classList.toggle('active');
-        navMenu.classList.toggle('active');
-        navUser.classList.toggle('active');
-        mobileOverlay.classList.toggle('active');
-
-        // Prevent body scroll when menu is open
-        if (!isActive) {
-            document.body.classList.add('menu-open');
-        } else {
-            document.body.classList.remove('menu-open');
-        }
+    
+    if (navMenu) {
+        navMenu.style.display = 'flex';
     }
-
-    function closeMobileMenu() {
-        hamburgerMenu.classList.remove('active');
-        navMenu.classList.remove('active');
-        navUser.classList.remove('active');
-        mobileOverlay.classList.remove('active');
-        document.body.classList.remove('menu-open');
-
-        // Close dropdowns
-        if (settingsDropdown) {
-            settingsDropdown.classList.remove('active');
-        }
+    if (navUser) {
+        navUser.style.display = 'flex';
     }
-
-    // Hamburger menu click
-    hamburgerMenu.addEventListener('click', function (e) {
-        e.stopPropagation();
-        toggleMobileMenu();
-    });
-
-    // Overlay click
-    mobileOverlay.addEventListener('click', closeMobileMenu);
-
-    // Settings dropdown for mobile
-    if (settingsDropdown) {
-        const dropdownLink = settingsDropdown.querySelector('.nav-link');
-
-        dropdownLink.addEventListener('click', function (e) {
-            if (window.innerWidth <= 768) {
-                e.preventDefault();
-                e.stopPropagation();
-                settingsDropdown.classList.toggle('active');
-            }
-        });
-    }
-
-    // Close menu when clicking on regular nav links (not dropdown toggle)
-    document.querySelectorAll('.nav-menu > .nav-link:not(.nav-dropdown .nav-link)').forEach(link => {
-        link.addEventListener('click', closeMobileMenu);
-    });
-
-    // Close menu when clicking on dropdown links
-    document.querySelectorAll('.dropdown-link').forEach(link => {
-        link.addEventListener('click', closeMobileMenu);
-    });
-
-    // Close menu on window resize to desktop
-    let resizeTimer;
-    window.addEventListener('resize', function () {
-        clearTimeout(resizeTimer);
-        resizeTimer = setTimeout(function () {
-            if (window.innerWidth > 768) {
-                closeMobileMenu();
-            }
-        }, 250);
-    });
-
-    // Prevent menu from staying open on orientation change
-    window.addEventListener('orientationchange', function () {
-        setTimeout(closeMobileMenu, 300);
-    });
 }
 
 document.addEventListener('DOMContentLoaded', function () {
@@ -227,6 +164,28 @@ document.addEventListener('DOMContentLoaded', function () {
     initializeEventListeners();
     hideFlashMessagesAfterDelay();
     initMobileMenu();
+
+    forceDesktopViewport();
+    initMobileMenu();
+    
+    // Disable touch gestures that might cause zoom
+    document.addEventListener('touchstart', function(e) {
+        if (e.touches.length > 1) {
+            e.preventDefault();
+        }
+    }, { passive: false });
+
+    document.addEventListener('gesturestart', function(e) {
+        e.preventDefault();
+    });
+
+    document.addEventListener('gesturechange', function(e) {
+        e.preventDefault();
+    });
+
+    document.addEventListener('gestureend', function(e) {
+        e.preventDefault();
+    });
 });
 
 function initializeEventListeners() {
@@ -256,6 +215,17 @@ function initializeEventListeners() {
             }
         });
     });
+}
+
+function forceDesktopViewport() {
+    const viewport = document.querySelector('meta[name="viewport"]');
+    if (viewport) {
+        viewport.setAttribute('content', 'width=1200, initial-scale=1.0, user-scalable=yes');
+    }
+    
+    // Prevent any mobile-specific behavior
+    document.body.classList.remove('mobile', 'tablet');
+    document.body.classList.add('desktop');
 }
 
 // Auto-hide flash messages

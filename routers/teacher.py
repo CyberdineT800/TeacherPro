@@ -682,72 +682,147 @@ async def download_results(
     teacher_result = await db.execute(select(Employee).where(Employee.id == exam.teacher_id))
     teacher = teacher_result.scalar_one_or_none()
     
-    header = f"{class_obj.name} - {subject.name} - {quarter.name}\n{exam_type.name} - {exam_name.name}"
+    school = None
+    if class_obj and class_obj.school_id:
+        school_result = await db.execute(select(School).where(School.id == class_obj.school_id))
+        school = school_result.scalar_one_or_none()
+    
+    header = f"{class_obj.name if class_obj else ''}-sinfida {subject.name if subject else ''} fanidan o'tkazilgan {quarter.name if quarter else ''}\n"
+    header += f" {exam_name.name if exam_name else ''} tahlili"
+    
     teacher_name = f"{teacher.first_name} {teacher.last_name}" if teacher else ''
     exam_date = exam.created_at.strftime('%d.%m.%Y') if exam.created_at else ''
     
     total_max_score = sum(q.max_score for q in questions)
     
-    students_data = []
+    students_by_group = {}
+    show_groups = exam.group_filter != 0  
+    
     for student in students:
-        student_results_query = await db.execute(
-            select(ExamResult)
-            .where(ExamResult.exam_id == exam_id, ExamResult.student_id == student.id)
-        )
-        student_results = student_results_query.scalars().all()
+        group = student.group_number if show_groups else 0
+        if group not in students_by_group:
+            students_by_group[group] = []
+        students_by_group[group].append(student)
+    
+    question_types_summary = []
+    if exam.is_chsb_exam:
+        chsb_assignments_result = await db.execute(
+            select(CHSBQuestionAssignment)
+            .where(CHSBQuestionAssignment.exam_id == exam_id)
+            .options(selectinload(CHSBQuestionAssignment.question_type)))
         
-        scores = []
-        total_score = 0
+        chsb_assignments = chsb_assignments_result.scalars().all()
         
-        for question in questions:
-            result = next((r for r in student_results if r.question_id == question.id), None)
-            score = result.score if result else 0
-            scores.append(score)
-            total_score += score
+        type_groups = {}
+        for assignment in chsb_assignments:
+            type_id = assignment.question_type_id
+            if type_id not in type_groups:
+                type_groups[type_id] = {
+                    'type': assignment.question_type,
+                    'questions': [],
+                    'total_max_score': 0
+                }
+            type_groups[type_id]['questions'].append(assignment.question_number)
+            type_groups[type_id]['total_max_score'] += assignment.max_score
         
-        percentage = (total_score / total_max_score * 100) if total_max_score > 0 else 0
-        
-        student_row = {
-            'Ism': student.first_name,
-            'Familiya': student.last_name,
-            'Guruh': student.group_number,
-            'Jami ball': total_score,
-            'Foiz': f"{round(percentage, 1)}%"
-        }
-        
-        for i, score in enumerate(scores, 1):
-            student_row[f'Savol {i}'] = score
-        
-        students_data.append(student_row)
+        for type_id, group in type_groups.items():
+            question_types_summary.append({
+                'id': type_id,
+                'name': group['type'].name,
+                'count': len(group['questions']),
+                'question_numbers': sorted(group['questions']),
+                'total_max_score': group['total_max_score']
+            })
+    
+    students_data = []
+    for group_num in sorted(students_by_group.keys()):
+        for student in students_by_group[group_num]:
+            student_results_query = await db.execute(
+                select(ExamResult)
+                .where(ExamResult.exam_id == exam_id, ExamResult.student_id == student.id)
+            )
+            student_results = student_results_query.scalars().all()
+            
+            scores = []
+            total_score = 0
+            
+            if exam.is_chsb_exam:
+                for qtype_summary in question_types_summary:
+                    type_score = 0
+                    for q_num in qtype_summary['question_numbers']:
+                        question = next((q for q in questions if q.question_number == q_num), None)
+                        if question:
+                            result = next((r for r in student_results if r.question_id == question.id), None)
+                            score = result.score if result else 0
+                            type_score += score
+                    scores.append(type_score)
+                    total_score += type_score
+            else:
+                for question in questions:
+                    result = next((r for r in student_results if r.question_id == question.id), None)
+                    score = result.score if result else 0
+                    scores.append(score)
+                    total_score += score
+            
+            percentage = (total_score / total_max_score * 100) if total_max_score > 0 else 0
+            
+            student_row = {
+                'Ism': student.first_name,
+                'Familiya': student.last_name,
+                'Guruh': student.group_number if show_groups else None,
+                'Jami ball': total_score,
+                'Foiz': f"{round(percentage, 1)}%",
+                'scores': scores
+            }
+            
+            students_data.append(student_row)
     
     exam_data = {
         'header': header,
         'teacher': teacher_name,
         'date': exam_date,
-        'students': students_data
+        'students': students_data,
+        'questions': questions,
+        'question_types_summary': question_types_summary,
+        'is_bsb_exam': exam.is_bsb_exam,
+        'is_chsb_exam': exam.is_chsb_exam,
+        'is_project_exam': exam.is_project_exam,
+        'show_groups': show_groups,
+        'variant': exam.variant,
+        'total_max_score': total_max_score
     }
     
     try:
+        quarter_name = quarter.name.replace(' ', '_') if quarter else 'chorak'
+        class_name = class_obj.name.replace(' ', '_').replace('-', '') if class_obj else 'sinf'
+        exam_name_str = exam_name.name.replace(' ', '_') if exam_name else 'imtihon'
+        
+        safe_quarter = ''.join(c for c in quarter_name if c.isalnum() or c == '_')
+        safe_class = ''.join(c for c in class_name if c.isalnum() or c == '_')
+        safe_exam = ''.join(c for c in exam_name_str if c.isalnum() or c == '_')
+        
+        base_filename = f"{safe_quarter}_{safe_class}_{safe_exam}"
+        
         if format == 'excel':
             output = await generate_excel_report(exam_data)
             return StreamingResponse(
                 BytesIO(output.getvalue()),
                 media_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
-                headers={'Content-Disposition': f'attachment; filename=natijalar_{exam_id}.xlsx'}
+                headers={'Content-Disposition': f'attachment; filename={base_filename}.xlsx'}
             )
         elif format == 'pdf':
             output = await generate_pdf_report(exam_data)
             return StreamingResponse(
                 BytesIO(output.getvalue()),
                 media_type='application/pdf',
-                headers={'Content-Disposition': f'attachment; filename=natijalar_{exam_id}.pdf'}
+                headers={'Content-Disposition': f'attachment; filename={base_filename}.pdf'}
             )
         elif format == 'word':
             output = await generate_word_report(exam_data)
             return StreamingResponse(
                 BytesIO(output.getvalue()),
                 media_type='application/vnd.openxmlformats-officedocument.wordprocessingml.document',
-                headers={'Content-Disposition': f'attachment; filename=natijalar_{exam_id}.docx'}
+                headers={'Content-Disposition': f'attachment; filename={base_filename}.docx'}
             )
         else:
             flash(request, "Noto'g'ri format", 'danger')
