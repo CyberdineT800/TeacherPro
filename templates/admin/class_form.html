@@ -3,44 +3,48 @@
 {% block title %}{% if class_obj %}{{ _('edit_class') }}{% else %}{{ _('new_class') }}{% endif %}{% endblock %}
 
 {% block content %}
-<div class="card">
+<div class="card form-card">
     <h2>{% if class_obj %}{{ _('edit_class') }}{% else %}{{ _('new_class') }}{% endif %}</h2>
 
     <form method="POST" enctype="multipart/form-data">
-        <div class="form-group">
-            <label for="name">{{ _('class_name') }} *</label>
-            <input type="text" id="name" name="name" value="{{ class_obj.name if class_obj else '' }}" required>
+        <div class="form-row">
+            <div class="form-group">
+                <label for="name">{{ _('class_name') }} *</label>
+                <input type="text" id="name" name="name" value="{{ class_obj.name if class_obj else '' }}" required>
+            </div>
+
+            <div class="form-group">
+                <label for="school_id">{{ _('school') }} *</label>
+                <select id="school_id" name="school_id" required>
+                    <option value="">{{ _('select') }}</option>
+                    {% for school in schools %}
+                    <option value="{{ school.id }}" {% if class_obj and class_obj.school_id==school.id %}selected{% endif %}>
+                        {{ school.name }}
+                    </option>
+                    {% endfor %}
+                </select>
+            </div>
         </div>
 
-        <div class="form-group">
-            <label for="school_id">{{ _('school') }} *</label>
-            <select id="school_id" name="school_id" required>
-                <option value="">{{ _('select') }}</option>
-                {% for school in schools %}
-                <option value="{{ school.id }}" {% if class_obj and class_obj.school_id==school.id %}selected{% endif
-                    %}>
-                    {{ school.name }}
-                </option>
-                {% endfor %}
-            </select>
-        </div>
+        <h3 class="form-section-title">{{ _('class_leader') }}</h3>
+        <div class="form-row">
+            <div class="form-group">
+                <label for="leader_first_name">{{ _('class_leader_first_name') }}</label>
+                <input type="text" id="leader_first_name" name="leader_first_name"
+                    value="{{ class_obj.leader_first_name if class_obj else '' }}">
+            </div>
 
-        <div class="form-group">
-            <label for="leader_first_name">{{ _('class_leader_first_name') }}</label>
-            <input type="text" id="leader_first_name" name="leader_first_name"
-                value="{{ class_obj.leader_first_name if class_obj else '' }}">
-        </div>
+            <div class="form-group">
+                <label for="leader_last_name">{{ _('class_leader_last_name') }}</label>
+                <input type="text" id="leader_last_name" name="leader_last_name"
+                    value="{{ class_obj.leader_last_name if class_obj else '' }}">
+            </div>
 
-        <div class="form-group">
-            <label for="leader_last_name">{{ _('class_leader_last_name') }}</label>
-            <input type="text" id="leader_last_name" name="leader_last_name"
-                value="{{ class_obj.leader_last_name if class_obj else '' }}">
-        </div>
-
-        <div class="form-group">
-            <label for="leader_phone">{{ _('class_leader_phone') }}</label>
-            <input type="text" id="leader_phone" name="leader_phone"
-                value="{{ class_obj.leader_phone if class_obj else '' }}">
+            <div class="form-group">
+                <label for="leader_phone">{{ _('class_leader_phone') }}</label>
+                <input type="text" id="leader_phone" name="leader_phone"
+                    value="{{ class_obj.leader_phone if class_obj else '' }}">
+            </div>
         </div>
 
         {% if not class_obj %}
@@ -51,7 +55,7 @@
         </div>
         {% endif %}
 
-        <div style="margin-top: 2rem;">
+        <div class="form-actions">
             <button type="submit" class="btn btn-success">{{ _('save') }}</button>
             <a href="{{ url_for('classes_list') }}" class="btn btn-secondary">{{ _('cancel') }}</a>
         </div>

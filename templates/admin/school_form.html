@@ -3,7 +3,7 @@
 {% block title %}{% if school %}{{ _('edit_school') }}{% else %}{{ _('new_school') }}{% endif %}{% endblock %}
 
 {% block content %}
-<div class="card">
+<div class="card form-card">
     <h2>{% if school %}{{ _('edit_school') }}{% else %}{{ _('new_school') }}{% endif %}</h2>
 
     <form method="POST">
@@ -29,7 +29,7 @@
             </div>
         </div>
 
-        <div style="margin-top: 2rem;">
+        <div class="form-actions">
             <button type="submit" class="btn btn-success">{{ _('save') }}</button>
             <a href="{{ url_for('schools_list') }}" class="btn btn-secondary">{{ _('cancel') }}</a>
         </div>

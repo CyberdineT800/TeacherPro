@@ -6,14 +6,12 @@
 <div class="card">
     <h2>{{ title }}</h2>
 
-    <form method="POST" action="{{ url_for(add_url) }}" style="margin-bottom: 2rem;">
-        <div style="display: flex; gap: 1rem; align-items: end;">
-            <div class="form-group" style="flex: 1; margin-bottom: 0;">
-                <label for="name">{{ _('add_new') }}</label>
-                <input type="text" id="name" name="name" required>
-            </div>
-            <button type="submit" class="btn btn-success">+ {{ _('add') }}</button>
+    <form method="POST" action="{{ url_for(add_url) }}" class="inline-add-form">
+        <div class="form-group" style="flex:1;margin-bottom:0;">
+            <label for="name">{{ _('add_new') }}</label>
+            <input type="text" id="name" name="name" required>
         </div>
+        <button type="submit" class="btn btn-success">+ {{ _('add') }}</button>
     </form>
 
     {% if items %}
@@ -32,7 +30,7 @@
                     <td class="row-number">{{ loop.index }}</td>
                     <td>{% if item.title %}{{ item.title }}{% else %}{{ item.name }}{% endif %}</td>
                     <td>
-                        <form method="POST" action="{{ url_for(delete_url, id=item.id) }}" style="display: inline;"
+                        <form method="POST" action="{{ url_for(delete_url, id=item.id) }}" style="display:inline;"
                             onsubmit="return confirmDelete();">
                             <button type="submit" class="btn btn-danger btn-sm">{{ _('delete') }}</button>
                         </form>
@@ -43,74 +41,7 @@
         </table>
     </div>
     {% else %}
-    <div class="no-data">
-        <p>{{ _('no_data') }}</p>
-    </div>
+    <div class="no-data"><p>{{ _('no_data') }}</p></div>
     {% endif %}
 </div>
-
-<style>
-    .table-container {
-        overflow-x: auto;
-        border-radius: 8px;
-        border: 1px solid #e9ecef;
-    }
-
-    .row-number {
-        text-align: center;
-        font-weight: 600;
-        color: #6c757d;
-        background-color: #f8f9fa;
-    }
-
-    .no-data {
-        text-align: center;
-        padding: 3rem;
-        color: #6c757d;
-        font-style: italic;
-    }
-
-    table {
-        width: 100%;
-        border-collapse: collapse;
-        margin: 0;
-    }
-
-    table th {
-        background: #f8f9fa;
-        font-weight: 600;
-        color: #2c3e50;
-        padding: 1rem;
-        text-align: left;
-        border-bottom: 2px solid #dee2e6;
-    }
-
-    table td {
-        padding: 1rem;
-        border-bottom: 1px solid #e9ecef;
-    }
-
-    table tr:last-child td {
-        border-bottom: none;
-    }
-
-    table tr:hover {
-        background-color: #f8f9fa;
-    }
-
-    @media (max-width: 768px) {
-        .table-container {
-            font-size: 0.9rem;
-        }
-
-        table th,
-        table td {
-            padding: 0.75rem 0.5rem;
-        }
-
-        .row-number {
-            width: 50px;
-        }
-    }
-</style>
 {% endblock %}

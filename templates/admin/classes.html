@@ -4,29 +4,25 @@
 
 {% block content %}
 <div class="card">
-    <h2>{{ _('classes') }}</h2>
+    <div class="list-header">
+        <h2>{{ _('classes') }}</h2>
+        <a href="{{ url_for('add_class') }}" class="btn btn-success">+ {{ _('new_class') }}</a>
+    </div>
 
     <div class="filter-box">
         <form method="GET">
-            <div style="display: flex; gap: 1rem; align-items: end;">
-                <div class="form-group" style="flex: 1; margin-bottom: 0;">
-                    <label for="school_id">{{ _('filter_by_school') }}</label>
-                    <select id="school_id" name="school_id" onchange="this.form.submit()">
-                        <option value="">{{ _('all') }}</option>
-                        {% for school in schools %}
-                        <option value="{{ school.id }}" {% if request.args.get('school_id')|string==school.id|string
-                            %}selected{% endif %}>
-                            {{ school.name }}
-                        </option>
-                        {% endfor %}
-                    </select>
-                </div>
+            <div class="form-group" style="margin-bottom:0;">
+                <label for="school_id">{{ _('filter_by_school') }}</label>
+                <select id="school_id" name="school_id" onchange="this.form.submit()">
+                    <option value="">{{ _('all') }}</option>
+                    {% for school in schools %}
+                    <option value="{{ school.id }}" {% if request.args.get('school_id')|string==school.id|string %}selected{% endif %}>
+                        {{ school.name }}
+                    </option>
+                    {% endfor %}
+                </select>
             </div>
         </form>
-    </div>
-
-    <div style="margin-bottom: 1rem;">
-        <a href="{{ url_for('add_class') }}" class="btn btn-success">+ {{ _('new_class') }}</a>
     </div>
 
     {% if classes %}
@@ -48,38 +44,25 @@
                     <td class="row-number">{{ loop.index }}</td>
                     <td><strong>{{ class.name }}</strong></td>
                     <td>
-                        {% for school in schools %}
-                        {% if school.id == class.school_id %}
-                        {{ school.name }}
-                        {% endif %}
-                        {% endfor %}
+                        {% for school in schools %}{% if school.id == class.school_id %}{{ school.name }}{% endif %}{% endfor %}
                     </td>
                     <td>
                         {% if class.leader_first_name or class.leader_last_name %}
                         {{ class.leader_first_name or '' }} {{ class.leader_last_name or '' }}
-                        {% if class.leader_phone %}
-                        <br><small>{{ class.leader_phone }}</small>
-                        {% endif %}
+                        {% if class.leader_phone %}<br><small class="muted-small">{{ class.leader_phone }}</small>{% endif %}
                         {% else %}
-                        <span style="color: #999;">{{ _('not_set') }}</span>
+                        <span class="muted-small">{{ _('not_set') }}</span>
                         {% endif %}
                     </td>
                     <td>
                         {% set student_count = namespace(count=0) %}
-                        {% for student in students %}
-                        {% if student.class_id == class.id %}
-                        {% set student_count.count = student_count.count + 1 %}
-                        {% endif %}
-                        {% endfor %}
-                        {{ student_count.count }}
+                        {% for student in students %}{% if student.class_id == class.id %}{% set student_count.count = student_count.count + 1 %}{% endif %}{% endfor %}
+                        <span class="count-pill">{{ student_count.count }}</span>
                     </td>
                     <td class="action-buttons">
-                        <a href="{{ url_for('edit_class', id=class.id) }}" class="btn btn-primary btn-sm">{{ _('edit')
-                            }}</a>
-                        <a href="{{ url_for('students_list', class_id=class.id) }}" class="btn btn-secondary btn-sm">{{
-                            _('students') }}</a>
-                        <form method="POST" action="{{ url_for('delete_class', id=class.id) }}" style="display: inline;"
-                            onsubmit="return confirmDelete();">
+                        <a href="{{ url_for('edit_class', id=class.id) }}" class="btn btn-primary btn-sm">{{ _('edit') }}</a>
+                        <a href="{{ url_for('students_list', class_id=class.id) }}" class="btn btn-secondary btn-sm">{{ _('students') }}</a>
+                        <form method="POST" action="{{ url_for('delete_class', id=class.id) }}" style="display:inline;" onsubmit="return confirmDelete();">
                             <button type="submit" class="btn btn-danger btn-sm">{{ _('delete') }}</button>
                         </form>
                     </td>
@@ -89,9 +72,7 @@
         </table>
     </div>
     {% else %}
-    <div class="no-data">
-        <p>{{ _('no_data') }}</p>
-    </div>
+    <div class="no-data"><p>{{ _('no_data') }}</p></div>
     {% endif %}
 </div>
 {% endblock %}

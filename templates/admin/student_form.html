@@ -3,21 +3,19 @@
 {% block title %}{% if student %}{{ _('edit_student') }}{% else %}{{ _('new_student') }}{% endif %}{% endblock %}
 
 {% block content %}
-<div class="card">
+<div class="card form-card">
     <h2>{% if student %}{{ _('edit_student') }}{% else %}{{ _('new_student') }}{% endif %}</h2>
 
     <form method="POST">
         <div class="form-row">
             <div class="form-group">
                 <label for="first_name">{{ _('first_name') }} *</label>
-                <input type="text" id="first_name" name="first_name" value="{{ student.first_name if student else '' }}"
-                    required>
+                <input type="text" id="first_name" name="first_name" value="{{ student.first_name if student else '' }}" required>
             </div>
 
             <div class="form-group">
                 <label for="last_name">{{ _('last_name') }} *</label>
-                <input type="text" id="last_name" name="last_name" value="{{ student.last_name if student else '' }}"
-                    required>
+                <input type="text" id="last_name" name="last_name" value="{{ student.last_name if student else '' }}" required>
             </div>
         </div>
 
@@ -27,8 +25,7 @@
                 <select id="gender" name="gender" required>
                     <option value="">{{ _('select') }}</option>
                     <option value="1" {% if student and student.gender==1 %}selected{% endif %}>{{ _('male') }}</option>
-                    <option value="2" {% if student and student.gender==2 %}selected{% endif %}>{{ _('female') }}
-                    </option>
+                    <option value="2" {% if student and student.gender==2 %}selected{% endif %}>{{ _('female') }}</option>
                 </select>
             </div>
 
@@ -36,10 +33,8 @@
                 <label for="group_number">{{ _('group_number') }} *</label>
                 <select id="group_number" name="group_number" required>
                     <option value="">{{ _('select') }}</option>
-                    <option value="1" {% if student and student.group_number==1 %}selected{% endif %}>1-{{ _('group') }}
-                    </option>
-                    <option value="2" {% if student and student.group_number==2 %}selected{% endif %}>2-{{ _('group') }}
-                    </option>
+                    <option value="1" {% if student and student.group_number==1 %}selected{% endif %}>1-{{ _('group') }}</option>
+                    <option value="2" {% if student and student.group_number==2 %}selected{% endif %}>2-{{ _('group') }}</option>
                 </select>
             </div>
         </div>
@@ -56,7 +51,7 @@
             </select>
         </div>
 
-        <div style="margin-top: 2rem;">
+        <div class="form-actions">
             <button type="submit" class="btn btn-success">{{ _('save') }}</button>
             <a href="{% if student %}{{ url_for('students_list', class_id=student.class_id) }}{% else %}{{ url_for('students_list') }}{% endif %}"
                 class="btn btn-secondary">{{ _('cancel') }}</a>

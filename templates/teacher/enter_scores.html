@@ -1,68 +1,163 @@
 {% extends "base.html" %}
+{% block title %}{{ _('enter_scores') }}{% endblock %}
 
-{% block title %}Ballarni kiritish{% endblock %}
+{% block extra_css %}
+<style>
+  .score-header{
+    text-align:center;
+    font-size:1.05rem;
+    font-weight:700;
+    margin-bottom:18px;
+    line-height:1.5;
+    color:var(--text);
+  }
+  .score-meta{
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+    margin-bottom:18px;
+    flex-wrap:wrap;
+    gap:10px;
+    padding:12px 16px;
+    background:rgba(0,0,0,.2);
+    border:1px solid var(--glass-border);
+    border-radius:var(--r-md);
+    font-size:.9rem;
+  }
+  .score-meta strong{color:var(--text-muted);font-weight:600;margin-right:4px}
+  .score-meta input[type="date"]{
+    width:auto;padding:6px 10px;font-size:.85rem;
+  }
+
+  table.scores{
+    border-collapse:separate;
+    border-spacing:0;
+    width:100%;
+    min-width:640px;
+    font-size:.88rem;
+    background:rgba(0,0,0,.18);
+    border-radius:var(--r-md);
+    overflow:hidden;
+    border:1px solid var(--glass-border);
+  }
+  table.scores thead th{
+    background:linear-gradient(180deg,
+      oklch(32% 0.08 195 / 0.5), oklch(28% 0.08 195 / 0.35));
+    color:var(--text);
+    text-align:center;
+    padding:10px 8px;
+    border-bottom:1px solid var(--glass-border);
+    border-right:1px solid rgba(255,255,255,.05);
+    font-size:.78rem;
+    font-weight:700;
+    white-space:nowrap;
+  }
+  table.scores thead th:last-child{border-right:none}
+  table.scores tbody td{
+    padding:8px;
+    border-bottom:1px solid rgba(255,255,255,.04);
+    border-right:1px solid rgba(255,255,255,.04);
+    text-align:center;
+    color:var(--text);
+  }
+  table.scores tbody td:nth-child(2){text-align:left;white-space:nowrap}
+  table.scores tbody tr:hover{background:rgba(255,255,255,.03)}
+  .group-row td{
+    background:linear-gradient(180deg, oklch(35% 0.13 155 / 0.32), oklch(30% 0.12 155 / 0.22)) !important;
+    color:oklch(90% 0.12 155);
+    font-weight:700;
+    text-align:center;
+    font-size:.85rem;
+    padding:8px !important;
+    border-top:1px solid oklch(55% 0.16 155 / 0.25);
+  }
+  .total-cell{
+    font-weight:800 !important;
+    background:oklch(70% 0.18 155 / 0.15) !important;
+    color:oklch(92% 0.14 155);
+    font-variant-numeric:tabular-nums;
+  }
+  .percent-cell{
+    background:oklch(70% 0.16 220 / 0.12) !important;
+    color:oklch(92% 0.10 220);
+    font-variant-numeric:tabular-nums;
+  }
+  .score-inp{
+    width:70px;
+    padding:6px 4px;
+    text-align:center;
+    background:rgba(255,255,255,.05);
+    border:1px solid var(--glass-border);
+    border-radius:8px;
+    color:var(--text);
+    font-weight:600;
+    font-family:inherit;
+    font-variant-numeric:tabular-nums;
+  }
+  .score-inp:focus{
+    outline:none;
+    border-color:var(--c-cyan);
+    background:rgba(255,255,255,.08);
+    box-shadow:0 0 0 3px oklch(70% 0.16 220 / 0.2);
+  }
+  .form-actions{
+    margin-top:22px;display:flex;gap:10px;flex-wrap:wrap;
+  }
+</style>
+{% endblock %}
 
 {% block content %}
-<div class="card" style="overflow-x:auto;">
-
-  <h3 style="text-align:center; font-size:1em; font-weight:bold; margin-bottom:0.5rem; line-height:1.5;">
-    {{ exam_info.class_name }} sinfida {{ exam_info.subject_name }} fanidan o'tkazilgan
-    {{ exam_info.quarter_name }} №{{ exam.variant }} {{ exam_info.exam_name }} tahlili
+<div class="card">
+  <h3 class="score-header">
+    {{ exam_info.class_name }} {{ _('class') }} · {{ exam_info.subject_name }} ·
+    {{ exam_info.quarter_name }} №{{ exam.variant }} · {{ exam_info.exam_name }}
   </h3>
 
-  <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:1rem; flex-wrap:wrap; gap:0.5rem;">
-    <div style="font-size:0.9em;">
-      <strong>Sinf rahbari:</strong> {{ exam_info.leader_fullname }}
-      {% if exam_info.leader_phone %}&nbsp;|&nbsp;<strong>Tel:</strong> {{ exam_info.leader_phone }}{% endif %}
-      &nbsp;|&nbsp;<strong>Jami max ball:</strong> {{ total_max_score | int }}
+  <div class="score-meta">
+    <div>
+      <strong>{{ _('class_leader') }}:</strong> {{ exam_info.leader_fullname }}
+      {% if exam_info.leader_phone %}· <strong>{{ _('phone') }}:</strong> {{ exam_info.leader_phone }}{% endif %}
+      · <strong>{{ _('max_score') }}:</strong> {{ total_max_score | int }}
     </div>
     <div>
-      <strong>Sana:</strong>
-      <input type="date" id="exam_date"
-             style="border:1px solid #ccc; padding:3px 8px; border-radius:4px; font-size:0.9em;">
+      <strong>{{ _('date') }}:</strong>
+      <input type="date" id="exam_date">
     </div>
   </div>
 
   <form method="POST" id="scores_form">
-    <div style="overflow-x:auto;">
-      <table style="border-collapse:collapse; width:100%; font-size:0.85em; min-width:600px;">
+    <div class="score-table">
+      <table class="scores">
         <thead>
-          <tr style="background:#2e7d32; color:white; text-align:center;">
-            <th style="border:1px solid #1b5e20; padding:6px 8px; white-space:nowrap;">T/R</th>
-            <th style="border:1px solid #1b5e20; padding:6px 12px; white-space:nowrap; text-align:left;">O'quvchilar F.I.Sh</th>
-            <th style="border:1px solid #1b5e20; padding:6px 8px; white-space:nowrap;">Variant</th>
+          <tr>
+            <th>{{ _('number') }}</th>
+            <th style="text-align:left;">{{ _('student_name') }}</th>
+            <th>{{ _('variant') }}</th>
 
             {% if exam.is_project_exam %}
-              <th style="border:1px solid #1b5e20; padding:6px 8px;">
-                Ball<br>
-                <span style="font-size:0.8em; font-weight:normal;">
-                  (max: {{ (questions[0].max_score if questions else 15) | int }})
-                </span>
-              </th>
-
+              <th>{{ _('score') }}<br><span style="font-size:.72rem;font-weight:500;opacity:.8">(max: {{ (questions[0].max_score if questions else 15) | int }})</span></th>
             {% elif exam.is_chsb_exam %}
               {% for qt in question_types_summary %}
               {% set spq = qt.score_per_question %}
-              <th style="border:1px solid #1b5e20; padding:6px 8px; text-align:center;">
+              <th>
                 {{ qt.name }}<br>
-                <span style="font-size:0.75em; font-weight:normal;">
-                  ({{ spq | int if spq % 1 == 0 else spq | round(1) }}ball) {{ qt.count }}ta
+                <span style="font-size:.72rem;font-weight:500;opacity:.8">
+                  ({{ spq | int if spq % 1 == 0 else spq | round(1) }}{{ _('ball_label') }}) {{ qt.count }}{{ _('count_suffix') }}
                 </span><br>
-                <span style="font-size:0.75em; font-weight:normal;">max: {{ qt.total_max_score | int }}</span>
+                <span style="font-size:.72rem;font-weight:500;opacity:.7">max: {{ qt.total_max_score | int }}</span>
               </th>
               {% endfor %}
-
             {% else %}
               {% for question in questions %}
-              <th style="border:1px solid #1b5e20; padding:6px 8px; text-align:center;">
+              <th>
                 {{ question.question_number }}<br>
-                <span style="font-size:0.8em; font-weight:normal;">(max: {{ question.max_score | int }})</span>
+                <span style="font-size:.72rem;font-weight:500;opacity:.8">(max: {{ question.max_score | int }})</span>
               </th>
               {% endfor %}
             {% endif %}
 
-            <th style="border:1px solid #1b5e20; padding:6px 8px; white-space:nowrap;">Jami</th>
-            <th style="border:1px solid #1b5e20; padding:6px 8px;">%</th>
+            <th>{{ _('total_score') }}</th>
+            <th>%</th>
           </tr>
         </thead>
         <tbody>
@@ -70,86 +165,72 @@
           {% for student in students %}
 
             {% if student.group_number != ns.prev_group %}
-            <tr>
-              <td colspan="50"
-                  style="background:#e8f5e9; font-weight:bold; text-align:center;
-                         padding:5px 8px; border:1px solid #c8e6c9; color:#2e7d32; font-size:0.88em;">
-                {{ student.group_number }}-guruh
-              </td>
+            <tr class="group-row">
+              <td colspan="50">{{ student.group_number }}-{{ _('group') }}</td>
             </tr>
             {% set ns.prev_group = student.group_number %}
             {% endif %}
 
             {% set ns.row_num = ns.row_num + 1 %}
-            <tr style="{% if loop.index % 2 == 0 %}background:#f9fbe7;{% endif %}">
-              <td style="border:1px solid #ddd; padding:4px 6px; text-align:center; color:#555;">{{ ns.row_num }}</td>
-              <td style="border:1px solid #ddd; padding:4px 8px; white-space:nowrap;">{{ student.last_name }} {{ student.first_name }}</td>
-              <td style="border:1px solid #ddd; padding:4px 6px; text-align:center;">{{ exam.variant }}</td>
+            <tr>
+              <td>{{ ns.row_num }}</td>
+              <td>{{ student.last_name }} {{ student.first_name }}</td>
+              <td>{{ exam.variant }}</td>
 
               {% if exam.is_project_exam %}
-              <td style="border:1px solid #ddd; padding:4px 4px; text-align:center;">
+              <td>
                 <input type="number"
                        name="score_{{ student.id }}_{{ questions[0].id if questions else 0 }}"
                        data-student="{{ student.id }}" class="score-inp"
                        min="0" max="{{ (questions[0].max_score if questions else 15) }}"
                        step="0.1" value="0" onfocus="this.select()"
-                       oninput="calcRow({{ student.id }})"
-                       style="width:65px; padding:3px; text-align:center; border:1px solid #ccc; border-radius:3px;">
+                       oninput="calcRow({{ student.id }})">
               </td>
-
               {% elif exam.is_chsb_exam %}
                 {% for qt in question_types_summary %}
-                <td style="border:1px solid #ddd; padding:4px 4px; text-align:center;">
+                <td>
                   <input type="number"
                          name="chsb_score_{{ student.id }}_{{ qt.id }}"
                          data-student="{{ student.id }}" class="score-inp"
                          min="0" max="{{ qt.total_max_score }}"
                          step="0.1" value="0" onfocus="this.select()"
-                         oninput="calcRow({{ student.id }})"
-                         style="width:65px; padding:3px; text-align:center; border:1px solid #ccc; border-radius:3px;">
+                         oninput="calcRow({{ student.id }})">
                 </td>
                 {% endfor %}
-
               {% else %}
                 {% for question in questions %}
-                <td style="border:1px solid #ddd; padding:4px 4px; text-align:center;">
+                <td>
                   <input type="number"
                          name="score_{{ student.id }}_{{ question.id }}"
                          data-student="{{ student.id }}" class="score-inp"
                          min="0" max="{{ question.max_score }}"
                          step="0.1" value="0" onfocus="this.select()"
-                         oninput="calcRow({{ student.id }})"
-                         style="width:65px; padding:3px; text-align:center; border:1px solid #ccc; border-radius:3px;">
+                         oninput="calcRow({{ student.id }})">
                 </td>
                 {% endfor %}
               {% endif %}
 
-              <td id="jami_{{ student.id }}"
-                  style="border:1px solid #ddd; padding:4px 8px; text-align:center;
-                         font-weight:bold; background:#f1f8e9; color:#2e7d32;">0</td>
-              <td id="percent_{{ student.id }}"
-                  style="border:1px solid #ddd; padding:4px 8px; text-align:center;
-                         background:#f1f8e9; color:#555;">0%</td>
+              <td id="jami_{{ student.id }}" class="total-cell">0</td>
+              <td id="percent_{{ student.id }}" class="percent-cell">0%</td>
             </tr>
           {% endfor %}
         </tbody>
       </table>
     </div>
 
-    <div style="margin-top:1.5rem; display:flex; gap:1rem;">
-      <button type="submit" class="btn btn-success">Saqlash</button>
-      <a href="{{ url_for('teacher_dashboard') }}" class="btn btn-secondary">Bekor qilish</a>
+    <div class="form-actions">
+      <button type="submit" class="btn btn-success">{{ _('save_results') }}</button>
+      <a href="{{ url_for('teacher_dashboard') }}" class="btn btn-secondary">{{ _('cancel') }}</a>
     </div>
   </form>
 </div>
 
 <script>
 const totalMax = {{ total_max_score }};
-
 function calcRow(sid) {
   const inputs = document.querySelectorAll('[data-student="' + sid + '"].score-inp');
   let sum = 0;
-  inputs.forEach(function(inp) { sum += parseFloat(inp.value) || 0; });
+  inputs.forEach(function(inp){ sum += parseFloat(inp.value) || 0; });
   const jamiEl = document.getElementById('jami_' + sid);
   const pctEl  = document.getElementById('percent_' + sid);
   jamiEl.textContent  = Number.isInteger(sum) ? sum : sum.toFixed(1);

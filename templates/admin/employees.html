@@ -4,29 +4,25 @@
 
 {% block content %}
 <div class="card">
-    <h2>{{ _('employees') }}</h2>
+    <div class="list-header">
+        <h2>{{ _('employees') }}</h2>
+        <a href="{{ url_for('add_employee') }}" class="btn btn-success">+ {{ _('new_employee') }}</a>
+    </div>
 
     <div class="filter-box">
         <form method="GET">
-            <div style="display: flex; gap: 1rem; align-items: end;">
-                <div class="form-group" style="flex: 1; margin-bottom: 0;">
-                    <label for="school_id">{{ _('filter_by_school') }}</label>
-                    <select id="school_id" name="school_id" onchange="this.form.submit()">
-                        <option value="">{{ _('all') }}</option>
-                        {% for school in schools %}
-                        <option value="{{ school.id }}" {% if request.args.get('school_id')==school.id|string
-                            %}selected{% endif %}>
-                            {{ school.name }}
-                        </option>
-                        {% endfor %}
-                    </select>
-                </div>
+            <div class="form-group" style="margin-bottom:0;">
+                <label for="school_id">{{ _('filter_by_school') }}</label>
+                <select id="school_id" name="school_id" onchange="this.form.submit()">
+                    <option value="">{{ _('all') }}</option>
+                    {% for school in schools %}
+                    <option value="{{ school.id }}" {% if request.args.get('school_id')==school.id|string %}selected{% endif %}>
+                        {{ school.name }}
+                    </option>
+                    {% endfor %}
+                </select>
             </div>
         </form>
-    </div>
-
-    <div style="margin-bottom: 1rem;">
-        <a href="{{ url_for('add_employee') }}" class="btn btn-success">+ {{ _('new_employee') }}</a>
     </div>
 
     {% if employees %}
@@ -49,27 +45,22 @@
                 {% for employee in employees %}
                 <tr>
                     <td class="row-number">{{ loop.index }}</td>
-                    <td>{{ employee.first_name }} {{ employee.last_name }}</td>
-                    <td>{{ employee.username }}</td>
+                    <td>
+                        <div class="name-cell">
+                            <span class="mini-avatar">{{ employee.first_name[0]|upper }}{{ employee.last_name[0]|upper }}</span>
+                            <span>{{ employee.first_name }} {{ employee.last_name }}</span>
+                        </div>
+                    </td>
+                    <td><code class="mono">{{ employee.username }}</code></td>
                     <td>
                         {% if employee.school_id %}
-                        {% for school in schools %}
-                        {% if school.id == employee.school_id %}
-                        {{ school.name }}
-                        {% endif %}
-                        {% endfor %}
-                        {% else %}
-                        -
-                        {% endif %}
+                            {% for school in schools %}{% if school.id == employee.school_id %}{{ school.name }}{% endif %}{% endfor %}
+                        {% else %}—{% endif %}
                     </td>
-                    <td>
-                        {% if employee.staff_title %}
-                        {{ employee.staff_title.title }}
-                        {% else %}
-                        -
-                        {% endif %}
+                    <td>{% if employee.staff_title %}{{ employee.staff_title.title }}{% else %}—{% endif %}</td>
+                    <td style="text-align:center;">
+                      {% if employee.is_admin %}<span class="check-yes">✓</span>{% else %}<span class="muted-small">—</span>{% endif %}
                     </td>
-                    <td>{% if employee.is_admin %}✓{% else %}-{% endif %}</td>
                     <td>
                         {% if employee.is_active %}
                         <span class="status-active">{{ _('active') }}</span>
@@ -77,22 +68,16 @@
                         <span class="status-inactive">{{ _('inactive') }}</span>
                         {% endif %}
                     </td>
-                    <td>{{ employee.updated_at.strftime('%d.%m.%Y %H:%M') }}</td>
+                    <td><span class="muted-small">{{ employee.updated_at.strftime('%d.%m.%Y %H:%M') }}</span></td>
                     <td class="action-buttons">
-                        <a href="{{ url_for('edit_employee', id=employee.id) }}" class="btn btn-primary btn-sm">{{
-                            _('edit')
-                            }}</a>
-
+                        <a href="{{ url_for('edit_employee', id=employee.id) }}" class="btn btn-primary btn-sm">{{ _('edit') }}</a>
                         {% if employee.id != session.user_id %}
-                        <form method="POST" action="{{ url_for('toggle_employee_status', id=employee.id) }}"
-                            style="display: inline;">
+                        <form method="POST" action="{{ url_for('toggle_employee_status', id=employee.id) }}" style="display:inline;">
                             <button type="submit" class="btn btn-warning btn-sm">
                                 {% if employee.is_active %}{{ _('block') }}{% else %}{{ _('activate') }}{% endif %}
                             </button>
                         </form>
-
-                        <form method="POST" action="{{ url_for('delete_employee', id=employee.id) }}"
-                            style="display: inline;" onsubmit="return confirmDelete();">
+                        <form method="POST" action="{{ url_for('delete_employee', id=employee.id) }}" style="display:inline;" onsubmit="return confirmDelete();">
                             <button type="submit" class="btn btn-danger btn-sm">{{ _('delete') }}</button>
                         </form>
                         {% endif %}
@@ -103,9 +88,7 @@
         </table>
     </div>
     {% else %}
-    <div class="no-data">
-        <p>{{ _('no_data') }}</p>
-    </div>
+    <div class="no-data"><p>{{ _('no_data') }}</p></div>
     {% endif %}
 </div>
 {% endblock %}

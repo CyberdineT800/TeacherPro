@@ -3,625 +3,222 @@
 
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=1200, initial-scale=1.0">
-    <meta name="HandheldFriendly" content="false">
-    <meta name="MobileOptimized" content="width">
-    <meta name="theme-color" content="#ffffff">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <link rel="icon"
-        href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🎓</text></svg>">
-    <title>{{ _('login') }} - {{ _('app_name') }}</title>
-    <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
+        href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><circle cx=%2250%22 cy=%2250%22 r=%2240%22 fill=%22none%22 stroke=%22%2366e0ff%22 stroke-width=%226%22/><text x=%2250%22 y=%2260%22 font-size=%2240%22 text-anchor=%22middle%22 fill=%22%23ffffff%22 font-family=%22Arial%22 font-weight=%22700%22>T</text></svg>">
+    <title>{{ _('login') }} — {{ _('app_name') }}</title>
 
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <style>
+        /* Login-specific layout overrides (builds on the shared design system) */
         body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background: linear-gradient(135deg, #667eea 0%, #42c9c9 100%);
-            min-height: 100vh;
             display: flex;
             flex-direction: column;
-            justify-content: center;
             align-items: center;
-            padding: 2rem 0;
+            justify-content: center;
+            min-height: 100vh;
+            padding: 32px 20px;
         }
 
-        body {
-            min-width: 1200px !important;
-            overflow-x: auto !important;
-        }
-
-        .login-container,
-        .language-selector-login,
-        .login-footer {
-            min-width: 800px !important;
-        }
-        
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
+        .login-shell {
+            position: relative;
+            z-index: 1;
+            width: 100%;
+            max-width: 440px;
+            display: flex;
+            flex-direction: column;
+            gap: 18px;
         }
 
         .login-container {
-            background: white;
-            border-radius: 12px;
-            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
-            padding: 3rem;
-            width: 100%;
-            max-width: 400px;
-            margin-bottom: 2rem;
-        }
-
-        .login-container h1 {
-            text-align: center;
-            color: #2c3e50;
-            margin-bottom: 2rem;
-            font-size: 2rem;
-        }
-
-        .form-group {
-            margin-bottom: 1.5rem;
-        }
-
-        .form-group label {
-            display: block;
-            margin-bottom: 0.5rem;
-            font-weight: 600;
-            color: #2c3e50;
-        }
-
-        .form-group input {
-            width: 100%;
-            padding: 0.75rem;
-            border: 2px solid #ddd;
-            border-radius: 6px;
-            font-size: 1rem;
-            transition: border-color 0.3s;
-        }
-
-        .form-group input:focus {
-            outline: none;
-            border-color: #667eea;
-        }
-
-        .btn {
-            width: 100%;
-            padding: 1rem;
-            background: linear-gradient(135deg, #667eea 0%, #4cceb2 100%);
-            color: white;
-            border: none;
-            border-radius: 6px;
-            font-size: 1rem;
-            font-weight: 600;
-            cursor: pointer;
-            transition: transform 0.2s;
-        }
-
-        .btn:hover {
-            transform: translateY(-2px);
-        }
-
-        .alert {
-            padding: 1rem;
-            border-radius: 6px;
-            margin-bottom: 1rem;
+            padding: 44px 38px 38px;
+            border-radius: var(--r-xl);
+            background: rgba(255, 255, 255, 0.055);
+            border: 1px solid var(--glass-border);
+            backdrop-filter: blur(30px) saturate(180%);
+            -webkit-backdrop-filter: blur(30px) saturate(180%);
+            box-shadow: var(--sh-lg), var(--glass-inner);
+            position: relative;
+            overflow: hidden;
             text-align: center;
         }
-
-        .alert-danger {
-            background: #f8d7da;
-            color: #721c24;
-            border: 1px solid #f5c6cb;
+        .login-container::before {
+            content: "";
+            position: absolute;
+            inset: 0;
+            border-radius: inherit;
+            padding: 1px;
+            background: linear-gradient(140deg, rgba(255,255,255,.30) 0%, rgba(255,255,255,.04) 35%, transparent 65%, rgba(255,255,255,.10) 100%);
+            -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+            -webkit-mask-composite: xor;
+                    mask-composite: exclude;
+            pointer-events: none;
         }
 
         .login-icon {
-            text-align: center;
-            font-size: 4rem;
-            margin-bottom: 1rem;
-        }
-
-        .login-footer {
-            background: rgba(255, 255, 255, 0.1);
-            backdrop-filter: blur(10px);
-            border-radius: 12px;
-            padding: 2rem;
-            width: 100%;
-            max-width: 800px;
-            color: white;
-            text-align: center;
-        }
-
-        .login-footer-content {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-            gap: 2rem;
-            margin-bottom: 1.5rem;
-        }
-
-        .footer-section {
-            text-align: left;
-        }
-
-        .footer-section h3 {
-            margin-bottom: 1rem;
-            font-size: 1.2rem;
-        }
-
-        .footer-section h4 {
-            margin-bottom: 0.75rem;
-            font-size: 1.1rem;
-        }
-
-        .developer {
-            margin-bottom: 1rem;
-            padding: 0.75rem;
-            background: rgba(255, 255, 255, 0.1);
-            border-radius: 8px;
-        }
-
-        .developer strong {
-            display: block;
-            margin-bottom: 0.5rem;
-            font-size: 1rem;
-        }
-
-        .developer-contacts {
-            display: flex;
-            flex-direction: column;
-            gap: 0.25rem;
-        }
-
-        .contact-item,
-        .contact-link {
-            color: white;
-            text-decoration: none;
-            font-size: 0.9rem;
-            display: flex;
-            align-items: center;
-            gap: 0.5rem;
-        }
-
-        .contact-link:hover {
-            text-decoration: underline;
-        }
-
-        .telegram-icon {
-            font-size: 0.8rem;
-        }
-
-        .footer-links {
-            display: flex;
-            gap: 1rem;
-            margin-top: 0.5rem;
-        }
-
-        .footer-link {
-            color: white;
-            text-decoration: none;
-            padding: 0.5rem 1rem;
-            background: rgba(255, 255, 255, 0.2);
-            border-radius: 6px;
-            transition: background 0.3s;
-        }
-
-        .footer-link:hover {
-            background: rgba(255, 255, 255, 0.3);
-        }
-
-        .footer-bottom {
-            border-top: 1px solid rgba(255, 255, 255, 0.3);
-            padding-top: 1rem;
-            font-size: 0.9rem;
-        }
-
-        @media (max-width: 768px) {
-            body {
-                padding: 1rem;
-            }
-
-            .login-container {
-                padding: 2rem;
-                margin-bottom: 1rem;
-            }
-
-            .login-footer {
-                padding: 1.5rem;
-            }
-
-            .login-footer-content {
-                grid-template-columns: 1fr;
-                gap: 1.5rem;
-            }
-
-            .footer-section {
-                text-align: center;
-            }
-        }
-
-        .language-selector-login {
-            width: 100%;
-            max-width: 400px;
-            margin-bottom: 2rem;
-        }
-
-        .language-selector-card {
-            background: rgba(255, 255, 255, 0.95);
-            backdrop-filter: blur(20px);
-            border-radius: 16px;
-            padding: 1.5rem;
-            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
-            border: 1px solid rgba(255, 255, 255, 0.2);
-            transition: all 0.3s ease;
-        }
-
-        .language-selector-card:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 12px 40px rgba(0, 0, 0, 0.15);
-        }
-
-        .language-title {
-            text-align: center;
-            color: #2c3e50;
-            margin-bottom: 1rem;
-            font-size: 0.9rem;
-            font-weight: 600;
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
-            opacity: 0.8;
-        }
-
-        .language-buttons {
-            display: flex;
-            flex-direction: column;
-            gap: 0.75rem;
-        }
-
-        .language-btn {
-            display: flex;
-            align-items: center;
-            gap: 1rem;
-            padding: 1rem 1.25rem;
-            background: rgba(255, 255, 255, 0.8);
-            border: 2px solid rgba(102, 126, 234, 0.1);
-            border-radius: 12px;
-            cursor: pointer;
-            transition: all 0.3s ease;
-            position: relative;
-            overflow: hidden;
-            width: 100%;
-            text-align: left;
-        }
-
-        .language-btn::before {
-            content: '';
-            position: absolute;
-            top: 0;
-            left: -100%;
-            width: 100%;
-            height: 100%;
-            background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.4), transparent);
-            transition: left 0.5s ease;
-        }
-
-        .language-btn:hover::before {
-            left: 100%;
-        }
-
-        .language-btn:hover {
-            background: rgba(102, 126, 234, 0.05);
-            border-color: rgba(102, 126, 234, 0.3);
-            transform: translateX(5px);
-            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.15);
-        }
-
-        .language-btn.active {
-            background: linear-gradient(135deg, rgba(102, 126, 234, 0.1), rgba(76, 206, 178, 0.1));
-            border-color: #667eea;
-            box-shadow: 0 4px 15px rgba(102, 126, 234, 0.2);
-        }
-
-        .language-flag {
-            font-size: 1.5rem;
-            width: 30px;
-            text-align: center;
-            transition: transform 0.3s ease;
-        }
-
-        .language-btn:hover .language-flag {
-            transform: scale(1.2);
-        }
-
-        .language-name {
-            flex: 1;
-            font-weight: 600;
-            color: #2c3e50;
-            font-size: 0.95rem;
-            transition: color 0.3s ease;
-        }
-
-        .language-btn.active .language-name {
-            color: #667eea;
-            font-weight: 700;
-        }
-
-        .language-check {
-            color: #27ae60;
-            font-weight: bold;
-            opacity: 0;
-            transform: scale(0);
-            transition: all 0.3s ease;
-        }
-
-        .language-btn.active .language-check {
-            opacity: 1;
-            transform: scale(1);
-        }
-
-        /* Loading animation */
-        .loading {
-            animation: spin 1s linear infinite;
-            display: inline-block;
-            font-size: 1rem;
-        }
-
-        @keyframes spin {
-            from {
-                transform: rotate(0deg);
-            }
-
-            to {
-                transform: rotate(360deg);
-            }
-        }
-
-        /* Ripple effect */
-        .language-btn {
-            position: relative;
-            overflow: hidden;
-        }
-
-        .language-btn::after {
-            content: '';
-            position: absolute;
-            top: 50%;
-            left: 50%;
-            width: 0;
-            height: 0;
+            width: 74px;
+            height: 74px;
+            margin: 0 auto 18px;
             border-radius: 50%;
-            background: rgba(102, 126, 234, 0.3);
-            transform: translate(-50%, -50%);
-            transition: width 0.6s, height 0.6s;
+            background: conic-gradient(from 140deg, var(--c-cyan), var(--c-violet), var(--c-teal), var(--c-cyan));
+            display: grid;
+            place-items: center;
+            box-shadow: 0 10px 40px oklch(65% 0.2 260 / 0.45), var(--glass-inner);
+            position: relative;
+        }
+        .login-icon::after {
+            content: "";
+            position: absolute;
+            inset: 8px;
+            border-radius: 50%;
+            background: radial-gradient(120% 80% at 30% 15%, rgba(255,255,255,.85), rgba(255,255,255,.1) 45%, transparent 70%);
+            mix-blend-mode: overlay;
+        }
+        .login-icon svg { position: relative; z-index: 1; }
+
+        .login-container h1 {
+            font-size: 1.7rem;
+            font-weight: 800;
+            margin-bottom: 4px;
+            letter-spacing: -0.02em;
+        }
+        .login-subtitle {
+            font-size: 0.92rem;
+            color: var(--text-muted);
+            margin-bottom: 28px;
         }
 
-        .language-btn:active::after {
-            width: 300px;
-            height: 300px;
+        .login-container .form-group { text-align: left; }
+
+        .login-container .btn {
+            width: 100%;
+            margin-top: 8px;
+            padding: 14px;
+            font-size: 0.95rem;
         }
 
-        /* Mobile responsive */
-        @media (max-width: 480px) {
-            .language-selector-card {
-                padding: 1.25rem;
-                margin: 0 1rem;
-            }
-
-            .language-btn {
-                padding: 0.875rem 1rem;
-                gap: 0.75rem;
-            }
-
-            .language-flag {
-                font-size: 1.25rem;
-            }
-
-            .language-name {
-                font-size: 0.9rem;
-            }
+        /* Compact language row on login */
+        .login-languages {
+            display: flex;
+            gap: 8px;
+            padding: 6px;
+            background: rgba(0, 0, 0, 0.25);
+            border: 1px solid var(--glass-border);
+            border-radius: var(--r-pill);
+            backdrop-filter: blur(18px) saturate(160%);
+            -webkit-backdrop-filter: blur(18px) saturate(160%);
+            justify-content: center;
+            align-self: center;
         }
 
-        /* Animation for language change */
-        @keyframes languageChange {
-            0% {
-                transform: scale(1);
-            }
-
-            50% {
-                transform: scale(0.95);
-            }
-
-            100% {
-                transform: scale(1);
-            }
+        .login-lang-btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 8px 16px;
+            border: 1px solid transparent;
+            border-radius: var(--r-pill);
+            background: transparent;
+            color: var(--text-muted);
+            font: inherit;
+            font-size: 0.85rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all .2s var(--ease);
         }
+        .login-lang-btn:hover {
+            color: var(--text);
+            background: rgba(255,255,255,.06);
+        }
+        .login-lang-btn.active {
+            color: var(--text);
+            background: var(--glass-bg-strong);
+            border-color: var(--glass-border);
+            box-shadow: var(--glass-inner);
+        }
+        .login-lang-btn .language-flag { font-size: 1rem; }
 
-        .language-changing {
-            animation: languageChange 0.3s ease;
+        .login-footer-strip {
+            margin-top: 10px;
+            text-align: center;
+            font-size: 0.78rem;
+            color: var(--text-faint);
+        }
+        .login-footer-strip a {
+            color: var(--text-muted);
+            margin: 0 4px;
         }
     </style>
 </head>
 
 <body>
-    <div class="login-container">
-        <div class="login-icon">🎓</div>
-        <h1>{{ _('app_name') }}</h1>
+    <div class="bg-grain" aria-hidden="true"></div>
 
-        {% with messages = get_flashed_messages(with_categories=true) %}
-        {% if messages %}
-        {% for category, message in messages %}
-        <div class="alert alert-{{ category }}">
-            {{ message }}
+    <div class="login-shell">
+        <div class="login-container">
+            <div class="login-icon" aria-hidden="true">
+                <svg width="32" height="32" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M3 8l9-5 9 5-9 5-9-5z" stroke="#0a0e1c" stroke-width="2" stroke-linejoin="round"/>
+                    <path d="M7 10.5V15c0 1.5 2.5 3 5 3s5-1.5 5-3v-4.5" stroke="#0a0e1c" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                </svg>
+            </div>
+
+            <h1>{{ _('app_name') }}</h1>
+            <p class="login-subtitle">{{ _('login') }}</p>
+
+            {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+            {% for category, message in messages %}
+            <div class="alert alert-{{ category }}">{{ message }}</div>
+            {% endfor %}
+            {% endif %}
+            {% endwith %}
+
+            <form method="POST" action="{{ url_for('login') }}">
+                <div class="form-group">
+                    <label for="username">{{ _('username') }}</label>
+                    <input type="text" id="username" name="username" required autofocus autocomplete="username">
+                </div>
+
+                <div class="form-group">
+                    <label for="password">{{ _('password') }}</label>
+                    <input type="password" id="password" name="password" required autocomplete="current-password">
+                </div>
+
+                <button type="submit" class="btn btn-primary">{{ _('login') }}</button>
+            </form>
         </div>
-        {% endfor %}
-        {% endif %}
-        {% endwith %}
 
-        <form method="POST" action="{{ url_for('login') }}">
-            <div class="form-group">
-                <label for="username">{{ _('username') }}</label>
-                <input type="text" id="username" name="username" required autofocus>
-            </div>
+        <div class="login-languages" role="group" aria-label="{{ _('select_language') }}">
+            <button type="button" onclick="changeLanguage('uz')"
+                class="login-lang-btn {% if current_language == 'uz' %}active{% endif %}">
+                <span class="language-flag">🇺🇿</span>
+                <span>O'zbek</span>
+            </button>
+            <button type="button" onclick="changeLanguage('ru')"
+                class="login-lang-btn {% if current_language == 'ru' %}active{% endif %}">
+                <span class="language-flag">🇷🇺</span>
+                <span>Русский</span>
+            </button>
+            <button type="button" onclick="changeLanguage('en')"
+                class="login-lang-btn {% if current_language == 'en' %}active{% endif %}">
+                <span class="language-flag">🇬🇧</span>
+                <span>English</span>
+            </button>
+        </div>
 
-            <div class="form-group">
-                <label for="password">{{ _('password') }}</label>
-                <input type="password" id="password" name="password" required>
-            </div>
-
-            <button type="submit" class="btn">{{ _('login') }}</button>
-        </form>
+        <div class="login-footer-strip">
+            &copy; 2025 {{ _('app_name') }} ·
+            <a href="https://t.me/AbdJavohir" target="_blank" rel="noopener">@AbdJavohir</a> ·
+            <a href="https://t.me/Teacher_Asrorbey" target="_blank" rel="noopener">@Teacher_Asrorbey</a>
+        </div>
     </div>
 
-    <div class="language-selector-login">
-        <div class="language-selector-card">
-            <h4 class="language-title">{{ _('select_language') }}</h4>
-            <div class="language-buttons">
-                <button type="button" onclick="changeLanguage('uz')"
-                    class="language-btn {% if current_language == 'uz' %}active{% endif %}" title="O'zbek tili">
-                    <span class="language-flag">🇺🇿</span>
-                    <span class="language-name">O'zbek</span>
-                    <span class="language-check">✓</span>
-                </button>
-
-                <button type="button" onclick="changeLanguage('ru')"
-                    class="language-btn {% if current_language == 'ru' %}active{% endif %}" title="Русский язык">
-                    <span class="language-flag">🇷🇺</span>
-                    <span class="language-name">Русский</span>
-                    <span class="language-check">✓</span>
-                </button>
-
-                <button type="button" onclick="changeLanguage('en')"
-                    class="language-btn {% if current_language == 'en' %}active{% endif %}" title="English">
-                    <span class="language-flag">🇺🇸</span>
-                    <span class="language-name">English</span>
-                    <span class="language-check">✓</span>
-                </button>
-            </div>
-        </div>
-    </div>
-
-    <footer class="login-footer">
-        <div class="login-footer-content">
-            <div class="footer-section">
-                <h3>{{ _('app_name') }}</h3>
-                <p>{{ _('footer_description') }}</p>
-            </div>
-
-            <div class="footer-section">
-                <h4>{{ _('developers') }}</h4>
-                <div class="developer">
-                    <strong>Abdug'afforov Javohir</strong>
-                    <div class="developer-contacts">
-                        <span class="contact-item">📱 +998931497856</span>
-                        <a href="https://t.me/AbdJavohir" class="contact-link" target="_blank">
-                            <span class="telegram-icon">✈️</span> @AbdJavohir
-                        </a>
-                    </div>
-                </div>
-
-                <div class="developer">
-                    <strong>Mo'minov Asrorbek</strong>
-                    <div class="developer-contacts">
-                        <span class="contact-item">📱 +998900993377</span>
-                        <a href="https://t.me/Teacher_Asrorbey" class="contact-link" target="_blank">
-                            <span class="telegram-icon">✈️</span> @Teacher_Asrorbey
-                        </a>
-                    </div>
-                </div>
-            </div>
-
-            <div class="footer-section">
-                <h4>{{ _('contact') }}</h4>
-                <p>{{ _('footer_contact_description') }}</p>
-                <div class="footer-links">
-                    <a href="https://t.me/AbdJavohir" class="footer-link" target="_blank">Telegram</a>
-                    <a href="tel:+998931497856" class="footer-link">Telefon</a>
-                </div>
-            </div>
-        </div>
-
-        <div class="footer-bottom">
-            <p>&copy; 2025 {{ _('app_name') }}. {{ _('all_rights_reserved') }}</p>
-        </div>
-    </footer>
-
-    <script>
-        function changeLanguage(langCode) {
-            const currentBtn = event?.currentTarget;
-
-            if (currentBtn) {
-                currentBtn.classList.add('language-changing');
-
-                const originalHTML = currentBtn.innerHTML;
-                currentBtn.innerHTML = `
-                    <span class="language-flag">${currentBtn.querySelector('.language-flag').textContent}</span>
-                    <span class="language-name">${currentBtn.querySelector('.language-name').textContent}</span>
-                    <span class="loading">⟳</span>
-                `;
-                currentBtn.disabled = true;
-
-                document.querySelectorAll('.language-btn').forEach(btn => {
-                    btn.disabled = true;
-                });
-            }
-
-            fetch('/set-language/' + langCode, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'X-Requested-With': 'XMLHttpRequest'
-                }
-            })
-                .then(response => response.json())
-                .then(data => {
-                    if (data.status === 'success') {
-                        if (currentBtn) {
-                            currentBtn.style.background = 'linear-gradient(135deg, rgba(39, 174, 96, 0.2), rgba(39, 174, 96, 0.1))';
-                            currentBtn.style.borderColor = '#27ae60';
-                        }
-                        setTimeout(() => {
-                            window.location.reload();
-                        }, 300);
-                    } else {
-                        window.location.href = '/set-language/' + langCode;
-                    }
-                })
-                .catch(error => {
-                    console.error('Language switch error:', error);
-                    document.querySelectorAll('.language-btn').forEach(btn => {
-                        btn.disabled = false;
-                        if (currentBtn) {
-                            currentBtn.innerHTML = originalHTML;
-                            currentBtn.classList.remove('language-changing');
-                        }
-                    });
-                    window.location.href = '/set-language/' + langCode;
-                });
-        }
-
-        document.addEventListener('DOMContentLoaded', function () {
-            const languageButtons = document.querySelectorAll('.language-btn');
-
-            languageButtons.forEach(btn => {
-                btn.addEventListener('keydown', function (e) {
-                    if (e.key === 'Enter' || e.key === ' ') {
-                        e.preventDefault();
-                        this.click();
-                    }
-                });
-
-                btn.addEventListener('focus', function () {
-                    this.style.outline = '2px solid #667eea';
-                    this.style.outlineOffset = '2px';
-                });
-
-                btn.addEventListener('blur', function () {
-                    this.style.outline = 'none';
-                });
-            });
-        });
-    </script>
+    <script src="{{ url_for('static', filename='script.js') }}"></script>
 </body>
 
 </html>

@@ -4,15 +4,12 @@
 
 {% block content %}
 <div class="card">
-    <h2>{{ _('manage_languages') }}</h2>
+    <div class="list-header">
+        <h2>{{ _('manage_languages') }}</h2>
+        <button onclick="showAddForm()" class="btn btn-success">+ {{ _('add_new_translation') }}</button>
+    </div>
 
-    <button onclick="showAddForm()" class="btn btn-success" style="margin-bottom: 1.5rem;">
-        + {{ _('add_new_translation') }}
-    </button>
-
-    <!-- Add/Edit Form (Hidden by default) -->
-    <div id="translationForm"
-        style="display: none; background: #f8f9fa; padding: 1.5rem; border-radius: 8px; margin-bottom: 1.5rem;">
+    <div id="translationForm" class="inline-form" style="display:none;">
         <h3 id="formTitle">{{ _('add_new_translation') }}</h3>
         <form method="POST" action="{{ url_for('save_translation') }}">
             <input type="hidden" name="original_key" id="original_key">
@@ -24,29 +21,26 @@
 
             <div class="form-row">
                 <div class="form-group">
-                    <label for="value_uz">{{ _('value_uz') }}</label>
+                    <label for="value_uz">{{ _('value_uz') }} 🇺🇿</label>
                     <input type="text" name="value_uz" id="value_uz">
                 </div>
-
                 <div class="form-group">
-                    <label for="value_ru">{{ _('value_ru') }}</label>
+                    <label for="value_ru">{{ _('value_ru') }} 🇷🇺</label>
                     <input type="text" name="value_ru" id="value_ru">
                 </div>
-
                 <div class="form-group">
-                    <label for="value_en">{{ _('value_en') }}</label>
+                    <label for="value_en">{{ _('value_en') }} 🇬🇧</label>
                     <input type="text" name="value_en" id="value_en">
                 </div>
             </div>
 
-            <div style="display: flex; gap: 1rem;">
+            <div class="form-actions">
                 <button type="submit" class="btn btn-primary">{{ _('save') }}</button>
                 <button type="button" onclick="hideForm()" class="btn btn-secondary">{{ _('cancel') }}</button>
             </div>
         </form>
     </div>
 
-    <!-- Translations Table -->
     {% if translations %}
     <div class="table-container">
         <table>
@@ -54,9 +48,9 @@
                 <tr>
                     <th width="60">{{ _('number') }}</th>
                     <th>{{ _('key') }}</th>
-                    <th>O'zbek</th>
-                    <th>Русский</th>
-                    <th>English</th>
+                    <th>🇺🇿 O'zbek</th>
+                    <th>🇷🇺 Русский</th>
+                    <th>🇬🇧 English</th>
                     <th>{{ _('actions') }}</th>
                 </tr>
             </thead>
@@ -64,18 +58,14 @@
                 {% for item in translations %}
                 <tr>
                     <td class="row-number">{{ loop.index }}</td>
-                    <td><strong>{{ item.key }}</strong></td>
+                    <td><code class="mono">{{ item.key }}</code></td>
                     <td>{{ item.uz }}</td>
                     <td>{{ item.ru }}</td>
                     <td>{{ item.en }}</td>
                     <td class="action-buttons">
-                        <button
-                            onclick="editTranslation('{{ item.key }}', '{{ item.uz }}', '{{ item.ru }}', '{{ item.en }}')"
-                            class="btn btn-primary btn-sm">
-                            {{ _('edit') }}
-                        </button>
-                        <form method="POST" action="{{ url_for('delete_translation', key=item.key) }}"
-                            style="display: inline;" onsubmit="return confirmDelete();">
+                        <button onclick="editTranslation('{{ item.key }}', '{{ item.uz }}', '{{ item.ru }}', '{{ item.en }}')"
+                            class="btn btn-primary btn-sm">{{ _('edit') }}</button>
+                        <form method="POST" action="{{ url_for('delete_translation', key=item.key) }}" style="display:inline;" onsubmit="return confirmDelete();">
                             <button type="submit" class="btn btn-danger btn-sm">{{ _('delete') }}</button>
                         </form>
                     </td>
@@ -85,9 +75,7 @@
         </table>
     </div>
     {% else %}
-    <div class="no-data">
-        <p>{{ _('no_data') }}</p>
-    </div>
+    <div class="no-data"><p>{{ _('no_data') }}</p></div>
     {% endif %}
 </div>
 
@@ -102,7 +90,6 @@
         document.getElementById('value_en').value = '';
         document.getElementById('key').readOnly = false;
     }
-
     function editTranslation(key, uz, ru, en) {
         document.getElementById('formTitle').textContent = "{{ _('edit') }}";
         document.getElementById('translationForm').style.display = 'block';
@@ -113,7 +100,6 @@
         document.getElementById('value_en').value = en;
         window.scrollTo(0, 0);
     }
-
     function hideForm() {
         document.getElementById('translationForm').style.display = 'none';
     }

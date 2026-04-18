@@ -4,37 +4,32 @@
 
 {% block content %}
 <div class="card">
-    <h2>{{ _('students') }}</h2>
+    <div class="list-header">
+        <h2>{{ _('students') }}</h2>
+        <a href="{{ url_for('add_student') }}" class="btn btn-success">+ {{ _('new_student') }}</a>
+    </div>
 
     <div class="filter-box">
         <form method="GET">
-            <div style="display: flex; gap: 1rem; align-items: end;">
-                <div class="form-group" style="flex: 1; margin-bottom: 0;">
-                    <label for="class_id">{{ _('filter_by_class') }}</label>
-                    <select id="class_id" name="class_id" onchange="this.form.submit()">
-                        <option value="">{{ _('all') }}</option>
-                        {% for class in classes %}
-                        <option value="{{ class.id }}" {% if request.args.get('class_id')|string==class.id|string
-                            %}selected{% endif %}>
-                            {{ class.name }} ({{ class.school.name }})
-                        </option>
-                        {% endfor %}
-                    </select>
-                </div>
+            <div class="form-group" style="margin-bottom:0;">
+                <label for="class_id">{{ _('filter_by_class') }}</label>
+                <select id="class_id" name="class_id" onchange="this.form.submit()">
+                    <option value="">{{ _('all') }}</option>
+                    {% for class in classes %}
+                    <option value="{{ class.id }}" {% if request.args.get('class_id')|string==class.id|string %}selected{% endif %}>
+                        {{ class.name }} ({{ class.school.name }})
+                    </option>
+                    {% endfor %}
+                </select>
             </div>
         </form>
-    </div>
-
-    <div style="margin-bottom: 1rem;">
-        <a href="{{ url_for('add_student') }}" class="btn btn-success">+ {{ _('new_student') }}</a>
     </div>
 
     {% if selected_class %}
     <div class="exam-info-box">
         <p><strong>{{ _('class') }}:</strong> {{ selected_class.name }}</p>
         <p><strong>{{ _('school') }}:</strong> {{ selected_class.school.name }}</p>
-        <p><strong>{{ _('class_leader') }}:</strong> {{ selected_class.leader_first_name }} {{
-            selected_class.leader_last_name }}</p>
+        <p><strong>{{ _('class_leader') }}:</strong> {{ selected_class.leader_first_name }} {{ selected_class.leader_last_name }}</p>
         <p><strong>{{ _('class_leader_phone') }}:</strong> {{ selected_class.leader_phone }}</p>
     </div>
     {% endif %}
@@ -59,21 +54,18 @@
                     <td class="row-number">{{ loop.index }}</td>
                     <td>{{ student.first_name }}</td>
                     <td>{{ student.last_name }}</td>
-                    <td>{% if student.gender == 1 %}{{ _('male') }}{% else %}{{ _('female') }}{% endif %}</td>
+                    <td>
+                      <span class="gender-pill {% if student.gender == 1 %}g-m{% else %}g-f{% endif %}">
+                        {% if student.gender == 1 %}{{ _('male') }}{% else %}{{ _('female') }}{% endif %}
+                      </span>
+                    </td>
                     <td>{{ student.group_number }}-{{ _('group') }}</td>
                     <td>
-                        {% for class in classes %}
-                        {% if class.id == student.class_id %}
-                        {{ class.name }}
-                        {% endif %}
-                        {% endfor %}
+                        {% for class in classes %}{% if class.id == student.class_id %}{{ class.name }}{% endif %}{% endfor %}
                     </td>
                     <td class="action-buttons">
-                        <a href="{{ url_for('edit_student', id=student.id) }}" class="btn btn-primary btn-sm">{{
-                            _('edit')
-                            }}</a>
-                        <form method="POST" action="{{ url_for('delete_student', id=student.id) }}"
-                            style="display: inline;" onsubmit="return confirmDelete();">
+                        <a href="{{ url_for('edit_student', id=student.id) }}" class="btn btn-primary btn-sm">{{ _('edit') }}</a>
+                        <form method="POST" action="{{ url_for('delete_student', id=student.id) }}" style="display:inline;" onsubmit="return confirmDelete();">
                             <button type="submit" class="btn btn-danger btn-sm">{{ _('delete') }}</button>
                         </form>
                     </td>
@@ -83,9 +75,7 @@
         </table>
     </div>
     {% else %}
-    <div class="no-data">
-        <p>{{ _('no_data') }}</p>
-    </div>
+    <div class="no-data"><p>{{ _('no_data') }}</p></div>
     {% endif %}
 </div>
 {% endblock %}

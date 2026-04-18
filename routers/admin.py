@@ -742,7 +742,9 @@ async def add_student_page(
     db: AsyncSession = Depends(get_db)
 ):
     """Display add student form"""
-    classes_result = await db.execute(select(SchoolClass))
+    classes_result = await db.execute(
+        select(SchoolClass).options(selectinload(SchoolClass.school))
+    )
     classes = classes_result.scalars().all()
     
     context = await get_template_context(request)
@@ -785,9 +787,11 @@ async def edit_student_page(
         flash(request, 'O\'quvchi topilmadi', 'danger')
         return RedirectResponse(url="/admin/students", status_code=303)
     
-    classes_result = await db.execute(select(SchoolClass))
+    classes_result = await db.execute(
+        select(SchoolClass).options(selectinload(SchoolClass.school))
+    )
     classes = classes_result.scalars().all()
-    
+
     context = await get_template_context(request)
     context.update({'student': student, 'classes': classes})
     return templates.TemplateResponse('admin/student_form.html', context)  
