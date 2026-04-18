@@ -1,8 +1,8 @@
-from app import app, db
+from main import app, db
 from models import School, Employee, StaffTitle, SchoolClass, Student, Subject, Quarter, ExamName, ExamType, QuestionType
 
 def init_database():
-    with app.app_context():
+    with app.app_context(): 
         db.create_all()
         
         if not Subject.query.first():
@@ -27,7 +27,10 @@ def init_database():
             for name in exam_types:
                 db.session.add(ExamType(name=name))
             
-            question_types = ['Bilim', 'Tushunish', 'Qo\'llash']
+            question_types = [
+                'Test', "To'ldirish", 'Qisqa javob',
+                'Moslashtirish', 'Masala', 'Tahlil',
+            ]
             for name in question_types:
                 db.session.add(QuestionType(name=name))
             

@@ -1,365 +1,1046 @@
 {% extends "base.html" %}
+{% block title %}Nazorat ishi yaratish{% endblock %}
 
-{% block title %}{{ _('create_exam') }}{% endblock %}
+{% block extra_css %}
+<style>
+/* ── Breadcrumb ── */
+.wiz-breadcrumb{font-size:.85rem;color:#6c757d;margin-bottom:1.25rem}
+.wiz-breadcrumb a{color:#3498db;text-decoration:none}
+.wiz-breadcrumb span{margin:0 .35rem}
+
+/* ── Progress bar ── */
+.wiz-progress{display:flex;align-items:center;justify-content:center;gap:0;margin-bottom:2rem}
+.prog-step{display:flex;flex-direction:column;align-items:center;gap:.35rem}
+.prog-circle{width:38px;height:38px;border-radius:50%;border:2px solid #dee2e6;background:#fff;
+  display:flex;align-items:center;justify-content:center;font-weight:700;font-size:.85rem;
+  color:#adb5bd;transition:all .3s;position:relative}
+.prog-step.done .prog-circle{background:#10b981;border-color:#10b981;color:#fff}
+.prog-step.active .prog-circle{border-color:#10b981;color:#10b981}
+.prog-step.done .prog-circle .pnum{display:none}
+.prog-step.done .prog-circle .pchk{display:block}
+.prog-circle .pchk{display:none;font-size:1rem}
+.prog-label{font-size:.78rem;color:#adb5bd;font-weight:600;transition:color .3s}
+.prog-step.done .prog-label,.prog-step.active .prog-label{color:#2c3e50}
+.prog-connector{flex:1;max-width:80px;height:2px;background:#dee2e6;transition:background .3s}
+.prog-connector.done{background:#10b981}
+
+/* ── Layout ── */
+.wiz-layout{display:grid;grid-template-columns:1fr 390px;gap:20px;align-items:start}
+
+/* ── Step cards (left) ── */
+.step-card{background:#fff;border-radius:12px;border:1px solid #e9ecef;
+  box-shadow:0 1px 4px rgba(0,0,0,.06);margin-bottom:14px;overflow:hidden;transition:box-shadow .2s}
+.step-card.active{box-shadow:0 2px 12px rgba(0,0,0,.1)}
+.step-header{display:flex;align-items:center;gap:14px;padding:16px 20px;cursor:pointer;user-select:none}
+.step-num-badge{width:32px;height:32px;border-radius:50%;border:2px solid #dee2e6;
+  display:flex;align-items:center;justify-content:center;font-weight:700;font-size:.85rem;
+  color:#adb5bd;flex-shrink:0;transition:all .3s}
+.step-card.done .step-num-badge{background:#10b981;border-color:#10b981;color:#fff}
+.step-card.active .step-num-badge{border-color:#10b981;color:#10b981}
+.step-card.done .step-num-badge .snnum{display:none}
+.step-card.done .step-num-badge .snchk{display:block}
+.step-num-badge .snchk{display:none}
+.step-header-text{flex:1}
+.step-title{font-weight:700;font-size:1rem;color:#2c3e50}
+.step-subtitle{font-size:.82rem;color:#6c757d;margin-top:2px}
+.step-selected-badge{font-size:.82rem;font-weight:600;color:#10b981;white-space:nowrap}
+.step-body{padding:0 20px 20px}
+
+/* ── Format cards ── */
+.format-cards{display:flex;gap:16px;margin-top:4px}
+.format-card{flex:1;border:2px solid #e9ecef;border-radius:12px;padding:20px 16px;
+  cursor:pointer;text-align:center;transition:all .25s;background:#fff}
+.format-card:hover{border-color:#adb5bd;box-shadow:0 2px 8px rgba(0,0,0,.08)}
+.format-card.selected-bsb{border-color:#10b981;background:#f0fdf4}
+.format-card.selected-chsb{border-color:#8b5cf6;background:#faf5ff}
+.format-card-icon{font-size:2rem;margin-bottom:8px}
+.format-card-name{font-weight:800;font-size:1.1rem;color:#2c3e50}
+.format-card-desc{font-size:.78rem;color:#6c757d;margin-top:4px}
+
+/* ── Class grid ── */
+.class-grid{display:flex;flex-wrap:wrap;gap:8px;margin-top:4px}
+.class-btn{padding:10px 16px;border:2px solid #e9ecef;border-radius:8px;background:#fff;
+  cursor:pointer;font-weight:600;font-size:.9rem;color:#2c3e50;transition:all .2s}
+.class-btn:hover{border-color:#adb5bd}
+.class-btn.selected{border-color:#10b981;background:#f0fdf4;color:#10b981}
+
+/* ── Subject grid ── */
+.subject-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:4px}
+.subject-card{border:2px solid #e9ecef;border-radius:10px;padding:12px 10px;
+  cursor:pointer;text-align:center;transition:all .2s;background:#fff}
+.subject-card:hover{border-color:#adb5bd;box-shadow:0 2px 6px rgba(0,0,0,.06)}
+.subject-card.selected{border-color:#10b981;background:#f0fdf4}
+.subject-card.selected-chsb{border-color:#8b5cf6;background:#faf5ff}
+.subject-icon{font-size:1.4rem;display:block;margin-bottom:4px}
+.subject-name{font-size:.75rem;font-weight:600;color:#2c3e50;
+  overflow:hidden;text-overflow:ellipsis;white-space:nowrap;display:block}
+
+/* ── Quarter grid ── */
+.quarter-grid{display:flex;gap:12px;flex-wrap:wrap;margin-top:4px}
+.quarter-btn{flex:1;min-width:80px;border:2px solid #e9ecef;border-radius:10px;
+  padding:18px 10px;cursor:pointer;text-align:center;background:#fff;transition:all .2s}
+.quarter-btn:hover{border-color:#adb5bd}
+.quarter-btn.selected{border-color:#8b5cf6;background:#faf5ff}
+.quarter-num{display:block;font-size:1.6rem;font-weight:800;color:#2c3e50}
+.quarter-label{font-size:.75rem;color:#6c757d;margin-top:2px;display:block}
+
+/* ── Period trigger ── */
+.period-trigger{display:flex;align-items:center;justify-content:space-between;
+  border:2px solid #e9ecef;border-radius:10px;padding:16px;cursor:pointer;
+  background:#fff;transition:all .2s;margin-top:4px}
+.period-trigger:hover{border-color:#adb5bd}
+.period-trigger.selected{border-color:#10b981;background:#f0fdf4}
+.period-trigger-text{font-size:.9rem;color:#6c757d}
+.period-trigger.selected .period-trigger-text{color:#10b981;font-weight:600}
+.period-trigger-arrow{font-size:1.2rem;color:#adb5bd}
+
+/* ── Sidebar ── */
+.wiz-sidebar{position:sticky;top:80px}
+.preview-card{background:#fff;border-radius:12px;border:1px solid #e9ecef;
+  box-shadow:0 2px 8px rgba(0,0,0,.07);overflow:hidden;margin-bottom:14px}
+.preview-header{padding:16px;display:flex;align-items:flex-start;gap:12px;
+  border-left:4px solid #dee2e6}
+.preview-header.bsb{border-left-color:#10b981}
+.preview-header.chsb{border-left-color:#8b5cf6}
+.preview-header-icon{font-size:1.6rem;margin-top:2px}
+.preview-title{font-weight:700;font-size:.95rem;color:#2c3e50}
+.preview-subtitle{font-size:.78rem;color:#e67e22;margin-top:2px}
+.preview-subtitle.chsb{color:#8b5cf6}
+.preview-info{padding:0 16px}
+.pi-row{display:flex;align-items:center;gap:10px;padding:8px 0;
+  border-bottom:1px solid #f0f0f0}
+.pi-row:last-child{border-bottom:none}
+.pi-icon{font-size:1rem;width:20px;text-align:center;flex-shrink:0}
+.pi-texts{flex:1}
+.pi-label{font-size:.72rem;color:#adb5bd;text-transform:uppercase;letter-spacing:.3px}
+.pi-value{font-size:.88rem;font-weight:600;color:#2c3e50}
+.pi-check{font-size:.9rem;color:#10b981}
+.preview-stats{display:flex;gap:0;border-top:1px solid #f0f0f0;margin-top:4px}
+.pstat{flex:1;padding:10px 8px;text-align:center;font-size:.78rem;color:#6c757d;
+  border-right:1px solid #f0f0f0}
+.pstat:last-child{border-right:none}
+.pstat strong{display:block;font-size:1rem;color:#2c3e50;font-weight:700}
+
+/* ── Settings ── */
+.settings-card{background:#fff;border-radius:12px;border:1px solid #e9ecef;
+  box-shadow:0 2px 8px rgba(0,0,0,.07);overflow:hidden;margin-bottom:14px}
+.settings-toggle-btn{display:flex;align-items:center;justify-content:space-between;
+  padding:14px 16px;cursor:pointer;font-weight:700;font-size:.9rem;color:#2c3e50;
+  border:none;background:none;width:100%}
+.settings-toggle-btn .sarrow{transition:transform .3s}
+.settings-toggle-btn.open .sarrow{transform:rotate(180deg)}
+.settings-body{padding:0 16px 16px}
+.settings-group{margin-bottom:16px}
+.settings-group:last-child{margin-bottom:0}
+.settings-label{font-size:.8rem;font-weight:700;color:#6c757d;text-transform:uppercase;
+  letter-spacing:.4px;margin-bottom:8px}
+
+/* ── Variant buttons ── */
+.variant-btns{display:flex;gap:6px}
+.vbtn{width:40px;height:40px;border:2px solid #e9ecef;border-radius:8px;
+  background:#fff;cursor:pointer;font-weight:700;font-size:.9rem;color:#6c757d;
+  transition:all .2s;flex-shrink:0}
+.vbtn:hover{border-color:#adb5bd}
+.vbtn.active{border-color:#10b981;background:#f0fdf4;color:#10b981}
+.vbtn.active-chsb{border-color:#8b5cf6;background:#faf5ff;color:#8b5cf6}
+
+/* ── Difficulty buttons ── */
+.diff-btns{display:flex;gap:6px;flex-wrap:wrap}
+.dbtn{padding:7px 14px;border:2px solid #e9ecef;border-radius:8px;
+  background:#fff;cursor:pointer;font-size:.82rem;font-weight:600;color:#6c757d;transition:all .2s}
+.dbtn:hover{border-color:#adb5bd}
+.dbtn.active{border-color:#10b981;background:#f0fdf4;color:#10b981}
+.dbtn.active-chsb{border-color:#8b5cf6;background:#faf5ff;color:#8b5cf6}
+
+/* ── Distribution table ── */
+.dist-table{width:100%;border-collapse:collapse;font-size:.82rem}
+.dist-table th{font-size:.75rem;color:#adb5bd;font-weight:600;text-align:left;
+  padding:4px 4px 8px;text-transform:uppercase;letter-spacing:.3px}
+.dist-table td{padding:4px}
+.dist-table select{width:100%;padding:6px 8px;border:1px solid #dee2e6;border-radius:6px;
+  font-size:.82rem;color:#2c3e50;background:#fff}
+.dist-table input[type=number]{width:52px;padding:6px 8px;border:1px solid #dee2e6;
+  border-radius:6px;font-size:.82rem;color:#2c3e50;text-align:center}
+.dist-x{color:#adb5bd;font-size:.85rem}
+.dist-ball{color:#adb5bd;font-size:.78rem}
+.dist-eq{color:#adb5bd}
+.dist-total-val{font-weight:700;color:#2c3e50;min-width:28px;text-align:right}
+.dist-del{background:none;border:none;cursor:pointer;color:#e74c3c;font-size:1rem;
+  padding:2px 6px;border-radius:4px;opacity:.6}
+.dist-del:hover{opacity:1;background:#fdecea}
+.dist-add-btn{display:flex;align-items:center;gap:6px;background:none;border:none;
+  cursor:pointer;color:#3498db;font-size:.82rem;font-weight:600;padding:6px 0;margin-top:6px}
+.dist-add-btn:hover{color:#2980b9}
+.dist-jami{text-align:right;font-size:.85rem;color:#6c757d;margin-top:8px;
+  padding-top:8px;border-top:1px solid #f0f0f0}
+.dist-jami strong{color:#2c3e50;font-size:.95rem}
+.dist-reset-link{font-size:.75rem;color:#adb5bd;cursor:pointer;text-align:right;
+  display:block;margin-top:6px}
+.dist-reset-link:hover{color:#3498db}
+
+/* ── Create button ── */
+.create-btn{width:100%;padding:15px;border:none;border-radius:10px;
+  font-size:1rem;font-weight:700;cursor:pointer;transition:all .25s;
+  display:flex;align-items:center;justify-content:center;gap:8px;margin-bottom:8px}
+.create-btn:disabled{background:#dee2e6;color:#adb5bd;cursor:not-allowed}
+.create-btn.bsb-ready{background:linear-gradient(135deg,#10b981,#059669);color:#fff;
+  box-shadow:0 4px 15px rgba(16,185,129,.35)}
+.create-btn.bsb-ready:hover{box-shadow:0 6px 20px rgba(16,185,129,.5);transform:translateY(-1px)}
+.create-btn.chsb-ready{background:linear-gradient(135deg,#8b5cf6,#7c3aed);color:#fff;
+  box-shadow:0 4px 15px rgba(139,92,246,.35)}
+.create-btn.chsb-ready:hover{box-shadow:0 6px 20px rgba(139,92,246,.5);transform:translateY(-1px)}
+.create-hint{text-align:center;font-size:.72rem;color:#adb5bd}
+
+/* ── Modal ── */
+.modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:2000;
+  display:none;align-items:center;justify-content:center}
+.modal-overlay.open{display:flex}
+.modal-box{background:#fff;border-radius:16px;width:480px;max-width:95vw;
+  max-height:90vh;overflow-y:auto;box-shadow:0 20px 60px rgba(0,0,0,.25)}
+.modal-head{display:flex;align-items:center;justify-content:space-between;
+  padding:20px 20px 0}
+.modal-head h3{font-size:1.1rem;color:#2c3e50;font-weight:700}
+.modal-close-btn{background:none;border:none;cursor:pointer;font-size:1.2rem;
+  color:#adb5bd;padding:4px 8px;border-radius:6px}
+.modal-close-btn:hover{background:#f0f0f0;color:#2c3e50}
+.modal-tabs{display:flex;gap:0;border-bottom:2px solid #f0f0f0;margin:12px 20px 0;padding:0}
+.mtab{flex:1;padding:10px;background:none;border:none;cursor:pointer;
+  font-size:.88rem;font-weight:600;color:#adb5bd;border-bottom:2px solid transparent;
+  margin-bottom:-2px;transition:all .2s}
+.mtab.active{color:#10b981;border-bottom-color:#10b981}
+.modal-content{padding:20px}
+.month-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
+.month-card{border:2px solid #e9ecef;border-radius:10px;padding:14px 10px;
+  cursor:pointer;text-align:center;transition:all .2s}
+.month-card:hover{border-color:#adb5bd}
+.month-card.selected{border-color:#10b981;background:#f0fdf4}
+.month-name{font-weight:700;font-size:.9rem;color:#2c3e50}
+.month-weeks{font-size:.72rem;color:#adb5bd;margin-top:3px}
+.chorak-group{margin-bottom:14px}
+.chorak-label{font-size:.75rem;font-weight:700;color:#adb5bd;text-transform:uppercase;
+  letter-spacing:.4px;margin-bottom:6px}
+.week-row{display:flex;flex-wrap:wrap;gap:6px}
+.wbtn{width:44px;height:44px;border:2px solid #e9ecef;border-radius:8px;
+  background:#fff;cursor:pointer;font-weight:600;font-size:.85rem;color:#2c3e50;
+  transition:all .2s}
+.wbtn:hover{border-color:#adb5bd}
+.wbtn.selected{border-color:#10b981;background:#10b981;color:#fff}
+.confirm-weeks-btn{width:100%;padding:12px;background:#10b981;color:#fff;border:none;
+  border-radius:10px;font-weight:700;font-size:.9rem;cursor:pointer;margin-top:14px;
+  transition:all .2s}
+.confirm-weeks-btn:disabled{background:#dee2e6;color:#adb5bd;cursor:not-allowed}
+.confirm-weeks-btn:not(:disabled):hover{background:#059669}
+</style>
+{% endblock %}
 
 {% block content %}
-<div class="card">
-    <h2>{{ _('create_exam') }}</h2>
-
-    <form method="POST" id="exam_form">
-        <div class="form-row">
-            <div class="form-group">
-                <label for="exam_name_id">{{ _('exam_name') }} *</label>
-                <select id="exam_name_id" name="exam_name_id" required>
-                    <option value="">{{ _('select') }}</option>
-                    {% for exam_name in exam_names %}
-                    <option value="{{ exam_name.id }}" data-name="{{ exam_name.name.lower() }}">{{ exam_name.name }}</option>
-                    {% endfor %}
-                </select>
-            </div>
-
-            <div class="form-group">
-                <label for="exam_type_id">{{ _('exam_type') }} *</label>
-                <select id="exam_type_id" name="exam_type_id" required>
-                    <option value="">{{ _('select') }}</option>
-                    {% for exam_type in exam_types %}
-                    <option value="{{ exam_type.id }}">{{ exam_type.name }}</option>
-                    {% endfor %}
-                </select>
-            </div>
-        </div>
-
-        <div class="form-row">
-            <div class="form-group">
-                <label for="subject_id">{{ _('subject') }} *</label>
-                <select id="subject_id" name="subject_id" required>
-                    <option value="">{{ _('select') }}</option>
-                    {% for subject in subjects %}
-                    <option value="{{ subject.id }}">{{ subject.name }}</option>
-                    {% endfor %}
-                </select>
-            </div>
-
-            <div class="form-group">
-                <label for="class_id">{{ _('class') }} *</label>
-                <select id="class_id" name="class_id" required>
-                    <option value="">{{ _('select') }}</option>
-                    {% for cls in classes %}
-                    <option value="{{ cls.id }}">{{ cls.name }}</option>
-                    {% endfor %}
-                </select>
-            </div>
-        </div>
-
-        <div class="form-row">
-            <div class="form-group">
-                <label for="gender_filter">{{ _('gender_filter') }}</label>
-                <select id="gender_filter" name="gender_filter">
-                    <option value=0>{{ _('all') }}</option>
-                    <option value=1>{{ _('male') }}</option>
-                    <option value=2>{{ _('female') }}</option>
-                </select>
-            </div>
-
-            <div class="form-group">
-                <label for="group_filter">{{ _('group_filter') }}</label>
-                <select id="group_filter" name="group_filter">
-                    <option value=0>{{ _('all') }}</option>
-                    <option value=1>1-{{ _('group') }}</option>
-                    <option value=2>2-{{ _('group') }}</option>
-                </select>
-            </div>
-        </div>
-
-        <div class="form-row">
-            <div class="form-group">
-                <label for="variant">{{ _('variant') }}</label>
-                <select id="variant" name="variant">
-                    <option value=1>1</option>
-                    <option value=2>2</option>
-                    <option value=3>3</option>
-                </select>
-            </div>
-
-            <div class="form-group">
-                <label for="quarter_id">{{ _('quarter') }} *</label>
-                <select id="quarter_id" name="quarter_id" required>
-                    <option value="">{{ _('select') }}</option>
-                    {% for quarter in quarters %}
-                    <option value="{{ quarter.id }}">{{ quarter.name }}</option>
-                    {% endfor %}
-                </select>
-            </div>
-        </div>
-
-        <div class="form-group" id="num_questions_group">
-            <label for="num_questions">{{ _('num_questions') }} *</label>
-            <input type="number" id="num_questions" name="num_questions" min="1" max="100"
-                onchange="generateQuestionFields()">
-        </div>
-
-        <div id="bsb_info" class="alert alert-info" style="display: none;">
-            <strong>BSB imtihoni:</strong> Bu imtihon avtomatik ravishda 5 ta savol bilan yaratiladi. Har bir savol 5 ballga baholanadi (Jami: 25 ball).
-        </div>
-
-        <div id="chsb_info" class="alert alert-info" style="display: none;">
-            <strong>CHSB imtihoni:</strong> 10 ta savol, har biri 4 ball (Jami: 40 ball). Har bir savol uchun savol turini tanlang.
-        </div>
-
-        <div id="project_info" class="alert alert-info" style="display: none;">
-            <strong>Loyiha ishi:</strong> Bu imtihon 1 ta savol bilan yaratiladi. Maksimal ball: 15. Imtihon turi faqat "Practical" bo'ladi.
-        </div>
-
-        <select id="question_type_template" style="display: none;">
-            <option value="">{{ _('select') }}</option>
-            {% for qt in question_types %}
-            <option value="{{ qt.id }}">{{ qt.name }}</option>
-            {% endfor %}
-        </select>
-
-        <div id="questions_container"></div>
-
-        <div style="margin-top: 2rem;">
-            <button type="submit" class="btn btn-success">{{ _('create_and_enter_scores') }}</button>
-            <a href="{{ url_for('teacher_dashboard') }}" class="btn btn-secondary">{{ _('cancel') }}</a>
-        </div>
-    </form>
+<div class="wiz-breadcrumb">
+  <a href="{{ url_for('teacher_dashboard') }}">Bosh sahifa</a>
+  <span>›</span> Nazorat ishlari
 </div>
 
-<script>
-    function initExamEvents() {
-        const examNameSelect = document.getElementById('exam_name_id');
-        const examTypeSelect = document.getElementById('exam_type_id');
+<!-- Progress -->
+<div class="wiz-progress">
+  <div class="prog-step active" id="prog1">
+    <div class="prog-circle"><span class="pnum">1</span><span class="pchk">✓</span></div>
+    <div class="prog-label">Format</div>
+  </div>
+  <div class="prog-connector" id="conn12"></div>
+  <div class="prog-step" id="prog2">
+    <div class="prog-circle"><span class="pnum">2</span><span class="pchk">✓</span></div>
+    <div class="prog-label">Sinf</div>
+  </div>
+  <div class="prog-connector" id="conn23"></div>
+  <div class="prog-step" id="prog3">
+    <div class="prog-circle"><span class="pnum">3</span><span class="pchk">✓</span></div>
+    <div class="prog-label">Fan</div>
+  </div>
+  <div class="prog-connector" id="conn34"></div>
+  <div class="prog-step" id="prog4">
+    <div class="prog-circle"><span class="pnum">4</span><span class="pchk">✓</span></div>
+    <div class="prog-label" id="prog4label">Davr</div>
+  </div>
+</div>
 
-        if (examNameSelect) examNameSelect.onchange = checkSpecialExam;
-        if (examTypeSelect) examTypeSelect.onchange = checkSpecialExam;
-    }
+<form method="POST" id="exam_form">
+  <!-- Hidden fields -->
+  <input type="hidden" name="class_id" id="h_class_id">
+  <input type="hidden" name="subject_id" id="h_subject_id">
+  <input type="hidden" name="quarter_id" id="h_quarter_id">
+  <input type="hidden" name="period" id="h_period">
+  <input type="hidden" name="exam_name_id" id="h_exam_name_id"
+    value="{{ bsb_exam_name_id or '' }}">
+  <input type="hidden" name="exam_type_id" id="h_exam_type_id"
+    value="{{ default_exam_type_id or 1 }}">
+  <input type="hidden" name="variant" id="h_variant" value="1">
+  <input type="hidden" name="difficulty" id="h_difficulty" value="Aralash">
+  <input type="hidden" name="gender_filter" value="0">
+  <input type="hidden" name="group_filter" value="0">
+  <input type="hidden" name="num_q_rows" id="h_num_q_rows" value="0">
 
-    document.addEventListener('DOMContentLoaded', initExamEvents);
-    document.addEventListener('htmx:afterSwap', initExamEvents);
-
-    document.addEventListener('DOMContentLoaded', function () {
-        const numQuestions = document.getElementById('num_questions');
-        if (numQuestions && numQuestions.value) {
-            generateQuestionFields();
-        }
-    });
-
-    function checkSpecialExam() {
-        const examNameSelect = document.getElementById('exam_name_id');
-        const selectedOption = examNameSelect.options[examNameSelect.selectedIndex];
-        
-        if (!selectedOption) return;
-        
-        const examName = selectedOption.getAttribute('data-name');
-        const isBSB = examName && examName.includes('bsb');
-        const isCHSB = examName && examName.includes('chsb');
-        const isProject = examName && (examName.includes('project') || examName.includes('loyiha'));
-        
-        const bsbInfo = document.getElementById('bsb_info');
-        const chsbInfo = document.getElementById('chsb_info');
-        const projectInfo = document.getElementById('project_info');
-        const numQuestionsGroup = document.getElementById('num_questions_group');
-        const numQuestionsInput = document.getElementById('num_questions');
-        const questionsContainer = document.getElementById('questions_container');
-        const examTypeSelect = document.getElementById('exam_type_id');
-        
-        if (isBSB) {
-            numQuestionsGroup.style.display = 'none';
-            if(bsbInfo) bsbInfo.style.display = 'block';
-            if (chsbInfo) chsbInfo.style.display = 'none';
-            if (projectInfo) projectInfo.style.display = 'none';
-            questionsContainer.innerHTML = '';
-            numQuestionsInput.value = 5;
-            numQuestionsInput.removeAttribute('required');
-        } else if (isCHSB) {
-            numQuestionsGroup.style.display = 'none';
-            if(bsbInfo) bsbInfo.style.display = 'none';
-            if(chsbInfo) chsbInfo.style.display = 'block';
-            if (projectInfo) projectInfo.style.display = 'none';
-            
-            const testOption = Array.from(examTypeSelect.options).find(opt => 
-                opt.text.includes('Test') || opt.text.includes('test')
-            );
-            if (testOption) {
-                examTypeSelect.value = testOption.value;
-            }
-            
-            generateCHSBQuestionFields();
-            numQuestionsInput.value = 10;
-            numQuestionsInput.removeAttribute('required');
-        } else if (isProject) {
-            numQuestionsGroup.style.display = 'none';
-            if(bsbInfo) bsbInfo.style.display = 'none';
-            if(chsbInfo) chsbInfo.style.display = 'none';
-            if(projectInfo) projectInfo.style.display = 'block';
-            
-            const practicalOption = Array.from(examTypeSelect.options).find(opt => 
-                opt.text.includes('Practical') || opt.text.includes('practical') || 
-                opt.text.includes('Amaliy') || opt.text.includes('amaliy')
-            );
-            if (practicalOption) {
-                examTypeSelect.value = practicalOption.value;
-                examTypeSelect.style.backgroundColor = '#f8f9fa';
-                examTypeSelect.style.cursor = 'not-allowed';
-                
-                let hiddenField = document.getElementById('practical_exam_type');
-                if (!hiddenField) {
-                    hiddenField = document.createElement('input');
-                    hiddenField.type = 'hidden';
-                    hiddenField.id = 'practical_exam_type';
-                    hiddenField.name = 'exam_type_id';
-                    hiddenField.value = practicalOption.value;
-                    examTypeSelect.parentNode.appendChild(hiddenField);
-                } else {
-                    hiddenField.value = practicalOption.value;
-                }
-            }
-            
-            questionsContainer.innerHTML = '';
-            numQuestionsInput.value = 1;
-            numQuestionsInput.removeAttribute('required');
-            
-            generateProjectQuestionField();
-        } else {
-            numQuestionsGroup.style.display = 'block';
-            if(bsbInfo) bsbInfo.style.display = 'none';
-            if(chsbInfo) chsbInfo.style.display = 'none';
-            if(projectInfo) projectInfo.style.display = 'none';
-            examTypeSelect.disabled = false;
-            numQuestionsInput.setAttribute('required', 'required');
-            if (numQuestionsInput.value) {
-                generateQuestionFields();
-            }
-        }
-    }
-
-    function generateProjectQuestionField() {
-        const container = document.getElementById('questions_container');
-        const template = document.getElementById('question_type_template');
-
-        container.innerHTML = '';
-
-        const questionHeader = document.createElement('h3');
-        questionHeader.textContent = '{{ _("questions") }}';
-        container.appendChild(questionHeader);
-
-        const questionDiv = document.createElement('div');
-        questionDiv.className = 'question-item';
-
-        questionDiv.innerHTML = `
-            <h4>1-{{ _("question") }}</h4>
-            <div class="form-row">
-                <div class="form-group">
-                    <label for="question_type_1">{{ _("question_type") }} *</label>
-                    <select id="question_type_1" name="question_type_1" required>
-                        ${template.innerHTML}
-                    </select>
-                </div>
-                <div class="form-group">
-                    <label for="max_score_1">{{ _("max_score") }} *</label>
-                    <input type="number" id="max_score_1" name="max_score_1" 
-                           value="15" step="0.1" min="0.1" required readonly
-                           style="background-color: #f8f9fa;">
-                </div>
+  <div class="wiz-layout">
+    <!-- ═══ LEFT PANEL ═══ -->
+    <div>
+      <!-- Step 1: Format -->
+      <div class="step-card active" id="s1">
+        <div class="step-header">
+          <div class="step-num-badge"><span class="snnum">1</span><span class="snchk">✓</span></div>
+          <div class="step-header-text">
+            <div class="step-title">Formatni tanlang</div>
+            <div class="step-subtitle">Qanday nazorat ishi yaratmoqchisiz?</div>
+          </div>
+          <div class="step-selected-badge" id="s1badge"></div>
+        </div>
+        <div class="step-body" id="s1body">
+          <div class="format-cards">
+            <div class="format-card" id="card_bsb" onclick="selectFormat('bsb')">
+              <div class="format-card-icon">📋</div>
+              <div class="format-card-name">BSB</div>
+              <div class="format-card-desc">Haftalik, oylik</div>
             </div>
-        `;
+            <div class="format-card" id="card_chsb" onclick="selectFormat('chsb')">
+              <div class="format-card-icon">📊</div>
+              <div class="format-card-name">ChSB</div>
+              <div class="format-card-desc">Choraklik</div>
+            </div>
+          </div>
+        </div>
+      </div>
 
-        container.appendChild(questionDiv);
-    }
+      <!-- Step 2: Class -->
+      <div class="step-card" id="s2">
+        <div class="step-header" onclick="tryExpand(2)">
+          <div class="step-num-badge"><span class="snnum">2</span><span class="snchk">✓</span></div>
+          <div class="step-header-text">
+            <div class="step-title">Sinfni tanlang</div>
+            <div class="step-subtitle">Nechanchi sinf uchun?</div>
+          </div>
+          <div class="step-selected-badge" id="s2badge"></div>
+        </div>
+        <div class="step-body" id="s2body" style="display:none">
+          <div class="class-grid">
+            {% for cls in classes %}
+            <button type="button" class="class-btn"
+              data-id="{{ cls.id }}" data-name="{{ cls.name }}"
+              onclick="selectClass({{ cls.id }}, '{{ cls.name }}')">
+              {{ cls.name }}
+            </button>
+            {% endfor %}
+            {% if not classes %}
+            <p style="color:#adb5bd;font-size:.85rem">Sizga sinf biriktirilmagan</p>
+            {% endif %}
+          </div>
+        </div>
+      </div>
 
-    function generateCHSBQuestionFields() {
-        const container = document.getElementById('questions_container');
-        const template = document.getElementById('question_type_template');
+      <!-- Step 3: Subject -->
+      <div class="step-card" id="s3">
+        <div class="step-header" onclick="tryExpand(3)">
+          <div class="step-num-badge"><span class="snnum">3</span><span class="snchk">✓</span></div>
+          <div class="step-header-text">
+            <div class="step-title">Fanni tanlang</div>
+            <div class="step-subtitle" id="s3subtitle"></div>
+          </div>
+          <div class="step-selected-badge" id="s3badge"></div>
+        </div>
+        <div class="step-body" id="s3body" style="display:none">
+          <div class="subject-grid" id="subject_grid">
+            {% for subject in subjects %}
+            <div class="subject-card"
+              data-id="{{ subject.id }}" data-name="{{ subject.name }}"
+              onclick="selectSubject({{ subject.id }}, '{{ subject.name }}')">
+              <span class="subject-icon" id="icon_{{ subject.id }}">📚</span>
+              <span class="subject-name">{{ subject.name }}</span>
+            </div>
+            {% endfor %}
+            {% if not subjects %}
+            <p style="color:#adb5bd;font-size:.85rem;grid-column:1/-1">Sizga fan biriktirilmagan</p>
+            {% endif %}
+          </div>
+        </div>
+      </div>
 
-        container.innerHTML = '';
+      <!-- Step 4: Period / Quarter -->
+      <div class="step-card" id="s4">
+        <div class="step-header" onclick="tryExpand(4)">
+          <div class="step-num-badge"><span class="snnum">4</span><span class="snchk">✓</span></div>
+          <div class="step-header-text">
+            <div class="step-title" id="s4title">Davrni tanlang</div>
+            <div class="step-subtitle" id="s4subtitle">Qaysi davr uchun?</div>
+          </div>
+          <div class="step-selected-badge" id="s4badge"></div>
+        </div>
+        <div class="step-body" id="s4body" style="display:none">
+          <!-- BSB: open modal -->
+          <div id="bsb_period_section">
+            <div class="period-trigger" id="period_trigger" onclick="openPeriodModal()">
+              <span class="period-trigger-text" id="period_trigger_text">Davrni tanlash uchun bosing</span>
+              <span class="period-trigger-arrow">›</span>
+            </div>
+          </div>
+          <!-- CHSB: quarter buttons -->
+          <div id="chsb_quarter_section" style="display:none">
+            <div class="quarter-grid">
+              {% for quarter in quarters %}
+              <button type="button" class="quarter-btn"
+                data-id="{{ quarter.id }}" data-name="{{ quarter.name }}"
+                onclick="selectQuarter({{ quarter.id }}, '{{ quarter.name }}')">
+                <span class="quarter-num">{{ loop.index }}</span>
+                <span class="quarter-label">chorak</span>
+              </button>
+              {% endfor %}
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
 
-        const questionHeader = document.createElement('h3');
-        questionHeader.textContent = 'CHSB Savol Turlarini Tanlang';
-        container.appendChild(questionHeader);
+    <!-- ═══ RIGHT SIDEBAR ═══ -->
+    <div class="wiz-sidebar">
+      <!-- Preview card -->
+      <div class="preview-card">
+        <div class="preview-header" id="prev_header">
+          <div class="preview-header-icon" id="prev_icon">📋</div>
+          <div>
+            <div class="preview-title" id="prev_title">BSB - Bosqichli summativ baholash</div>
+            <div class="preview-subtitle" id="prev_subtitle">Formatni tanlang</div>
+          </div>
+        </div>
+        <div class="preview-info" id="prev_info">
+          <div class="pi-row" id="pi_class" style="display:none">
+            <span class="pi-icon">🎓</span>
+            <div class="pi-texts">
+              <div class="pi-label">Sinf</div>
+              <div class="pi-value" id="pi_class_val">-</div>
+            </div>
+            <span class="pi-check">✓</span>
+          </div>
+          <div class="pi-row" id="pi_subject" style="display:none">
+            <span class="pi-icon">📚</span>
+            <div class="pi-texts">
+              <div class="pi-label">Fan</div>
+              <div class="pi-value" id="pi_subject_val">-</div>
+            </div>
+            <span class="pi-check">✓</span>
+          </div>
+          <div class="pi-row" id="pi_period" style="display:none">
+            <span class="pi-icon">📅</span>
+            <div class="pi-texts">
+              <div class="pi-label" id="pi_period_label">Davr</div>
+              <div class="pi-value" id="pi_period_val">-</div>
+            </div>
+            <span class="pi-check">✓</span>
+          </div>
+        </div>
+        <div class="preview-stats">
+          <div class="pstat"><strong id="ps_q">0</strong>savol</div>
+          <div class="pstat"><strong id="ps_b">0</strong>ball</div>
+          <div class="pstat"><strong id="ps_v">1</strong>variant</div>
+          <div class="pstat"><strong>~<span id="ps_t">0</span></strong>daqiqa</div>
+        </div>
+      </div>
 
-        const infoText = document.createElement('p');
-        infoText.className = 'text-muted';
-        infoText.textContent = 'Har bir savol raqami uchun savol turini tanlang:';
-        container.appendChild(infoText);
+      <!-- Settings -->
+      <div class="settings-card">
+        <button type="button" class="settings-toggle-btn open" id="settings_btn"
+          onclick="toggleSettings()">
+          ⚙️ Sozlamalar <span class="sarrow">▲</span>
+        </button>
+        <div class="settings-body" id="settings_body">
 
-        for (let i = 1; i <= 10; i++) {
-            const questionDiv = document.createElement('div');
-            questionDiv.className = 'question-item chsb-question';
+          <!-- Variants -->
+          <div class="settings-group">
+            <div class="settings-label">Variantlar soni</div>
+            <div class="variant-btns">
+              <button type="button" class="vbtn active" data-v="1" onclick="selectVariant(1)">1</button>
+              <button type="button" class="vbtn" data-v="2" onclick="selectVariant(2)">2</button>
+              <button type="button" class="vbtn" data-v="3" onclick="selectVariant(3)">3</button>
+              <button type="button" class="vbtn" data-v="4" onclick="selectVariant(4)">4</button>
+            </div>
+          </div>
 
-            questionDiv.innerHTML = `
-                <div class="form-row">
-                    <div class="form-group">
-                        <label for="chsb_question_type_${i}">Savol ${i} turi *</label>
-                        <select id="chsb_question_type_${i}" name="chsb_question_type_${i}" required>
-                            ${template.innerHTML}
-                        </select>
-                    </div>
-                    <div class="form-group">
-                        <label>Maksimal ball</label>
-                        <input type="text" value="4" disabled style="width: 80px; background-color: #f8f9fa;">
-                    </div>
-                </div>
-            `;
+          <!-- Difficulty -->
+          <div class="settings-group">
+            <div class="settings-label">Qiyinlik darajasi</div>
+            <div class="diff-btns">
+              <button type="button" class="dbtn active" data-d="Aralash" onclick="selectDiff('Aralash')">Aralash</button>
+              <button type="button" class="dbtn" data-d="Oson" onclick="selectDiff('Oson')">Oson</button>
+              <button type="button" class="dbtn" data-d="O&apos;rta" onclick="selectDiff(&quot;O'rta&quot;)">O'rta</button>
+              <button type="button" class="dbtn" data-d="Qiyin" onclick="selectDiff('Qiyin')">Qiyin</button>
+            </div>
+          </div>
 
-            container.appendChild(questionDiv);
-        }
-    }
+          <!-- Distribution -->
+          <div class="settings-group">
+            <div class="settings-label" style="display:flex;justify-content:space-between;align-items:center">
+              Savol turlari taqsimoti
+              <span onclick="toggleDist()" id="dist_arrow" style="cursor:pointer;color:#adb5bd">▲</span>
+            </div>
+            <div id="dist_container">
+              <table class="dist-table">
+                <thead>
+                  <tr>
+                    <th style="width:40%">Tur</th>
+                    <th style="width:18%">Soni</th>
+                    <th style="width:2%"></th>
+                    <th style="width:16%">Ball</th>
+                    <th style="width:4%"></th>
+                    <th style="width:14%">=</th>
+                    <th style="width:6%"></th>
+                  </tr>
+                </thead>
+                <tbody id="dist_tbody"></tbody>
+              </table>
+              <button type="button" class="dist-add-btn" onclick="addDistRow()">
+                ＋ Qo'shish
+              </button>
+              <div class="dist-jami">Jami: <strong id="dist_total">0</strong> ball</div>
+              <span class="dist-reset-link" onclick="resetDefaults()">Standart sozlamalarga qaytarish</span>
+            </div>
+          </div>
+        </div>
+      </div>
 
-    function generateQuestionFields() {
-        const numQuestions = document.getElementById('num_questions').value;
-        const container = document.getElementById('questions_container');
-        const template = document.getElementById('question_type_template');
+      <!-- Create button -->
+      <button type="button" class="create-btn" id="create_btn" disabled onclick="submitExam()">
+        ✦Imtihon yaratish
+      </button>
+    </div>
+  </div>
+</form>
 
-        container.innerHTML = '';
+<!-- ═══ PERIOD MODAL ═══ -->
+<div class="modal-overlay" id="period_modal">
+  <div class="modal-box">
+    <div class="modal-head">
+      <h3>Davrni tanlang</h3>
+      <button type="button" class="modal-close-btn" onclick="closePeriodModal()">✕</button>
+    </div>
+    <div class="modal-tabs">
+      <button type="button" class="mtab active" id="tab_week" onclick="switchTab('week')">Hafta bo'yicha</button>
+      <button type="button" class="mtab" id="tab_month" onclick="switchTab('month')">Oy bo'yicha</button>
+    </div>
 
-        if (numQuestions > 0) {
-            const examNameSelect = document.getElementById('exam_name_id');
-            const selectedOption = examNameSelect.options[examNameSelect.selectedIndex];
-            const examName = selectedOption ? selectedOption.getAttribute('data-name') : '';
-            const isBSB = examName && examName.includes('bsb');
-            const isCHSB = examName && examName.includes('chsb');
-            
-            if (isBSB || isCHSB) {
-                return;
-            }
+    <!-- Month view -->
+    <div class="modal-content" id="months_panel" style="display:none">
+      <div class="month-grid">
+        <div class="month-card" onclick="selectMonth('Sentyabr','1-4 haftalar')">
+          <div class="month-name">Sentyabr</div><div class="month-weeks">1-4 haftalar</div>
+        </div>
+        <div class="month-card" onclick="selectMonth('Oktyabr','5-8 haftalar')">
+          <div class="month-name">Oktyabr</div><div class="month-weeks">5-8 haftalar</div>
+        </div>
+        <div class="month-card" onclick="selectMonth('Noyabr','9-12 haftalar')">
+          <div class="month-name">Noyabr</div><div class="month-weeks">9-12 haftalar</div>
+        </div>
+        <div class="month-card" onclick="selectMonth('Dekabr','13-16 haftalar')">
+          <div class="month-name">Dekabr</div><div class="month-weeks">13-16 haftalar</div>
+        </div>
+        <div class="month-card" onclick="selectMonth('Yanvar','17-20 haftalar')">
+          <div class="month-name">Yanvar</div><div class="month-weeks">17-20 haftalar</div>
+        </div>
+        <div class="month-card" onclick="selectMonth('Fevral','21-24 haftalar')">
+          <div class="month-name">Fevral</div><div class="month-weeks">21-24 haftalar</div>
+        </div>
+        <div class="month-card" onclick="selectMonth('Mart','25-28 haftalar')">
+          <div class="month-name">Mart</div><div class="month-weeks">25-28 haftalar</div>
+        </div>
+        <div class="month-card" onclick="selectMonth('Aprel','29-32 haftalar')">
+          <div class="month-name">Aprel</div><div class="month-weeks">29-32 haftalar</div>
+        </div>
+        <div class="month-card" onclick="selectMonth('May','33-34 haftalar')">
+          <div class="month-name">May</div><div class="month-weeks">33-34 haftalar</div>
+        </div>
+      </div>
+    </div>
 
-            const questionHeader = document.createElement('h3');
-            questionHeader.textContent = '{{ _("questions") }}';
-            container.appendChild(questionHeader);
+    <!-- Week view -->
+    <div class="modal-content" id="weeks_panel">
+      <div class="chorak-group">
+        <div class="chorak-label">1-chorak</div>
+        <div class="week-row" id="wr1">
+          {% for w in range(1,9) %}
+          <button type="button" class="wbtn" data-w="{{ w }}" onclick="toggleWeek({{ w }})">{{ w }}</button>
+          {% endfor %}
+        </div>
+      </div>
+      <div class="chorak-group">
+        <div class="chorak-label">2-chorak</div>
+        <div class="week-row" id="wr2">
+          {% for w in range(9,17) %}
+          <button type="button" class="wbtn" data-w="{{ w }}" onclick="toggleWeek({{ w }})">{{ w }}</button>
+          {% endfor %}
+        </div>
+      </div>
+      <div class="chorak-group">
+        <div class="chorak-label">3-chorak</div>
+        <div class="week-row" id="wr3">
+          {% for w in range(17,27) %}
+          <button type="button" class="wbtn" data-w="{{ w }}" onclick="toggleWeek({{ w }})">{{ w }}</button>
+          {% endfor %}
+        </div>
+      </div>
+      <div class="chorak-group">
+        <div class="chorak-label">4-chorak</div>
+        <div class="week-row" id="wr4">
+          {% for w in range(27,35) %}
+          <button type="button" class="wbtn" data-w="{{ w }}" onclick="toggleWeek({{ w }})">{{ w }}</button>
+          {% endfor %}
+        </div>
+      </div>
+      <button type="button" class="confirm-weeks-btn" id="confirm_weeks_btn"
+        disabled onclick="confirmWeeks()">
+        Tasdiqlash (0 hafta)
+      </button>
+    </div>
+  </div>
+</div>
+{% endblock %}
 
-            for (let i = 1; i <= numQuestions; i++) {
-                const questionDiv = document.createElement('div');
-                questionDiv.className = 'question-item';
+{% block extra_js %}
+<script>
+// ── Data from backend ──
+const QT = {{ question_types_json | safe }};
+const BSB_EXAM_NAME_ID = {{ bsb_exam_name_id or 'null' }};
+const CHSB_EXAM_NAME_ID = {{ chsb_exam_name_id or 'null' }};
+const DEFAULT_EXAM_TYPE_ID = {{ default_exam_type_id or 1 }};
 
-                questionDiv.innerHTML = `
-                <h4>${i}-{{ _("question") }}</h4>
-                <div class="form-row">
-                    <div class="form-group">
-                        <label for="question_type_${i}">{{ _("question_type") }} *</label>
-                        <select id="question_type_${i}" name="question_type_${i}" required>
-                            ${template.innerHTML}
-                        </select>
-                    </div>
-                    <div class="form-group">
-                        <label for="max_score_${i}">{{ _("max_score") }} *</label>
-                        <input type="number" id="max_score_${i}" name="max_score_${i}" 
-                               step="0.1" min="0.1" required>
-                    </div>
-                </div>
-            `;
+// ── Subject icons ──
+const ICONS = {
+  'ona': '📖', 'o\'qi': '📚', 'o\'qi': '📚', 'rus ': '🇷🇺', 'o\'zb': '🇺🇿',
+  'ingl': '🇬🇧', 'nemi': '🇩🇪', 'tarb': '✋', 'mate': '➕', 'info': '💻',
+  'tabi': '🌿', 'musi': '🎵', 'tasv': '🎨', 'texn': '⚙️', 'jism': '🏃',
+  'fizi': '⚡', 'kimo': '🧪', 'biol': '🌱', 'tari': '📜', 'geog': '🌍',
+  'adab': '✍️', 'hisa': '🔢',
+};
+function getIcon(name) {
+  const key = name.toLowerCase().slice(0, 4);
+  return ICONS[key] || '📚';
+}
 
-                container.appendChild(questionDiv);
-            }
-        }
-    }
+// ── Defaults ──
+const BSB_DEFAULTS = [
+  { name: 'Test',        count: 10, score: 1 },
+  { name: "To'ldirish", count: 3,  score: 2 },
+  { name: 'Qisqa javob',count: 2,  score: 2 },
+];
+const CHSB_DEFAULTS = [
+  { name: 'Test',          count: 15, score: 1 },
+  { name: 'Moslashtirish', count: 2,  score: 2 },
+  { name: "To'ldirish",    count: 3,  score: 2 },
+  { name: 'Masala',        count: 2,  score: 5 },
+  { name: 'Tahlil',        count: 1,  score: 5 },
+];
+
+// ── State ──
+let fmt = '';        // 'bsb' | 'chsb'
+let selClass = null, selSubject = null, selPeriod = null;
+let curVariant = 1;
+let selectedWeeks = new Set();
+let distRows = [];   // {typeId, count, score}
+
+// ── Apply subject icons ──
+document.querySelectorAll('.subject-card').forEach(card => {
+  const name = card.dataset.name || '';
+  const id = card.dataset.id;
+  const el = document.getElementById('icon_' + id);
+  if (el) el.textContent = getIcon(name);
+});
+
+// ── Format select ──
+function selectFormat(f) {
+  fmt = f;
+  document.getElementById('card_bsb').className =
+    'format-card' + (f === 'bsb' ? ' selected-bsb' : '');
+  document.getElementById('card_chsb').className =
+    'format-card' + (f === 'chsb' ? ' selected-chsb' : '');
+
+  document.getElementById('h_exam_name_id').value =
+    f === 'bsb' ? (BSB_EXAM_NAME_ID || '') : (CHSB_EXAM_NAME_ID || '');
+
+  // Step 4 label
+  const l = f === 'bsb' ? 'Davr' : 'Chorak';
+  document.getElementById('prog4label').textContent = l;
+  document.getElementById('s4title').textContent =
+    f === 'bsb' ? 'Davrni tanlang' : 'Chorakni tanlang';
+  document.getElementById('s4subtitle').textContent =
+    f === 'bsb' ? 'Qaysi davr uchun?' : 'Qaysi chorak uchun?';
+  document.getElementById('bsb_period_section').style.display = f === 'bsb' ? '' : 'none';
+  document.getElementById('chsb_quarter_section').style.display = f === 'chsb' ? '' : 'none';
+
+  // Preview header
+  const ph = document.getElementById('prev_header');
+  document.getElementById('prev_icon').textContent = f === 'bsb' ? '📋' : '📊';
+  document.getElementById('prev_title').textContent =
+    f === 'bsb' ? 'BSB - Bosqichli summativ baholash'
+                : 'ChSB - Choraklik summativ baholash';
+  const sub = document.getElementById('prev_subtitle');
+  if (f === 'bsb') {
+    ph.className = 'preview-header bsb';
+    sub.className = 'preview-subtitle';
+    sub.textContent = 'Haftalik yoki oylik nazorat ishi';
+  } else {
+    ph.className = 'preview-header chsb';
+    sub.className = 'preview-subtitle chsb';
+    sub.textContent = 'Chorak oxiridagi yakuniy nazorat ishi';
+  }
+  document.getElementById('pi_period_label').textContent =
+    f === 'bsb' ? 'Davr' : 'Chorak';
+
+  markDone(1, f === 'bsb' ? 'BSB' : 'ChSB');
+  expandStep(2);
+  resetDefaults();
+  updateVariantStyle();
+  updateDiffStyle();
+  resetPeriodSelection();
+}
+
+// ── Class select ──
+function selectClass(id, name) {
+  selClass = {id, name};
+  document.getElementById('h_class_id').value = id;
+  document.querySelectorAll('.class-btn').forEach(b => {
+    b.className = 'class-btn' + (b.dataset.id == id ? ' selected' : '');
+  });
+  document.getElementById('pi_class_val').textContent = name;
+  document.getElementById('pi_class').style.display = '';
+  document.getElementById('s3subtitle').textContent = name;
+  markDone(2, name);
+  expandStep(3);
+  checkReady();
+}
+
+// ── Subject select ──
+function selectSubject(id, name) {
+  selSubject = {id, name};
+  document.getElementById('h_subject_id').value = id;
+  const selCls = fmt === 'chsb' ? 'subject-card selected-chsb' : 'subject-card selected';
+  document.querySelectorAll('.subject-card').forEach(c => {
+    c.className = 'subject-card' + (c.dataset.id == id ? (fmt === 'chsb' ? ' selected-chsb' : ' selected') : '');
+  });
+  document.getElementById('pi_subject_val').textContent = name;
+  document.getElementById('pi_subject').style.display = '';
+  markDone(3, name);
+  expandStep(4);
+  checkReady();
+}
+
+// ── Quarter select (CHSB) ──
+function selectQuarter(id, name) {
+  document.getElementById('h_quarter_id').value = id;
+  document.querySelectorAll('.quarter-btn').forEach(b => {
+    b.className = 'quarter-btn' + (b.dataset.id == id ? ' selected' : '');
+  });
+  document.getElementById('pi_period_val').textContent = name;
+  document.getElementById('pi_period').style.display = '';
+  selPeriod = name;
+  markDone(4, name);
+  checkReady();
+}
+
+// ── Variant select ──
+function selectVariant(v) {
+  curVariant = v;
+  document.getElementById('h_variant').value = v;
+  document.getElementById('ps_v').textContent = v;
+  updateVariantStyle();
+}
+function updateVariantStyle() {
+  const active = fmt === 'chsb' ? 'vbtn active-chsb' : 'vbtn active';
+  document.querySelectorAll('.vbtn').forEach(b => {
+    b.className = parseInt(b.dataset.v) === curVariant ? active : 'vbtn';
+  });
+}
+
+// ── Difficulty select ──
+function selectDiff(d) {
+  document.getElementById('h_difficulty').value = d;
+  updateDiffStyle(d);
+}
+function updateDiffStyle(current) {
+  const cur = current || document.getElementById('h_difficulty').value;
+  const active = fmt === 'chsb' ? 'dbtn active-chsb' : 'dbtn active';
+  document.querySelectorAll('.dbtn').forEach(b => {
+    b.className = b.dataset.d === cur ? active : 'dbtn';
+  });
+}
+
+// ── Distribution ──
+function findTypeId(name) {
+  const lower = name.toLowerCase();
+  const match = QT.find(q => q.name.toLowerCase() === lower);
+  return match ? match.id : (QT.length ? QT[0].id : 1);
+}
+
+function buildDistRow(typeId, count, score, rowIdx) {
+  const tr = document.createElement('tr');
+  tr.dataset.row = rowIdx;
+
+  const tdSelect = document.createElement('td');
+  const sel = document.createElement('select');
+  sel.name = `q_type_id_${rowIdx}`;
+  sel.onchange = updateStats;
+  QT.forEach(qt => {
+    const opt = document.createElement('option');
+    opt.value = qt.id;
+    opt.textContent = qt.name;
+    if (qt.id === typeId) opt.selected = true;
+    sel.appendChild(opt);
+  });
+  tdSelect.appendChild(sel);
+
+  const tdCount = document.createElement('td');
+  const inpC = document.createElement('input');
+  inpC.type = 'number'; inpC.name = `q_count_${rowIdx}`;
+  inpC.min = 1; inpC.value = count; inpC.oninput = updateStats;
+  tdCount.appendChild(inpC);
+
+  const tdX = document.createElement('td');
+  tdX.className = 'dist-x'; tdX.textContent = '×';
+
+  const tdScore = document.createElement('td');
+  const inpS = document.createElement('input');
+  inpS.type = 'number'; inpS.name = `q_score_${rowIdx}`;
+  inpS.min = 0.5; inpS.step = 0.5; inpS.value = score; inpS.oninput = updateStats;
+  tdScore.appendChild(inpS);
+
+  const tdBall = document.createElement('td');
+  tdBall.className = 'dist-ball'; tdBall.textContent = 'ball';
+
+  const tdEq = document.createElement('td');
+  tdEq.className = 'dist-eq'; tdEq.textContent = '=';
+
+  const tdTot = document.createElement('td');
+  const totSpan = document.createElement('span');
+  totSpan.className = 'dist-total-val';
+  totSpan.textContent = (count * score).toString();
+  totSpan.id = `rowtot_${rowIdx}`;
+  tdTot.appendChild(totSpan);
+
+  const tdDel = document.createElement('td');
+  const delBtn = document.createElement('button');
+  delBtn.type = 'button'; delBtn.className = 'dist-del'; delBtn.textContent = '🗑';
+  delBtn.onclick = () => { tr.remove(); reindexRows(); updateStats(); };
+  tdDel.appendChild(delBtn);
+
+  tr.append(tdSelect, tdCount, tdX, tdScore, tdBall, tdEq, tdTot, tdDel);
+  return tr;
+}
+
+let nextRowIdx = 1;
+function addDistRow(typeId, count, score) {
+  typeId = typeId || (QT.length ? QT[0].id : 1);
+  count = count || 1; score = score || 1;
+  const tbody = document.getElementById('dist_tbody');
+  const tr = buildDistRow(typeId, count, score, nextRowIdx++);
+  tbody.appendChild(tr);
+  updateStats();
+}
+
+function reindexRows() {
+  nextRowIdx = 1;
+  document.querySelectorAll('#dist_tbody tr').forEach(tr => {
+    const idx = nextRowIdx++;
+    tr.dataset.row = idx;
+    tr.querySelector('select').name = `q_type_id_${idx}`;
+    const inputs = tr.querySelectorAll('input[type=number]');
+    inputs[0].name = `q_count_${idx}`;
+    inputs[1].name = `q_score_${idx}`;
+    const tot = tr.querySelector('.dist-total-val');
+    if (tot) tot.id = `rowtot_${idx}`;
+  });
+}
+
+function updateStats() {
+  let totalQ = 0, totalB = 0;
+  document.querySelectorAll('#dist_tbody tr').forEach(tr => {
+    const inputs = tr.querySelectorAll('input[type=number]');
+    const c = parseInt(inputs[0]?.value) || 0;
+    const s = parseFloat(inputs[1]?.value) || 0;
+    const tot = c * s;
+    const idx = tr.dataset.row;
+    const span = document.getElementById(`rowtot_${idx}`);
+    if (span) span.textContent = tot.toString();
+    totalQ += c; totalB += tot;
+  });
+  document.getElementById('dist_total').textContent = totalB;
+  document.getElementById('ps_q').textContent = totalQ;
+  document.getElementById('ps_b').textContent = totalB;
+  document.getElementById('ps_t').textContent = totalB;
+  document.getElementById('h_num_q_rows').value =
+    document.querySelectorAll('#dist_tbody tr').length;
+}
+
+function resetDefaults() {
+  const tbody = document.getElementById('dist_tbody');
+  tbody.innerHTML = '';
+  nextRowIdx = 1;
+  const defs = fmt === 'chsb' ? CHSB_DEFAULTS : BSB_DEFAULTS;
+  defs.forEach(d => addDistRow(findTypeId(d.name), d.count, d.score));
+  updateStats();
+}
+
+function toggleDist() {
+  const c = document.getElementById('dist_container');
+  const a = document.getElementById('dist_arrow');
+  const open = c.style.display !== 'none';
+  c.style.display = open ? 'none' : '';
+  a.textContent = open ? '▼' : '▲';
+}
+
+// ── Settings toggle ──
+function toggleSettings() {
+  const body = document.getElementById('settings_body');
+  const btn = document.getElementById('settings_btn');
+  const open = body.style.display !== 'none';
+  body.style.display = open ? 'none' : '';
+  btn.className = 'settings-toggle-btn' + (open ? '' : ' open');
+}
+
+// ── Step expand / done ──
+function markDone(step, label) {
+  const card = document.getElementById(`s${step}`);
+  const badge = document.getElementById(`s${step}badge`);
+  card.classList.add('done');
+  if (badge) badge.textContent = label;
+  // progress
+  const prog = document.getElementById(`prog${step}`);
+  prog.classList.add('done');
+  prog.classList.remove('active');
+  if (step < 4) {
+    const conn = document.getElementById(`conn${step}${step+1}`);
+    if (conn) conn.classList.add('done');
+  }
+}
+
+function expandStep(step) {
+  for (let i = 1; i <= 4; i++) {
+    const body = document.getElementById(`s${i}body`);
+    if (body) body.style.display = i === step ? '' : 'none';
+  }
+  const prog = document.getElementById(`prog${step}`);
+  if (prog && !prog.classList.contains('done')) {
+    prog.classList.add('active');
+  }
+}
+
+function tryExpand(step) {
+  // only expand if previous step is done
+  if (step === 2 && !fmt) return;
+  if (step === 3 && !selClass) return;
+  if (step === 4 && !selSubject) return;
+  expandStep(step);
+}
+
+// ── Period modal ──
+function openPeriodModal() {
+  document.getElementById('period_modal').classList.add('open');
+  switchTab('week');
+}
+function closePeriodModal(e) {
+  if (!e || e.target === document.getElementById('period_modal')) {
+    document.getElementById('period_modal').classList.remove('open');
+  }
+}
+function switchTab(tab) {
+  document.getElementById('tab_week').className = 'mtab' + (tab === 'week' ? ' active' : '');
+  document.getElementById('tab_month').className = 'mtab' + (tab === 'month' ? ' active' : '');
+  document.getElementById('weeks_panel').style.display = tab === 'week' ? '' : 'none';
+  document.getElementById('months_panel').style.display = tab === 'month' ? '' : 'none';
+}
+function selectMonth(name, weeks) {
+  const period = `${name} / ${weeks}`;
+  document.getElementById('h_period').value = period;
+  document.getElementById('period_trigger_text').textContent = period;
+  document.getElementById('period_trigger').classList.add('selected');
+  document.getElementById('pi_period_val').textContent = period;
+  document.getElementById('pi_period').style.display = '';
+  selPeriod = period;
+  markDone(4, name);
+  closePeriodModal();
+  checkReady();
+  // reset month highlight
+  document.querySelectorAll('.month-card').forEach(c => c.classList.remove('selected'));
+  document.querySelectorAll('.month-card').forEach(c => {
+    if (c.querySelector('.month-name').textContent === name) c.classList.add('selected');
+  });
+}
+function toggleWeek(w) {
+  const btn = document.querySelector(`.wbtn[data-w="${w}"]`);
+  if (selectedWeeks.has(w)) {
+    selectedWeeks.delete(w);
+    btn.classList.remove('selected');
+  } else {
+    selectedWeeks.add(w);
+    btn.classList.add('selected');
+  }
+  const n = selectedWeeks.size;
+  const cb = document.getElementById('confirm_weeks_btn');
+  cb.disabled = n === 0;
+  cb.textContent = `Tasdiqlash (${n} hafta)`;
+}
+function confirmWeeks() {
+  if (!selectedWeeks.size) return;
+  const sorted = Array.from(selectedWeeks).sort((a,b)=>a-b);
+  const min = sorted[0], max = sorted[sorted.length-1];
+  const period = min === max ? `${min}-hafta` : `${min}-${max} haftalar`;
+  document.getElementById('h_period').value = period;
+  document.getElementById('period_trigger_text').textContent = period;
+  document.getElementById('period_trigger').classList.add('selected');
+  document.getElementById('pi_period_val').textContent = period;
+  document.getElementById('pi_period').style.display = '';
+  selPeriod = period;
+  markDone(4, period);
+  closePeriodModal();
+  checkReady();
+}
+function resetPeriodSelection() {
+  selPeriod = null;
+  selectedWeeks.clear();
+  document.querySelectorAll('.wbtn').forEach(b => b.classList.remove('selected'));
+  document.querySelectorAll('.month-card').forEach(c => c.classList.remove('selected'));
+  document.getElementById('h_period').value = '';
+  document.getElementById('h_quarter_id').value = '';
+  document.getElementById('period_trigger_text').textContent = 'Davrni tanlash uchun bosing';
+  document.getElementById('period_trigger').classList.remove('selected');
+  document.getElementById('pi_period').style.display = 'none';
+  document.querySelectorAll('.quarter-btn').forEach(b => b.classList.remove('selected'));
+  const s4 = document.getElementById('s4');
+  s4.classList.remove('done');
+  document.getElementById('s4badge').textContent = '';
+  const confirm_weeks_btn = document.getElementById('confirm_weeks_btn');
+  confirm_weeks_btn.disabled = true;
+  confirm_weeks_btn.textContent = 'Tasdiqlash (0 hafta)';
+}
+
+// ── Readiness check ──
+function checkReady() {
+  const ready = fmt && selClass && selSubject && selPeriod;
+  const btn = document.getElementById('create_btn');
+  btn.disabled = !ready;
+  if (ready) {
+    btn.className = 'create-btn ' + (fmt === 'chsb' ? 'chsb-ready' : 'bsb-ready');
+  } else {
+    btn.className = 'create-btn';
+  }
+}
+
+// ── Submit ──
+function submitExam() {
+  const rows = document.querySelectorAll('#dist_tbody tr').length;
+  document.getElementById('h_num_q_rows').value = rows;
+  // Disable empty hidden fields so FastAPI won't try to parse "" as int
+  const qi = document.getElementById('h_quarter_id');
+  if (!qi.value) qi.disabled = true;
+  document.getElementById('exam_form').submit();
+}
+
+// ── Init ──
+document.addEventListener('DOMContentLoaded', () => {
+  expandStep(1);
+  // set default variant style
+  document.querySelector('.vbtn[data-v="1"]').className = 'vbtn active';
+  document.querySelector('.dbtn[data-d="Aralash"]').className = 'dbtn active';
+});
 </script>
-
-<style>
-    .chsb-question {
-        border-left: 4px solid #007bff;
-        padding-left: 10px;
-        margin-bottom: 15px;
-    }
-</style>
 {% endblock %}

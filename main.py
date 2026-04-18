@@ -6,18 +6,66 @@ from fastapi.responses import RedirectResponse
 from starlette.middleware.sessions import SessionMiddleware
 import os
 
-from models import init_db
+from sqlalchemy import select
+from models import (
+    init_db, AsyncSessionLocal,
+    Employee, Quarter, ExamName, ExamType, QuestionType, StaffTitle
+)
 from routers import auth, admin, teacher, language
 from dependencies import get_flashed_messages
 
-# Lifespan context manager for startup/shutdown events
+
+async def seed_defaults():
+    async with AsyncSessionLocal() as db:
+        # Admin user
+        result = await db.execute(select(Employee).where(Employee.username == 'admin'))
+        if not result.scalar_one_or_none():
+            admin_user = Employee(
+                username='admin', first_name='Admin', last_name='User', is_admin=True
+            )
+            admin_user.set_password('admin123')
+            db.add(admin_user)
+
+        # Quarters
+        q_result = await db.execute(select(Quarter))
+        if not q_result.scalars().first():
+            for name, order in [('1-chorak', 1), ('2-chorak', 2), ('3-chorak', 3), ('4-chorak', 4)]:
+                db.add(Quarter(name=name, order_num=order))
+
+        # Exam names
+        en_result = await db.execute(select(ExamName))
+        if not en_result.scalars().first():
+            for name in ['BSB-1', 'BSB-2', 'CHSB-1', 'CHSB-2', 'Loyiha ishi']:
+                db.add(ExamName(name=name))
+
+        # Exam types
+        et_result = await db.execute(select(ExamType))
+        if not et_result.scalars().first():
+            for name in ['Amaliy', 'Nazariy', 'Oraliq', 'Yakuniy']:
+                db.add(ExamType(name=name))
+
+        # Question types
+        qt_result = await db.execute(select(QuestionType))
+        if not qt_result.scalars().first():
+            for name in ["Test", "To'ldirish", "Qisqa javob", "Moslashtirish", "Masala", "Tahlil"]:
+                db.add(QuestionType(name=name))
+
+        # Staff titles
+        st_result = await db.execute(select(StaffTitle))
+        if not st_result.scalars().first():
+            for title in ["O'qituvchi", "Maktab direktori", "O'quv ishlari bo'yicha direktor o'rinbosari"]:
+                db.add(StaffTitle(title=title))
+
+        await db.commit()
+        print("Seed data OK — admin / admin123")
+
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    # Startup: Initialize database
     await init_db()
-    print("Database initialized")
+    await seed_defaults()
+    print("Database ready")
     yield
-    # Shutdown: cleanup if needed
     print("Application shutdown")
 
 # Create FastAPI application

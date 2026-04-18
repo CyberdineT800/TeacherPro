@@ -1,113 +1,119 @@
 {% extends "base.html" %}
 
-{% block title %}{{ _('view_results') }}{% endblock %}
+{% block title %}Natijalar{% endblock %}
 
 {% block content %}
-<div class="card">
-    <h2>{{ _('view_results') }}</h2>
+<div class="card" style="overflow-x:auto;">
 
-    <div class="exam-info-box">
-        {% set gender_map = {
-            0: _('all'),
-            1: _('male'),
-            2: _('female')
-        } %}
+  <h3 style="text-align:center; font-size:1em; font-weight:bold; margin-bottom:0.5rem; line-height:1.5;">
+    {{ exam_info.class_name }} sinfida {{ exam_info.subject_name }} fanidan o'tkazilgan
+    {{ exam_info.quarter_name }} №{{ exam.variant }} {{ exam_info.exam_name }} tahlili
+  </h3>
 
-        {% set group_map = {
-            0: _('all'),
-            1: '1-' ~ _('group'),
-            2: '2-' ~ _('group')
-        } %}
-
-        <h3>{{ exam_info.class_name }} - {{ exam_info.subject_name }} - {{ exam_info.quarter_name }}</h3>
-
-        <div style="display: flex; gap: 40px;">
-            <div class="col-left">
-                <p><strong>{{ _('class_leader') }}:</strong> {{ exam_info.leader_fullname }}</p>
-                <p><strong>{{ _('class_leader_phone') }}:</strong> {{ exam_info.leader_phone }}</p>
-                <p><strong>{{ _('gender') }}:</strong> {{ gender_map.get(exam_info.gender_filter, _('all')) }}</p>
-                <p><strong>{{ _('group') }}:</strong> {{ group_map.get(exam_info.group_filter, _('all')) }}</p>
-            </div>
-
-            <div class="col-right">
-                <p><strong>{{ _('exam_type') }}:</strong> {{ exam_info.exam_type_name }}</p>
-                <p><strong>{{ _('exam_name') }}:</strong> {{ exam_info.exam_name }}</p>
-                <p><strong>{{ _('variant') }}:</strong> {{ exam.variant }}</p>
-            </div>
-        </div>
+  <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:1rem; flex-wrap:wrap; gap:0.5rem; font-size:0.9em;">
+    <div>
+      <strong>Sinf rahbari:</strong> {{ exam_info.leader_fullname }}
+      {% if exam_info.leader_phone %}&nbsp;|&nbsp;<strong>Tel:</strong> {{ exam_info.leader_phone }}{% endif %}
+      &nbsp;|&nbsp;<strong>Jami max ball:</strong> {{ total_max_score | int }}
     </div>
-
-    <div class="results-summary">
-        <p><strong>{{ _('max_score') }}:</strong> {{ total_max_score }}</p>
+    <div>
+      <strong>O'qituvchi:</strong> {{ exam_info.teacher_name }}
     </div>
+  </div>
 
-    <div class="score-table">
-        <table>
-            <thead>
-                <tr>
-                    <th rowspan="2">#</th>
-                    <th rowspan="2">{{ _('student_name') }}</th>
-                    {% if exam.group_filter != 0 %}
-                    <th rowspan="2">{{ _('group') }}</th>
-                    {% endif %}
-                    {% if exam.is_project_exam %}
-                        <th colspan="1">{{ _('score') }}</th>
-                    {% elif exam.is_chsb_exam %}
-                        {% for question_type in question_types_summary %}
-                        <th colspan="1">{{ question_type.name }}</th>
-                        {% endfor %}
-                    {% else %}
-                        {% for question in questions %}
-                        <th colspan="1">{{ question.question_number }}</th>
-                        {% endfor %}
-                    {% endif %}
-                    <th rowspan="2">{{ _('total_score') }}</th>
-                    <th rowspan="2">{{ _('percentage') }}</th>
-                </tr>
-                <tr>
-                    {% if exam.is_project_exam %}
-                        <th style="font-size: 0.8em;">({{ _('max') }}: {{ total_max_score }})</th>
-                    {% elif exam.is_chsb_exam %}
-                        {% for question_type in question_types_summary %}
-                        <th style="font-size: 0.8em;">({{ _('max') }}: {{ question_type.total_max_score }})</th>
-                        {% endfor %}
-                    {% else %}
-                        {% for question in questions %}
-                        <th style="font-size: 0.8em;">({{ _('max') }}: {{ question.max_score }})</th>
-                        {% endfor %}
-                    {% endif %}
-                </tr>
-            </thead>
-            <tbody>
-                {% for result in results %}
-                <tr>
-                    <td>{{ loop.index }}</td>
-                    <td><strong>{{ result.student_name }}</strong></td>
-                    {% if exam.group_filter != 0 %}
-                    <td>{{ result.group_number }}</td>
-                    {% endif %}
-                    {% for score in result.question_scores %}
-                    <td>{{ "%.1f"|format(score) }}</td>
-                    {% endfor %}
-                    <td><strong>{{ "%.1f"|format(result.total_score) }}</strong></td>
-                    <td><strong>{{ result.percentage }}%</strong></td>
-                </tr>
-                {% endfor %}
-            </tbody>
-        </table>
-    </div>
+  <div style="overflow-x:auto;">
+    <table style="border-collapse:collapse; width:100%; font-size:0.85em; min-width:600px;">
+      <thead>
+        <tr style="background:#2e7d32; color:white; text-align:center;">
+          <th style="border:1px solid #1b5e20; padding:6px 8px; white-space:nowrap;">T/R</th>
+          <th style="border:1px solid #1b5e20; padding:6px 12px; white-space:nowrap; text-align:left;">O'quvchilar F.I.Sh</th>
+          <th style="border:1px solid #1b5e20; padding:6px 8px; white-space:nowrap;">Variant</th>
 
-    <div class="download-buttons">
-        <a href="{{ url_for('download_results', exam_id=exam.id, format='excel') }}" class="btn btn-success">{{
-            _('download_excel') }}</a>
-        <a href="{{ url_for('download_results', exam_id=exam.id, format='pdf') }}" class="btn btn-danger">{{
-            _('download_pdf') }}</a>
-        <a href="{{ url_for('download_results', exam_id=exam.id, format='word') }}" class="btn btn-primary">{{
-            _('download_word') }}</a>
-    </div>
+          {% if exam.is_project_exam %}
+            <th style="border:1px solid #1b5e20; padding:6px 8px;">
+              Ball<br>
+              <span style="font-size:0.8em; font-weight:normal;">
+                (max: {{ total_max_score | int }})
+              </span>
+            </th>
 
-    <div style="margin-top: 2rem; text-align: center;">
-        <p><strong>{{ _('teacher') }}:</strong> {{ exam_info.teacher_name }}</p>
-    </div>
+          {% elif exam.is_chsb_exam %}
+            {% for qt in question_types_summary %}
+            {% set spq = qt.score_per_question %}
+            <th style="border:1px solid #1b5e20; padding:6px 8px; text-align:center;">
+              {{ qt.name }}<br>
+              <span style="font-size:0.75em; font-weight:normal;">
+                ({{ spq | int if spq % 1 == 0 else spq | round(1) }}ball) {{ qt.count }}ta
+              </span><br>
+              <span style="font-size:0.75em; font-weight:normal;">max: {{ qt.total_max_score | int }}</span>
+            </th>
+            {% endfor %}
+
+          {% else %}
+            {% for question in questions %}
+            <th style="border:1px solid #1b5e20; padding:6px 8px; text-align:center;">
+              {{ question.question_number }}<br>
+              <span style="font-size:0.8em; font-weight:normal;">(max: {{ question.max_score | int }})</span>
+            </th>
+            {% endfor %}
+          {% endif %}
+
+          <th style="border:1px solid #1b5e20; padding:6px 8px; white-space:nowrap;">Jami</th>
+          <th style="border:1px solid #1b5e20; padding:6px 8px;">%</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% set ns = namespace(prev_group=none, row_num=0) %}
+        {% for result in results %}
+
+          {% if result.group_number != ns.prev_group %}
+          <tr>
+            <td colspan="50"
+                style="background:#e8f5e9; font-weight:bold; text-align:center;
+                       padding:5px 8px; border:1px solid #c8e6c9; color:#2e7d32; font-size:0.88em;">
+              {{ result.group_number }}-guruh
+            </td>
+          </tr>
+          {% set ns.prev_group = result.group_number %}
+          {% endif %}
+
+          {% set ns.row_num = ns.row_num + 1 %}
+          <tr style="{% if loop.index % 2 == 0 %}background:#f9fbe7;{% endif %}">
+            <td style="border:1px solid #ddd; padding:4px 6px; text-align:center; color:#555;">{{ ns.row_num }}</td>
+            <td style="border:1px solid #ddd; padding:4px 8px; white-space:nowrap;">{{ result.student_name }}</td>
+            <td style="border:1px solid #ddd; padding:4px 6px; text-align:center;">{{ exam.variant }}</td>
+
+            {% for score in result.question_scores %}
+            <td style="border:1px solid #ddd; padding:4px 8px; text-align:center;">
+              {{ score | int if score % 1 == 0 else "%.1f"|format(score) }}
+            </td>
+            {% endfor %}
+
+            <td style="border:1px solid #ddd; padding:4px 8px; text-align:center;
+                       font-weight:bold; background:#f1f8e9; color:#2e7d32;">
+              {{ result.total_score | int if result.total_score % 1 == 0 else "%.1f"|format(result.total_score) }}
+            </td>
+            <td style="border:1px solid #ddd; padding:4px 8px; text-align:center; background:#f1f8e9; color:#555;">
+              {{ result.percentage }}%
+            </td>
+          </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+
+  <div class="download-buttons" style="margin-top:1.5rem;">
+    <a href="{{ url_for('download_results', exam_id=exam.id, format='excel') }}" class="btn btn-success">
+      Excel yuklab olish
+    </a>
+    <a href="{{ url_for('download_results', exam_id=exam.id, format='pdf') }}" class="btn btn-danger">
+      PDF yuklab olish
+    </a>
+    <a href="{{ url_for('download_results', exam_id=exam.id, format='word') }}" class="btn btn-primary">
+      Word yuklab olish
+    </a>
+    <a href="{{ url_for('teacher_dashboard') }}" class="btn btn-secondary">Orqaga</a>
+  </div>
+
 </div>
 {% endblock %}

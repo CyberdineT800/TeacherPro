@@ -419,3 +419,4 @@ FodyWeavers.xsd
 __pycache__
 env/
 .env
+school_grading.db

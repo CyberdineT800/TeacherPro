@@ -153,7 +153,7 @@ class Exam(Base):
     id = Column(Integer, primary_key=True)
     class_id = Column(Integer, ForeignKey('classes.id'), nullable=False)
     subject_id = Column(Integer, ForeignKey('subjects.id'), nullable=False)
-    quarter_id = Column(Integer, ForeignKey('quarters.id'), nullable=False)
+    quarter_id = Column(Integer, ForeignKey('quarters.id'), nullable=True)
     exam_name_id = Column(Integer, ForeignKey('exam_names.id'), nullable=False)
     exam_type_id = Column(Integer, ForeignKey('exam_types.id'), nullable=False)
     teacher_id = Column(Integer, ForeignKey('employees.id'), nullable=False)
@@ -161,10 +161,13 @@ class Exam(Base):
 
     is_bsb_exam = Column(Boolean, default=False)
     is_chsb_exam = Column(Boolean, default=False)
-    is_project_exam = Column(Boolean, default=False)  
+    is_project_exam = Column(Boolean, default=False)
     chsb_config = Column(Text, nullable=True)
 
-    gender_filter = Column(Integer, nullable=True) 
+    period = Column(String(200), nullable=True)
+    difficulty = Column(String(50), nullable=True)
+
+    gender_filter = Column(Integer, nullable=True)
     group_filter = Column(Integer, nullable=True)
     variant = Column(Integer, default=1)
     

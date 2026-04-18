@@ -6,6 +6,7 @@ from sqlalchemy.orm import selectinload
 from sqlalchemy import select, delete
 from typing import Optional
 from io import BytesIO
+import json
 
 from models import (
     CHSBQuestionAssignment, get_db, Employee, School, SchoolClass, Student, Subject, Quarter, 
@@ -89,48 +90,55 @@ async def create_exam_page(
     request: Request,
     db: AsyncSession = Depends(get_db)
 ):
-    """Display create exam form"""
     teacher_id = request.session.get('user_id')
-    
+
     teacher_result = await db.execute(
         select(Employee)
         .options(selectinload(Employee.assigned_classes), selectinload(Employee.assigned_subjects))
         .where(Employee.id == teacher_id)
     )
     teacher = teacher_result.scalar_one_or_none()
-    
+
     classes = teacher.assigned_classes if teacher else []
     subjects = teacher.assigned_subjects if teacher else []
-    
+
     quarters_result = await db.execute(select(Quarter).order_by(Quarter.order_num))
     quarters = quarters_result.scalars().all()
-    
-    exam_names_result = await db.execute(select(ExamName))
-    exam_names = exam_names_result.scalars().all()
-    
-    exam_types_result = await db.execute(select(ExamType))
-    exam_types = exam_types_result.scalars().all()
-    
+
     question_types_result = await db.execute(select(QuestionType))
     question_types = question_types_result.scalars().all()
-    
-    default_chsb_exam_type_result = await db.execute(select(ExamType).where(ExamType.name == "Test"))
-    default_chsb_exam_type = default_chsb_exam_type_result.scalar_one_or_none()
-    
+
+    exam_types_result = await db.execute(select(ExamType))
+    exam_types = exam_types_result.scalars().all()
+
+    # Find default exam names for BSB and CHSB
+    bsb_name_result = await db.execute(
+        select(ExamName).where(ExamName.name.ilike('bsb%')).limit(1)
+    )
+    bsb_exam_name = bsb_name_result.scalar_one_or_none()
+
+    chsb_name_result = await db.execute(
+        select(ExamName).where(ExamName.name.ilike('chsb%')).limit(1)
+    )
+    chsb_exam_name = chsb_name_result.scalar_one_or_none()
+
+    default_exam_type_id = exam_types[0].id if exam_types else 1
+
     context = await get_template_context(request)
     context.update({
         'classes': classes,
         'subjects': subjects,
         'quarters': quarters,
-        'exam_names': exam_names,
-        'exam_types': exam_types,
         'question_types': question_types,
-        'default_chsb_exam_type_id': default_chsb_exam_type.id if default_chsb_exam_type else 1
+        'question_types_json': json.dumps([{'id': qt.id, 'name': qt.name} for qt in question_types]),
+        'bsb_exam_name_id': bsb_exam_name.id if bsb_exam_name else None,
+        'chsb_exam_name_id': chsb_exam_name.id if chsb_exam_name else None,
+        'default_exam_type_id': default_exam_type_id,
     })
-    
+
     if not classes or not subjects:
-        flash(request, 'Sizga sinf yoki fan biriktirilmagan. Administrator bilan bog\'laning.', 'warning')
-    
+        flash(request, "Sizga sinf yoki fan biriktirilmagan. Administrator bilan bog'laning.", 'warning')
+
     return templates.TemplateResponse('teacher/create_exam.html', context)
 
 @router.post("/create-exam")
@@ -138,34 +146,35 @@ async def create_exam(
     request: Request,
     class_id: int = Form(...),
     subject_id: int = Form(...),
-    quarter_id: int = Form(...),
     exam_name_id: int = Form(...),
     exam_type_id: int = Form(...),
-    num_questions: int = Form(...),
-    gender_filter: int = Form(...),
-    group_filter: int = Form(...),
-    variant: int = Form(1),  
+    quarter_id: Optional[int] = Form(None),
+    period: Optional[str] = Form(None),
+    difficulty: Optional[str] = Form(None),
+    gender_filter: int = Form(0),
+    group_filter: int = Form(0),
+    variant: int = Form(1),
+    num_q_rows: int = Form(0),
     db: AsyncSession = Depends(get_db)
 ):
-    """Create new exam"""
     teacher_id = request.session.get('user_id')
-    
+
     teacher_result = await db.execute(
         select(Employee)
         .options(selectinload(Employee.assigned_classes), selectinload(Employee.assigned_subjects))
         .where(Employee.id == teacher_id)
     )
     teacher = teacher_result.scalar_one_or_none()
-    
+
     if not teacher:
         flash(request, 'Foydalanuvchi topilmadi', 'danger')
         return RedirectResponse(url="/teacher/dashboard", status_code=303)
-    
+
     assigned_class_ids = [cls.id for cls in teacher.assigned_classes]
     if class_id not in assigned_class_ids:
         flash(request, 'Siz bu sinf uchun imtihon yarata olmaysiz', 'danger')
         return RedirectResponse(url="/teacher/create-exam", status_code=303)
-    
+
     assigned_subject_ids = [subj.id for subj in teacher.assigned_subjects]
     if subject_id not in assigned_subject_ids:
         flash(request, 'Siz bu fan uchun imtihon yarata olmaysiz', 'danger')
@@ -173,117 +182,69 @@ async def create_exam(
 
     exam_name_result = await db.execute(select(ExamName).where(ExamName.id == exam_name_id))
     exam_name = exam_name_result.scalar_one_or_none()
-    
+
     exam_name_lower = exam_name.name.lower() if exam_name else ""
     is_bsb_exam = "bsb" in exam_name_lower
     is_chsb_exam = "chsb" in exam_name_lower
     is_project_exam = "project" in exam_name_lower or "loyiha" in exam_name_lower
-    
-    if is_project_exam:
-        exam_type_result = await db.execute(select(ExamType).where(
-            (ExamType.name == "Practical") | 
-            (ExamType.name == "Amaliy") |
-            (ExamType.name.ilike("%practical%")) |
-            (ExamType.name.ilike("%amaliy%"))
-        ))
-        forced_exam_type = exam_type_result.scalar_one_or_none()
-        if forced_exam_type:
-            exam_type_id = forced_exam_type.id
-    
+
     exam = Exam(
         class_id=class_id,
         subject_id=subject_id,
         quarter_id=quarter_id,
+        period=period,
+        difficulty=difficulty,
         exam_name_id=exam_name_id,
         exam_type_id=exam_type_id,
         teacher_id=teacher_id,
         is_bsb_exam=is_bsb_exam,
         is_chsb_exam=is_chsb_exam,
         is_project_exam=is_project_exam,
-        gender_filter=gender_filter, 
+        gender_filter=gender_filter,
         group_filter=group_filter,
-        variant=variant 
+        variant=variant,
     )
     db.add(exam)
     await db.flush()
-    
+
     form_data = await request.form()
-    
-    if is_bsb_exam:
-        num_questions = 5
-        default_question_type_id = 1
-        
-        for i in range(1, num_questions + 1):
-            question = Question(
-                exam_id=exam.id,
-                question_number=i,
-                question_type_id=default_question_type_id,
-                max_score=5.0
-            )
-            db.add(question)
-    
-    elif is_chsb_exam:
-        num_questions = 10
-        
-        chsb_assignments = {}
-        for i in range(1, num_questions + 1):
-            question_type_id = form_data.get(f'chsb_question_type_{i}')
-            if question_type_id:
-                chsb_assignments[i] = int(question_type_id)
-                
-                assignment = CHSBQuestionAssignment(
-                    exam_id=exam.id,
-                    question_number=i,
-                    question_type_id=int(question_type_id),
-                    max_score=4.0  
-                )
-                db.add(assignment)
-        
-        import json
-        exam.chsb_config = json.dumps(chsb_assignments)
-        
-        for i in range(1, num_questions + 1):
-            question_type_id = chsb_assignments.get(i, 1)  
-            question = Question(
-                exam_id=exam.id,
-                question_number=i,
-                question_type_id=question_type_id,
-                max_score=4.0
-            )
-            db.add(question)
 
-    elif is_project_exam:
-        num_questions = 1
-        
-        for i in range(1, num_questions + 1):
-            question_type_id = form_data.get(f'question_type_{i}')
-            max_score = form_data.get(f'max_score_{i}')
-            
-            if question_type_id and max_score:
-                question = Question(
-                    exam_id=exam.id,
-                    question_number=i,
-                    question_type_id=int(question_type_id),
-                    max_score=float(max_score)
-                )
-                db.add(question)
+    # Build questions from distribution rows (works for BSB, CHSB, and custom exams)
+    question_number = 1
+    for i in range(1, num_q_rows + 1):
+        type_id_str = form_data.get(f'q_type_id_{i}')
+        count_str = form_data.get(f'q_count_{i}')
+        score_str = form_data.get(f'q_score_{i}')
+        if not (type_id_str and count_str and score_str):
+            continue
+        try:
+            type_id = int(type_id_str)
+            count = int(count_str)
+            score = float(score_str)
+        except (ValueError, TypeError):
+            continue
+        for _ in range(count):
+            db.add(Question(
+                exam_id=exam.id,
+                question_number=question_number,
+                question_type_id=type_id,
+                max_score=score,
+            ))
+            question_number += 1
 
-    else:
-        for i in range(1, num_questions + 1):
-            question_type_id = form_data.get(f'question_type_{i}')
-            max_score = form_data.get(f'max_score_{i}')
-            
-            if question_type_id and max_score:
-                question = Question(
-                    exam_id=exam.id,
-                    question_number=i,
-                    question_type_id=int(question_type_id),
-                    max_score=float(max_score)
-                )
-                db.add(question)
-    
+    # Fallback: if no distribution rows sent, use legacy defaults
+    if question_number == 1:
+        default_type_id = 1
+        if is_bsb_exam:
+            for i in range(1, 6):
+                db.add(Question(exam_id=exam.id, question_number=i,
+                                question_type_id=default_type_id, max_score=5.0))
+        elif is_chsb_exam:
+            for i in range(1, 11):
+                db.add(Question(exam_id=exam.id, question_number=i,
+                                question_type_id=default_type_id, max_score=4.0))
+
     await db.commit()
-    
     flash(request, 'Imtihon yaratildi', 'success')
     return RedirectResponse(url=f"/teacher/enter-scores/{exam.id}", status_code=303)
 
@@ -311,7 +272,7 @@ async def enter_scores_page(
     if exam.group_filter != 0:
         student_query = student_query.where(Student.group_number == exam.group_filter)
     
-    student_query = student_query.order_by(Student.last_name, Student.first_name)
+    student_query = student_query.order_by(Student.group_number, Student.last_name, Student.first_name)
     students_result = await db.execute(student_query)
     students = students_result.scalars().all()
 
@@ -321,21 +282,28 @@ async def enter_scores_page(
         .order_by(Question.question_number)
     )
     questions = questions_result.scalars().all()
-    
+
     class_result = await db.execute(select(SchoolClass).where(SchoolClass.id == exam.class_id))
     class_obj = class_result.scalar_one_or_none()
-    
+
     subject_result = await db.execute(select(Subject).where(Subject.id == exam.subject_id))
     subject = subject_result.scalar_one_or_none()
-    
-    quarter_result = await db.execute(select(Quarter).where(Quarter.id == exam.quarter_id))
-    quarter = quarter_result.scalar_one_or_none()
-    
+
+    quarter_result = await db.execute(select(Quarter).where(Quarter.id == exam.quarter_id)) if exam.quarter_id else (None, None)
+    if exam.quarter_id:
+        quarter_result = await db.execute(select(Quarter).where(Quarter.id == exam.quarter_id))
+        quarter = quarter_result.scalar_one_or_none()
+    else:
+        quarter = None
+
     exam_name_result = await db.execute(select(ExamName).where(ExamName.id == exam.exam_name_id))
     exam_name = exam_name_result.scalar_one_or_none()
-    
+
     exam_type_result = await db.execute(select(ExamType).where(ExamType.id == exam.exam_type_id))
     exam_type = exam_type_result.scalar_one_or_none()
+
+    period_label = exam.period or (quarter.name if quarter else '')
+    total_max_score = sum(q.max_score for q in questions)
 
     exam_info = {
         'class_name': class_obj.name if class_obj else '',
@@ -344,45 +312,33 @@ async def enter_scores_page(
         'group_filter': exam.group_filter,
         'gender_filter': exam.gender_filter,
         'subject_name': subject.name if subject else '',
-        'quarter_name': quarter.name if quarter else '',
+        'quarter_name': period_label,
         'exam_name': exam_name.name if exam_name else '',
-        'exam_type_name': exam_type.name if exam_type else ''
+        'exam_type_name': exam_type.name if exam_type else '',
+        'difficulty': exam.difficulty or '',
     }
-    
-    question_types_dict = {}
-    for question in questions:
-        qt_result = await db.execute(select(QuestionType).where(QuestionType.id == question.question_type_id))
-        qt = qt_result.scalar_one_or_none()
-        question_types_dict[question.id] = qt.name if qt else ''
-    
+
+    # CHSB only: grouped by question type with score_per_question
     question_types_summary = []
     if exam.is_chsb_exam:
-        chsb_assignments_result = await db.execute(
-            select(CHSBQuestionAssignment)
-            .where(CHSBQuestionAssignment.exam_id == exam_id)
-            .options(selectinload(CHSBQuestionAssignment.question_type)))
-        
-        chsb_assignments = chsb_assignments_result.scalars().all()
-        
-        type_groups = {}
-        for assignment in chsb_assignments:
-            type_id = assignment.question_type_id
-            if type_id not in type_groups:
-                type_groups[type_id] = {
-                    'type': assignment.question_type,
-                    'questions': [],
-                    'total_max_score': 0
-                }
-            type_groups[type_id]['questions'].append(assignment.question_number)
-            type_groups[type_id]['total_max_score'] += assignment.max_score
-        
-        for type_id, group in type_groups.items():
+        type_groups: dict = {}
+        for q in questions:
+            tid = q.question_type_id
+            if tid not in type_groups:
+                qt_result = await db.execute(select(QuestionType).where(QuestionType.id == tid))
+                qt = qt_result.scalar_one_or_none()
+                type_groups[tid] = {'name': qt.name if qt else '', 'questions': [], 'total_max_score': 0.0}
+            type_groups[tid]['questions'].append(q.question_number)
+            type_groups[tid]['total_max_score'] += q.max_score
+        for tid, group in type_groups.items():
+            count = len(group['questions'])
             question_types_summary.append({
-                'id': type_id,
-                'name': group['type'].name,
-                'count': len(group['questions']),
+                'id': tid,
+                'name': group['name'],
+                'count': count,
                 'question_numbers': sorted(group['questions']),
-                'total_max_score': group['total_max_score']
+                'total_max_score': group['total_max_score'],
+                'score_per_question': group['total_max_score'] / count if count else 0,
             })
 
     context = await get_template_context(request)
@@ -391,9 +347,9 @@ async def enter_scores_page(
         'exam_info': exam_info,
         'students': students,
         'questions': questions,
-        'question_types': question_types_dict,
-        'question_types_summary': question_types_summary, 
-        'group_filter': exam.group_filter
+        'question_types_summary': question_types_summary,
+        'total_max_score': total_max_score,
+        'group_filter': exam.group_filter,
     })
 
     return templates.TemplateResponse('teacher/enter_scores.html', context)
@@ -427,53 +383,41 @@ async def enter_scores(
     
     form_data = await request.form()
     
+    # CHSB: grouped by question type; BSB + others: per-question
+    questions_by_type: dict = {}
+    if exam.is_chsb_exam:
+        for q in questions:
+            tid = q.question_type_id
+            if tid not in questions_by_type:
+                questions_by_type[tid] = []
+            questions_by_type[tid].append(q)
+
     for student in students:
         if exam.is_chsb_exam:
-            chsb_assignments_result = await db.execute(
-                select(CHSBQuestionAssignment)
-                .where(CHSBQuestionAssignment.exam_id == exam_id)
-            )
-            chsb_assignments = chsb_assignments_result.scalars().all()
-            
-            assignments_by_type = {}
-            for assignment in chsb_assignments:
-                if assignment.question_type_id not in assignments_by_type:
-                    assignments_by_type[assignment.question_type_id] = []
-                assignments_by_type[assignment.question_type_id].append(assignment)
-            
-            for question_type_id, assignments in assignments_by_type.items():
+            for question_type_id, qs in questions_by_type.items():
                 score_key = f'chsb_score_{student.id}_{question_type_id}'
                 score_value = form_data.get(score_key)
-                
                 if score_value:
-                    total_score = float(score_value)
-                    num_questions = len(assignments)
-                    if num_questions > 0:
-                        score_per_question = total_score / num_questions
-                        
-                        for assignment in assignments:
-                            question = next((q for q in questions if q.question_number == assignment.question_number), None)
-                            if question:
-                                result = ExamResult(
-                                    exam_id=exam_id,
-                                    student_id=student.id,
-                                    question_id=question.id,
-                                    score=score_per_question
-                                )
-                                db.add(result)
+                    total = float(score_value)
+                    per_q = total / len(qs) if qs else 0
+                    for q in qs:
+                        db.add(ExamResult(
+                            exam_id=exam_id,
+                            student_id=student.id,
+                            question_id=q.id,
+                            score=per_q,
+                        ))
         else:
             for question in questions:
                 score_key = f'score_{student.id}_{question.id}'
                 score_value = form_data.get(score_key)
-                
                 if score_value:
-                    result = ExamResult(
+                    db.add(ExamResult(
                         exam_id=exam_id,
                         student_id=student.id,
                         question_id=question.id,
-                        score=float(score_value)
-                    )
-                    db.add(result)
+                        score=float(score_value),
+                    ))
     
     await db.commit()
     flash(request, 'Natijalar saqlandi', 'success')
@@ -502,35 +446,37 @@ async def view_results(
     if exam.group_filter != 0:
         student_query = student_query.where(Student.group_number == exam.group_filter)
     
-    student_query = student_query.order_by(Student.last_name, Student.first_name)
+    student_query = student_query.order_by(Student.group_number, Student.last_name, Student.first_name)
     students_result = await db.execute(student_query)
     students = students_result.scalars().all()
-    
+
     questions_result = await db.execute(
-        select(Question)
-        .where(Question.exam_id == exam_id)
-        .order_by(Question.question_number)
+        select(Question).where(Question.exam_id == exam_id).order_by(Question.question_number)
     )
     questions = questions_result.scalars().all()
-    
+
     class_result = await db.execute(select(SchoolClass).where(SchoolClass.id == exam.class_id))
     class_obj = class_result.scalar_one_or_none()
-    
+
     subject_result = await db.execute(select(Subject).where(Subject.id == exam.subject_id))
     subject = subject_result.scalar_one_or_none()
-    
-    quarter_result = await db.execute(select(Quarter).where(Quarter.id == exam.quarter_id))
-    quarter = quarter_result.scalar_one_or_none()
-    
+
+    if exam.quarter_id:
+        quarter_result = await db.execute(select(Quarter).where(Quarter.id == exam.quarter_id))
+        quarter = quarter_result.scalar_one_or_none()
+    else:
+        quarter = None
+
     exam_type_result = await db.execute(select(ExamType).where(ExamType.id == exam.exam_type_id))
     exam_type = exam_type_result.scalar_one_or_none()
 
     exam_name_result = await db.execute(select(ExamName).where(ExamName.id == exam.exam_name_id))
     exam_name = exam_name_result.scalar_one_or_none()
-    
+
     teacher_result = await db.execute(select(Employee).where(Employee.id == exam.teacher_id))
     teacher = teacher_result.scalar_one_or_none()
-    
+
+    period_label = exam.period or (quarter.name if quarter else '')
     exam_info = {
         'class_name': class_obj.name if class_obj else '',
         'leader_fullname': f"{class_obj.leader_first_name} {class_obj.leader_last_name}" if class_obj else '',
@@ -538,86 +484,74 @@ async def view_results(
         'group_filter': exam.group_filter,
         'gender_filter': exam.gender_filter,
         'subject_name': subject.name if subject else '',
-        'quarter_name': quarter.name if quarter else '',
+        'quarter_name': period_label,
         'exam_type_name': exam_type.name if exam_type else '',
         'exam_name': exam_name.name if exam_name else '',
-        'teacher_name': f"{teacher.first_name} {teacher.last_name}" if teacher else ''
+        'teacher_name': f"{teacher.last_name} {teacher.first_name}" if teacher else '',
+        'difficulty': exam.difficulty or '',
     }
-    
+
     total_max_score = sum(q.max_score for q in questions)
-    
+
+    # CHSB only: group by question type with score_per_question
     question_types_summary = []
     if exam.is_chsb_exam:
-        chsb_assignments_result = await db.execute(
-            select(CHSBQuestionAssignment)
-            .where(CHSBQuestionAssignment.exam_id == exam_id)
-            .options(selectinload(CHSBQuestionAssignment.question_type)))
-
-        chsb_assignments = chsb_assignments_result.scalars().all()
-        
-        type_groups = {}
-        for assignment in chsb_assignments:
-            type_id = assignment.question_type_id
-            if type_id not in type_groups:
-                type_groups[type_id] = {
-                    'type': assignment.question_type,
-                    'questions': [],
-                    'total_max_score': 0
-                }
-            type_groups[type_id]['questions'].append(assignment.question_number)
-            type_groups[type_id]['total_max_score'] += assignment.max_score
-        
-        for type_id, group in type_groups.items():
+        type_groups: dict = {}
+        for q in questions:
+            tid = q.question_type_id
+            if tid not in type_groups:
+                qt_res = await db.execute(select(QuestionType).where(QuestionType.id == tid))
+                qt = qt_res.scalar_one_or_none()
+                type_groups[tid] = {'name': qt.name if qt else '', 'questions': [], 'total_max_score': 0.0}
+            type_groups[tid]['questions'].append(q.question_number)
+            type_groups[tid]['total_max_score'] += q.max_score
+        for tid, group in type_groups.items():
+            count = len(group['questions'])
             question_types_summary.append({
-                'id': type_id,
-                'name': group['type'].name,
-                'count': len(group['questions']),
-                'question_numbers': group['questions'],
-                'total_max_score': group['total_max_score']
+                'id': tid,
+                'name': group['name'],
+                'count': count,
+                'question_numbers': sorted(group['questions']),
+                'total_max_score': group['total_max_score'],
+                'score_per_question': group['total_max_score'] / count if count else 0,
             })
-    
+
     results = []
     for student in students:
         student_results_query = await db.execute(
-            select(ExamResult)
-            .where(ExamResult.exam_id == exam_id, ExamResult.student_id == student.id)
+            select(ExamResult).where(ExamResult.exam_id == exam_id, ExamResult.student_id == student.id)
         )
         student_results = student_results_query.scalars().all()
-        
+
         if exam.is_chsb_exam:
             question_scores = []
-            total_score = 0
-            
+            total_score = 0.0
             for qtype_summary in question_types_summary:
-                type_score = 0
+                type_score = 0.0
                 for q_num in qtype_summary['question_numbers']:
                     question = next((q for q in questions if q.question_number == q_num), None)
                     if question:
                         result = next((r for r in student_results if r.question_id == question.id), None)
-                        score = result.score if result else 0
-                        type_score += score
+                        type_score += result.score if result else 0
                 question_scores.append(type_score)
                 total_score += type_score
         else:
             question_scores = []
-            total_score = 0
-            
+            total_score = 0.0
             for question in questions:
                 result = next((r for r in student_results if r.question_id == question.id), None)
-                score = result.score if result else 0
-                question_scores.append(score)
-                total_score += score
-        
+                question_scores.append(result.score if result else 0)
+                total_score += result.score if result else 0
+
         percentage = (total_score / total_max_score * 100) if total_max_score > 0 else 0
-        
         results.append({
-            'student_name': f"{student.first_name} {student.last_name}",
+            'student_name': f"{student.last_name} {student.first_name}",
             'group_number': student.group_number,
             'question_scores': question_scores,
             'total_score': total_score,
-            'percentage': round(percentage, 1)
+            'percentage': round(percentage, 1),
         })
-    
+
     context = await get_template_context(request)
     context.update({
         'exam': exam,
@@ -625,7 +559,7 @@ async def view_results(
         'questions': questions,
         'results': results,
         'total_max_score': total_max_score,
-        'question_types_summary': question_types_summary
+        'question_types_summary': question_types_summary,
     })
     return templates.TemplateResponse('teacher/view_results.html', context)
 
@@ -653,26 +587,29 @@ async def download_results(
     if exam.group_filter != 0:
         student_query = student_query.where(Student.group_number == exam.group_filter)
     
-    student_query = student_query.order_by(Student.last_name, Student.first_name)
+    student_query = student_query.order_by(Student.group_number, Student.last_name, Student.first_name)
     students_result = await db.execute(student_query)
     students = students_result.scalars().all()
-    
+
     questions_result = await db.execute(
         select(Question)
         .where(Question.exam_id == exam_id)
         .order_by(Question.question_number)
     )
     questions = questions_result.scalars().all()
-    
+
     class_result = await db.execute(select(SchoolClass).where(SchoolClass.id == exam.class_id))
     class_obj = class_result.scalar_one_or_none()
-    
+
     subject_result = await db.execute(select(Subject).where(Subject.id == exam.subject_id))
     subject = subject_result.scalar_one_or_none()
-    
-    quarter_result = await db.execute(select(Quarter).where(Quarter.id == exam.quarter_id))
-    quarter = quarter_result.scalar_one_or_none()
-    
+
+    if exam.quarter_id:
+        quarter_result = await db.execute(select(Quarter).where(Quarter.id == exam.quarter_id))
+        quarter = quarter_result.scalar_one_or_none()
+    else:
+        quarter = None
+
     exam_type_result = await db.execute(select(ExamType).where(ExamType.id == exam.exam_type_id))
     exam_type = exam_type_result.scalar_one_or_none()
 
@@ -687,8 +624,9 @@ async def download_results(
         school_result = await db.execute(select(School).where(School.id == class_obj.school_id))
         school = school_result.scalar_one_or_none()
     
-    header = f"{class_obj.name if class_obj else ''}-sinfida {subject.name if subject else ''} fanidan o'tkazilgan {quarter.name if quarter else ''}\n"
-    header += f" {exam_name.name if exam_name else ''} tahlili"
+    period_label = exam.period or (quarter.name if quarter else '')
+    header = f"{class_obj.name if class_obj else ''}-sinfida {subject.name if subject else ''} fanidan o'tkazilgan {period_label}\n"
+    header += f" №{exam.variant} {exam_name.name if exam_name else ''} tahlili"
     
     teacher_name = f"{teacher.first_name} {teacher.last_name}" if teacher else ''
     exam_date = exam.created_at.strftime('%d.%m.%Y') if exam.created_at else ''
@@ -706,34 +644,26 @@ async def download_results(
     
     question_types_summary = []
     if exam.is_chsb_exam:
-        chsb_assignments_result = await db.execute(
-            select(CHSBQuestionAssignment)
-            .where(CHSBQuestionAssignment.exam_id == exam_id)
-            .options(selectinload(CHSBQuestionAssignment.question_type)))
-        
-        chsb_assignments = chsb_assignments_result.scalars().all()
-        
-        type_groups = {}
-        for assignment in chsb_assignments:
-            type_id = assignment.question_type_id
-            if type_id not in type_groups:
-                type_groups[type_id] = {
-                    'type': assignment.question_type,
-                    'questions': [],
-                    'total_max_score': 0
-                }
-            type_groups[type_id]['questions'].append(assignment.question_number)
-            type_groups[type_id]['total_max_score'] += assignment.max_score
-        
-        for type_id, group in type_groups.items():
+        type_groups: dict = {}
+        for q in questions:
+            tid = q.question_type_id
+            if tid not in type_groups:
+                qt_res = await db.execute(select(QuestionType).where(QuestionType.id == tid))
+                qt = qt_res.scalar_one_or_none()
+                type_groups[tid] = {'name': qt.name if qt else '', 'questions': [], 'total_max_score': 0.0}
+            type_groups[tid]['questions'].append(q.question_number)
+            type_groups[tid]['total_max_score'] += q.max_score
+        for tid, group in type_groups.items():
+            count = len(group['questions'])
             question_types_summary.append({
-                'id': type_id,
-                'name': group['type'].name,
-                'count': len(group['questions']),
+                'id': tid,
+                'name': group['name'],
+                'count': count,
                 'question_numbers': sorted(group['questions']),
-                'total_max_score': group['total_max_score']
+                'total_max_score': group['total_max_score'],
+                'score_per_question': group['total_max_score'] / count if count else 0,
             })
-    
+
     students_data = []
     for group_num in sorted(students_by_group.keys()):
         for student in students_by_group[group_num]:
@@ -742,19 +672,18 @@ async def download_results(
                 .where(ExamResult.exam_id == exam_id, ExamResult.student_id == student.id)
             )
             student_results = student_results_query.scalars().all()
-            
+
             scores = []
-            total_score = 0
-            
+            total_score = 0.0
+
             if exam.is_chsb_exam:
                 for qtype_summary in question_types_summary:
-                    type_score = 0
+                    type_score = 0.0
                     for q_num in qtype_summary['question_numbers']:
                         question = next((q for q in questions if q.question_number == q_num), None)
                         if question:
                             result = next((r for r in student_results if r.question_id == question.id), None)
-                            score = result.score if result else 0
-                            type_score += score
+                            type_score += result.score if result else 0
                     scores.append(type_score)
                     total_score += type_score
             else:
@@ -793,7 +722,7 @@ async def download_results(
     }
     
     try:
-        quarter_name = quarter.name.replace(' ', '_') if quarter else 'chorak'
+        quarter_name = (exam.period or quarter.name if quarter else 'chorak').replace(' ', '_')
         class_name = class_obj.name.replace(' ', '_').replace('-', '') if class_obj else 'sinf'
         exam_name_str = exam_name.name.replace(' ', '_') if exam_name else 'imtihon'
         
