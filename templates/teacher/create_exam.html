@@ -580,10 +580,10 @@
 
           <div class="settings-group">
             <div class="settings-label">{{ _('group_filter') }}</div>
-            <div class="variant-btns">
-              <button type="button" class="vbtn active" data-g="0" onclick="selectGroup(0)">{{ _('all') }}</button>
-              <button type="button" class="vbtn" data-g="1" onclick="selectGroup(1)">1-guruh</button>
-              <button type="button" class="vbtn" data-g="2" onclick="selectGroup(2)">2-guruh</button>
+            <div class="diff-btns">
+              <button type="button" class="dbtn active" data-g="0" onclick="selectGroup(0)">{{ _('all') }}</button>
+              <button type="button" class="dbtn" data-g="1" onclick="selectGroup(1)">1-guruh</button>
+              <button type="button" class="dbtn" data-g="2" onclick="selectGroup(2)">2-guruh</button>
             </div>
           </div>
 
@@ -767,7 +767,7 @@ function updateVariantStyle(){
   const active=fmt==='chsb'?'vbtn active-chsb':'vbtn active';
   document.querySelectorAll('.vbtn').forEach(b=>{b.className=parseInt(b.dataset.v)===curVariant?active:'vbtn';});
 }
-function selectGroup(g){document.getElementById('h_group_filter').value=g;document.querySelectorAll('[data-g]').forEach(b=>{b.className=parseInt(b.dataset.g)===g?'vbtn active':'vbtn';});}
+function selectGroup(g){document.getElementById('h_group_filter').value=g;const active=fmt==='chsb'?'dbtn active-chsb':'dbtn active';document.querySelectorAll('[data-g]').forEach(b=>{b.className=parseInt(b.dataset.g)===g?active:'dbtn';});}
 function selectDiff(d){document.getElementById('h_difficulty').value=d;updateDiffStyle(d);}
 function updateDiffStyle(current){
   const cur=current||document.getElementById('h_difficulty').value;

@@ -381,6 +381,7 @@ MSBuild_Logs/
 # Local History for Visual Studio
 **/.localhistory/
 .claude/
+school_grading.db*
 
 # Visual Studio History (VSHistory) files
 .vshistory/
