@@ -98,14 +98,22 @@ jobs:
             "$VENV/bin/pip" install --quiet -r /tmp/req.txt
 
             echo "── Starting service ──"
+            sudo mkdir -p /run/teacherpro
             sudo systemctl start teacherpro
 
             echo "── Health check ──"
-            sleep 4
-            STATUS=$(curl -o /dev/null -s -w "%{http_code}" --unix-socket /run/teacherpro/teacherpro.sock http://localhost/health)
+            STATUS="000"
+            for i in 1 2 3 4 5 6 7 8 9 10; do
+              sleep 3
+              STATUS=$(curl -o /dev/null -s -w "%{http_code}" --unix-socket /run/teacherpro/teacherpro.sock http://localhost/health 2>/dev/null || echo "000")
+              echo "  attempt $i: HTTP $STATUS"
+              [ "$STATUS" = "200" ] && break
+            done
             if [ "$STATUS" != "200" ]; then
-              echo "Health check failed (HTTP $STATUS) — rolling back"
-              sudo systemctl stop teacherpro
+              echo "Health check failed (HTTP $STATUS) — dumping logs"
+              sudo journalctl -u teacherpro -n 50 --no-pager || true
+              echo "── Rolling back ──"
+              sudo systemctl stop teacherpro || true
               rm -rf "$CURRENT"
               if [ -d "$BACKUP" ]; then
                 mv "$BACKUP" "$CURRENT"
