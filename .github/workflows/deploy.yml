@@ -97,6 +97,13 @@ jobs:
             python3.11 -c "raw=open('$CURRENT/requirements.txt','rb').read(); enc='utf-16' if raw[:2] in (b'\xff\xfe',b'\xfe\xff') else ('utf-16-le' if len(raw)>1 and raw[1:2]==b'\x00' else 'utf-8-sig'); open('/tmp/req.txt','w',encoding='utf-8').write(raw.decode(enc).replace('\ufeff',''))"
             "$VENV/bin/pip" install --quiet -r /tmp/req.txt
 
+            echo "── Pre-flight import check ──"
+            cd "$CURRENT"
+            "$VENV/bin/python" -c "import main, models, utils, dependencies" || {
+              echo "Import check failed — aborting before service start"
+              exit 1
+            }
+
             echo "── Starting service ──"
             sudo mkdir -p /run/teacherpro
             sudo systemctl start teacherpro
@@ -111,7 +118,7 @@ jobs:
             done
             if [ "$STATUS" != "200" ]; then
               echo "Health check failed (HTTP $STATUS) — dumping logs"
-              sudo journalctl -u teacherpro -n 50 --no-pager || true
+              sudo journalctl -u teacherpro -n 100 --no-pager || true
               echo "── Rolling back ──"
               sudo systemctl stop teacherpro || true
               rm -rf "$CURRENT"
