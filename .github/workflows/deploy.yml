@@ -88,6 +88,8 @@ jobs:
 
             echo "── Ensuring data dir exists ──"
             mkdir -p "$DATA"
+            sudo chown -R www-data:www-data "$CURRENT"
+            sudo chown -R www-data:www-data "$DATA"
 
             echo "── Installing/updating Python deps ──"
             if [ ! -d "$VENV" ]; then
