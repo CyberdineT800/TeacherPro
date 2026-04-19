@@ -30,7 +30,8 @@ function changeLanguage(langCode) {
         currentBtn.innerHTML = '<span class="loading">⟳</span>';
         currentBtn.disabled = true;
     }
-    fetch('/set-language/' + langCode, {
+    const rootPath = window.ROOT_PATH || '';
+    fetch(rootPath + '/set-language/' + langCode, {
         method: 'POST',
         headers: {
             'Content-Type': 'application/json',
@@ -40,9 +41,9 @@ function changeLanguage(langCode) {
         .then(r => r.json())
         .then(data => {
             if (data.status === 'success') { window.location.reload(); }
-            else { window.location.href = '/set-language/' + langCode; }
+            else { window.location.href = rootPath + '/set-language/' + langCode; }
         })
-        .catch(() => { window.location.href = '/set-language/' + langCode; });
+        .catch(() => { window.location.href = rootPath + '/set-language/' + langCode; });
 }
 
 /* Language dropdown toggle + theme button init */
