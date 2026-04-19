@@ -636,8 +636,9 @@ async def download_results(
         school = school_result.scalar_one_or_none()
     
     period_label = exam.period or (quarter.name if quarter else '')
+    group_label = f" ({exam.group_filter}-guruh)" if exam.group_filter else ""
     header = f"{class_obj.name if class_obj else ''}-sinfida {subject.name if subject else ''} fanidan o'tkazilgan {period_label}\n"
-    header += f"N{exam.variant} {exam_name.name if exam_name else ''} tahlili"
+    header += f"N{exam.variant} {exam_name.name if exam_name else ''} tahlili{group_label}"
     
     teacher_name = f"{teacher.first_name} {teacher.last_name}" if teacher else ''
     exam_date = exam.exam_date or (exam.created_at.strftime('%d.%m.%Y') if exam.created_at else '')

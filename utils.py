@@ -102,17 +102,13 @@ async def process_student_excel(file: UploadFile):
                 if has_group and group_col in df.columns:
                     group_val = str(row[group_col]).strip()
                     try:
-                        if group_val.isdigit():
-                            group = int(group_val)
-                        else:
-                            group = 1
+                        group = int(group_val) if group_val.isdigit() else 1
                     except:
                         group = 1
+                    group = max(1, min(2, group))
                 else:
-                    group = 1 if idx < len(df) // 2 else 2
-                
-                group = max(1, min(2, group))
-                
+                    group = 1  # placeholder; reassigned below
+
                 students.append({
                     'first_name': first_name,
                     'last_name': last_name,
@@ -124,6 +120,12 @@ async def process_student_excel(file: UploadFile):
                 print(f"Qator {idx+1} ni qayta ishlashda xatolik: {e}")
                 continue
         
+        if not has_group:
+            total = len(students)
+            half = (total + 1) // 2  # group 1 gets the extra student if odd
+            for i, s in enumerate(students):
+                s['group_number'] = 1 if i < half else 2
+
         print(f"Excel fayldan {len(students)} ta o'quvchi yuklandi")
         return students
         

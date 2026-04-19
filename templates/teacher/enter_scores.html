@@ -111,6 +111,7 @@
   <h3 class="score-header">
     {{ exam_info.class_name }} {{ _('class') }} · {{ exam_info.subject_name }} ·
     {{ exam_info.quarter_name }} №{{ exam.variant }} · {{ exam_info.exam_name }}
+    {% if exam.group_filter %} · {{ exam.group_filter }}-{{ _('group') }}{% endif %}
   </h3>
 
   <form method="POST" id="scores_form">

@@ -362,7 +362,7 @@
   <input type="hidden" name="variant" id="h_variant" value="1">
   <input type="hidden" name="difficulty" id="h_difficulty" value="Aralash">
   <input type="hidden" name="gender_filter" value="0">
-  <input type="hidden" name="group_filter" value="0">
+  <input type="hidden" name="group_filter" id="h_group_filter" value="0">
   <input type="hidden" name="num_q_rows" id="h_num_q_rows" value="0">
 
   <div class="wiz-layout">
@@ -579,6 +579,15 @@
           </div>
 
           <div class="settings-group">
+            <div class="settings-label">{{ _('group_filter') }}</div>
+            <div class="variant-btns">
+              <button type="button" class="vbtn active" data-g="0" onclick="selectGroup(0)">{{ _('all') }}</button>
+              <button type="button" class="vbtn" data-g="1" onclick="selectGroup(1)">1-guruh</button>
+              <button type="button" class="vbtn" data-g="2" onclick="selectGroup(2)">2-guruh</button>
+            </div>
+          </div>
+
+          <div class="settings-group">
             <div class="settings-label" style="display:flex;justify-content:space-between;align-items:center">
               {{ _('question_dist') }}
               <span onclick="toggleDist()" id="dist_arrow" style="cursor:pointer;color:var(--text-dim)">▲</span>
@@ -758,6 +767,7 @@ function updateVariantStyle(){
   const active=fmt==='chsb'?'vbtn active-chsb':'vbtn active';
   document.querySelectorAll('.vbtn').forEach(b=>{b.className=parseInt(b.dataset.v)===curVariant?active:'vbtn';});
 }
+function selectGroup(g){document.getElementById('h_group_filter').value=g;document.querySelectorAll('[data-g]').forEach(b=>{b.className=parseInt(b.dataset.g)===g?'vbtn active':'vbtn';});}
 function selectDiff(d){document.getElementById('h_difficulty').value=d;updateDiffStyle(d);}
 function updateDiffStyle(current){
   const cur=current||document.getElementById('h_difficulty').value;
