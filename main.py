@@ -18,7 +18,7 @@ from dependencies import get_flashed_messages
 async def seed_defaults():
     async with AsyncSessionLocal() as db:
         # Admin user
-        result = await db.execute(select(Employee).where(Employee.username == 'admin'))
+        result = await db.execute(select(Employee).where(Employee.username == 'SysAdmin'))
         if not result.scalar_one_or_none():
             admin_user = Employee(
                 username='SysAdmin', first_name='Admin', last_name='User', is_admin=True
