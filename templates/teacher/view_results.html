@@ -73,7 +73,7 @@
               <span style="font-size:.72rem;font-weight:500;opacity:.8">
                 ({{ spq | int if spq % 1 == 0 else spq | round(1) }}{{ _('ball_label') }}) {{ qt.count }}{{ _('count_suffix') }}
               </span><br>
-              <span style="font-size:.72rem;font-weight:500;opacity:.7">max: {{ qt.total_max_score | int }}</span>
+              <span style="font-size:.72rem;font-weight:500;opacity:.7">max: {{ qt.total_max_score | round(2) | int if qt.total_max_score | round(2) % 1 == 0 else qt.total_max_score | round(1) }}</span>
             </th>
             {% endfor %}
           {% else %}

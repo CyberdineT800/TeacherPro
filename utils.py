@@ -1,3 +1,4 @@
+import os
 import openpyxl
 import pandas as pd
 from io import BytesIO
@@ -10,9 +11,28 @@ from docx.enum.text import WD_ALIGN_PARAGRAPH
 from reportlab.lib.pagesizes import letter, A4
 from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
 from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Paragraph, Spacer
+from reportlab.pdfbase import pdfmetrics
+from reportlab.pdfbase.ttfonts import TTFont
 from docx.oxml.ns import qn
 from docx.oxml import OxmlElement
 from fastapi import UploadFile
+
+# Register Arial for PDF if available (supports Unicode incl. № and Uzbek chars)
+_PDF_FONT = 'Helvetica'
+_PDF_FONT_BOLD = 'Helvetica-Bold'
+_arial_reg = r'C:\Windows\Fonts\arial.ttf'
+_arial_bold = r'C:\Windows\Fonts\arialbd.ttf'
+if os.path.exists(_arial_reg):
+    try:
+        pdfmetrics.registerFont(TTFont('Arial', _arial_reg))
+        _PDF_FONT = 'Arial'
+        if os.path.exists(_arial_bold):
+            pdfmetrics.registerFont(TTFont('Arial-Bold', _arial_bold))
+            _PDF_FONT_BOLD = 'Arial-Bold'
+        else:
+            _PDF_FONT_BOLD = 'Arial'
+    except Exception:
+        pass
 
 async def process_student_excel(file: UploadFile):
     """
@@ -139,7 +159,7 @@ async def generate_excel_report(exam_data):
         question_count = len(students[0]['scores']) if students else 0
     
     # Columns: T/R + F.I.Sh + [Variant] + Questions + Jami + %
-    base_cols = 3 if not (is_bsb or is_chsb or is_project) else 2
+    base_cols = 2 if is_project else 3
     total_cols = base_cols + question_count + 2
     last_col = openpyxl.utils.get_column_letter(total_cols)
     
@@ -171,15 +191,17 @@ async def generate_excel_report(exam_data):
     
     # Jadval sarlavhasi
     headers = ['T/R', "O'quvchilar F. I. Sh"]
-    
-    # Add Variant column for regular exams
-    if not (is_bsb or is_chsb or is_project):
+
+    # Add Variant column for all exam types except project
+    if not is_project:
         headers.append('Variant')
-    
+
     # Savol ustunlari
     if is_chsb:
         for qtype in exam_data.get('question_types_summary', []):
-            headers.append(qtype['name'])
+            spq = qtype.get('score_per_question', 0)
+            spq_str = str(int(spq)) if spq == int(spq) else str(round(spq, 1))
+            headers.append(f"{qtype['name']}\n({spq_str} ball) {qtype['count']}ta")
     elif is_project:
         headers.append('Ball')
     elif is_bsb:
@@ -205,7 +227,7 @@ async def generate_excel_report(exam_data):
             bottom=openpyxl.styles.Side(style='thin')
         )
     
-    ws.row_dimensions[current_row].height = 35
+    ws.row_dimensions[current_row].height = 55 if is_chsb else 35
     current_row += 1
     
     # Guruhlar bo'yicha o'quvchilarni tartiblash
@@ -259,8 +281,8 @@ async def generate_excel_report(exam_data):
             cell.alignment = openpyxl.styles.Alignment(horizontal='left', vertical='center', wrap_text=True)
             col_idx += 1
             
-            # Variant (faqat oddiy imtihonlar uchun)
-            if not (is_bsb or is_chsb or is_project):
+            # Variant (barcha turlar uchun, project dan tashqari)
+            if not is_project:
                 cell = ws.cell(row=current_row, column=col_idx)
                 cell.value = exam_data.get('variant', 1)
                 cell.font = openpyxl.styles.Font(bold=True)
@@ -321,12 +343,12 @@ async def generate_excel_report(exam_data):
     cell.fill = openpyxl.styles.PatternFill(start_color='FFD966', end_color='FFD966', fill_type='solid')
     col_idx += 1
     
-    # Variant (bo'sh, faqat oddiy imtihonlar uchun)
-    if not (is_bsb or is_chsb or is_project):
+    # Variant (bo'sh, project dan tashqari)
+    if not is_project:
         cell = ws.cell(row=current_row, column=col_idx)
         cell.value = ""
         col_idx += 1
-    
+
     # O'rtacha ballar
     for avg_score in score_totals:
         cell = ws.cell(row=current_row, column=col_idx)
@@ -396,21 +418,15 @@ async def generate_excel_report(exam_data):
     # F.I.Sh column - this should now work correctly
     ws.column_dimensions['B'].width = 30
     
-    # Variant column if exists
-    if not (is_bsb or is_chsb or is_project):
-        ws.column_dimensions['C'].width = 10
-    
-    # Question columns
-    start_col_idx = 3 if not (is_bsb or is_chsb or is_project) else 2
-    
+    # Variant column (all types except project)
+    if not is_project:
+        ws.column_dimensions['C'].width = 8
+
+    # Question columns start at D (col 4) for regular/BSB/ChSB, C (col 3) for project
+    q_start_col = 4 if not is_project else 3
     for i in range(question_count):
-        col_letter = openpyxl.utils.get_column_letter(start_col_idx + i + (1 if not (is_bsb or is_chsb or is_project) else 0))
-        if is_chsb:
-            ws.column_dimensions[col_letter].width = 12
-        elif is_project:
-            ws.column_dimensions[col_letter].width = 12
-        else:
-            ws.column_dimensions[col_letter].width = 10
+        col_letter = openpyxl.utils.get_column_letter(q_start_col + i)
+        ws.column_dimensions[col_letter].width = 18 if is_chsb else 8
     
     # Jami and % columns
     jami_col = openpyxl.utils.get_column_letter(total_cols - 1)
@@ -484,36 +500,35 @@ async def generate_pdf_report(exam_data):
         alignment=TA_CENTER,
         spaceAfter=20,
         fontSize=12,
-        fontName='Helvetica-Bold'
+        fontName=_PDF_FONT_BOLD
     )
-    
+
     is_bsb = exam_data.get('is_bsb_exam', False)
     is_chsb = exam_data.get('is_chsb_exam', False)
     is_project = exam_data.get('is_project_exam', False)
     show_groups = exam_data.get('show_groups', True)
-    
+
     # Sarlavha
     header_lines = exam_data['header'].split('\n')
     for line in header_lines:
-        title = Paragraph(line, title_style)
+        title = Paragraph(line.strip(), title_style)
         elements.append(title)
-    
-    # Sana qo'shish (chapda)
+
+    # Sana
     if 'date' in exam_data and exam_data['date']:
         date_style = ParagraphStyle(
             'DateStyle',
             parent=styles['Normal'],
-            alignment=0,  # Left alignment
+            alignment=0,
             spaceAfter=15,
             fontSize=11,
-            fontName='Helvetica-Bold'
+            fontName=_PDF_FONT_BOLD
         )
         date_text = Paragraph(f"Sana: {exam_data['date']}", date_style)
         elements.append(date_text)
-    
+
     elements.append(Spacer(1, 0.2*inch))
-    
-    # Jadval yaratish
+
     students = exam_data['students']
     if students:
         if is_project:
@@ -524,16 +539,18 @@ async def generate_pdf_report(exam_data):
             question_count = len(exam_data.get('question_types_summary', []))
         else:
             question_count = len(students[0]['scores'])
-        
+
         # Sarlavha qatori
         headers = ['T/R', "O'quvchilar F. I. Sh"]
-        
-        if not (is_bsb or is_chsb or is_project):
+
+        if not is_project:
             headers.append('Variant')
-        
+
         if is_chsb:
             for qtype in exam_data.get('question_types_summary', []):
-                headers.append(qtype['name'])
+                spq = qtype.get('score_per_question', 0)
+                spq_str = str(int(spq)) if spq == int(spq) else str(round(spq, 1))
+                headers.append(f"{qtype['name']}\n({spq_str} ball) {qtype['count']}ta")
         elif is_project:
             headers.append('Ball')
         elif is_bsb:
@@ -542,12 +559,11 @@ async def generate_pdf_report(exam_data):
         else:
             for i in range(1, question_count + 1):
                 headers.append(str(i))
-        
+
         headers.extend(['Jami', '%'])
-        
+
         data = [headers]
-        
-        # Guruhlar bo'yicha
+
         students_by_group = {}
         if show_groups:
             for student in students:
@@ -557,96 +573,78 @@ async def generate_pdf_report(exam_data):
                 students_by_group[group].append(student)
         else:
             students_by_group[0] = students
-        
+
         student_number = 1
-        
-        # Track totals
         score_totals = [0.0] * question_count
         jami_total = 0.0
         percentage_total = 0.0
         total_students = len(students)
-        
+
         for group_num in sorted(students_by_group.keys()):
-            # Guruh sarlavhasi
             if show_groups:
                 group_row = [f"{group_num}-guruh"] + [''] * (len(headers) - 1)
                 data.append(group_row)
-            
-            # Guruh o'quvchilari
+
             for student in students_by_group[group_num]:
-                row = [
-                    str(student_number),
-                    f"{student['Familiya']} {student['Ism']}"
-                ]
-                
-                if not (is_bsb or is_chsb or is_project):
+                row = [str(student_number), f"{student['Familiya']} {student['Ism']}"]
+                if not is_project:
                     row.append(str(exam_data.get('variant', 1)))
-                
                 for idx, score in enumerate(student['scores']):
                     row.append(str(round(score, 1)))
                     score_totals[idx] += score
-                
                 row.append(str(round(student['Jami ball'], 1)))
                 row.append(student['Foiz'])
-                
                 jami_total += student['Jami ball']
-                percentage_value = float(student['Foiz'].rstrip('%'))
-                percentage_total += percentage_value
-                
+                percentage_total += float(student['Foiz'].rstrip('%'))
                 data.append(row)
                 student_number += 1
-        
-        # O'rtacha qatori
+
         avg_row = ['', "O'rtacha"]
-        
-        if not (is_bsb or is_chsb or is_project):
+        if not is_project:
             avg_row.append('')
-        
         for avg_score in score_totals:
             avg_row.append(str(round(avg_score / total_students, 2)) if total_students > 0 else '0')
-        
         avg_row.append(str(round(jami_total / total_students, 2)) if total_students > 0 else '0')
         avg_percentage = round(percentage_total / total_students, 1) if total_students > 0 else 0
         avg_row.append(f"{avg_percentage}%")
-        
         data.append(avg_row)
-        
-        # Jadval yaratish
-        col_widths = [0.4*inch, 2.5*inch]
-        
-        if not (is_bsb or is_chsb or is_project):
-            col_widths.append(0.5*inch)
-        
+
+        # Column widths
+        col_widths = [0.35*inch, 2.2*inch]
+        if not is_project:
+            col_widths.append(0.45*inch)  # Variant
         for _ in range(question_count):
-            if is_chsb:
-                col_widths.append(0.6*inch)
-            else:
-                col_widths.append(0.4*inch)
-        
-        col_widths.extend([0.6*inch, 0.6*inch])
-        
+            col_widths.append(0.75*inch if is_chsb else 0.38*inch)
+        col_widths.extend([0.55*inch, 0.55*inch])
+
+        # Fit within A4 page width (usable ~7.3 inch with margins)
+        page_w = 7.3 * inch
+        total_w = sum(col_widths)
+        if total_w > page_w:
+            scale = page_w / total_w
+            col_widths = [w * scale for w in col_widths]
+
         table = Table(data, colWidths=col_widths, repeatRows=1)
-        
-        # Jadval stili
+
         table_style = [
             ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#D9D9D9')),
             ('TEXTCOLOR', (0, 0), (-1, 0), colors.black),
             ('ALIGN', (0, 0), (-1, 0), 'CENTER'),
-            ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
-            ('FONTSIZE', (0, 0), (-1, 0), 9),
-            ('BOTTOMPADDING', (0, 0), (-1, 0), 8),
-            ('TOPPADDING', (0, 0), (-1, 0), 8),
+            ('FONTNAME', (0, 0), (-1, 0), _PDF_FONT_BOLD),
+            ('FONTSIZE', (0, 0), (-1, 0), 8),
+            ('BOTTOMPADDING', (0, 0), (-1, 0), 6),
+            ('TOPPADDING', (0, 0), (-1, 0), 6),
+            ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
             ('ALIGN', (0, 1), (0, -1), 'CENTER'),
             ('ALIGN', (2, 1), (-1, -1), 'CENTER'),
-            ('FONTNAME', (0, 1), (-1, -1), 'Helvetica-Bold'),
+            ('FONTNAME', (0, 1), (-1, -1), _PDF_FONT),
             ('FONTSIZE', (0, 1), (-1, -1), 8),
             ('GRID', (0, 0), (-1, -1), 0.5, colors.black),
             ('LINEBELOW', (0, 0), (-1, 0), 1, colors.black),
             ('BACKGROUND', (0, -1), (-1, -1), colors.HexColor('#FFD966')),
             ('LINEABOVE', (0, -1), (-1, -1), 1.5, colors.black),
         ]
-        
-        # Guruh qatorlari uchun stil
+
         if show_groups:
             row_idx = 1
             for group_num in sorted(students_by_group.keys()):
@@ -654,15 +652,14 @@ async def generate_pdf_report(exam_data):
                 table_style.append(('BACKGROUND', (0, row_idx), (-1, row_idx), colors.HexColor('#E7E6E6')))
                 table_style.append(('ALIGN', (0, row_idx), (-1, row_idx), 'LEFT'))
                 row_idx += len(students_by_group[group_num]) + 1
-        
+
         table.setStyle(TableStyle(table_style))
         elements.append(table)
         elements.append(Spacer(1, 0.3*inch))
-    
-    # Footer
-    footer_style = ParagraphStyle('Footer', parent=styles['Normal'], fontSize=10, fontName='Helvetica-Bold')
-    elements.append(Paragraph(f"<b>Fan o'qituvchisi:</b> {exam_data['teacher']}", footer_style))
-    
+
+    footer_style = ParagraphStyle('Footer', parent=styles['Normal'], fontSize=10, fontName=_PDF_FONT_BOLD)
+    elements.append(Paragraph(f"Fan o'qituvchisi: {exam_data['teacher']}", footer_style))
+
     doc.build(elements)
     output.seek(0)
     return output
@@ -697,18 +694,37 @@ async def generate_word_report(exam_data):
     # Sarlavha
     header_lines = exam_data['header'].split('\n')
     for line in header_lines:
-        para = doc.add_paragraph(line)
+        para = doc.add_paragraph(line.strip())
         para.alignment = WD_ALIGN_PARAGRAPH.CENTER
-        para.runs[0].font.size = Pt(12)
-        para.runs[0].font.bold = True
-    
-    # Sana qo'shish (chapda)
+        if para.runs:
+            para.runs[0].font.size = Pt(12)
+            para.runs[0].font.bold = True
+            para.runs[0].font.name = 'Times New Roman'
+
+    # Sana
     if 'date' in exam_data and exam_data['date']:
         date_para = doc.add_paragraph(f"Sana: {exam_data['date']}")
         date_para.alignment = WD_ALIGN_PARAGRAPH.LEFT
-        date_para.runs[0].font.size = Pt(11)
-        date_para.runs[0].font.bold = True
+        if date_para.runs:
+            date_para.runs[0].font.size = Pt(11)
+            date_para.runs[0].font.bold = True
+            date_para.runs[0].font.name = 'Times New Roman'
         doc.add_paragraph()
+
+    def _word_cell(cell, text_val, bold=True, align=WD_ALIGN_PARAGRAPH.CENTER, fill=None):
+        """Helper: set cell text, formatting, optional background fill."""
+        cell.text = text_val
+        para = cell.paragraphs[0]
+        para.alignment = align
+        if para.runs:
+            run = para.runs[0]
+            run.font.bold = bold
+            run.font.name = 'Times New Roman'
+            run.font.size = Pt(9)
+        if fill:
+            shd = OxmlElement('w:shd')
+            shd.set(qn('w:fill'), fill)
+            cell._element.get_or_add_tcPr().append(shd)
 
     # Jadval yaratish
     students = exam_data['students']
@@ -721,23 +737,22 @@ async def generate_word_report(exam_data):
             question_count = len(exam_data.get('question_types_summary', []))
         else:
             question_count = len(students[0]['scores'])
-        
-        # Ustunlar soni
-        base_cols = 3 if not (is_bsb or is_chsb or is_project) else 2
+
+        base_cols = 2 if is_project else 3
         col_count = base_cols + question_count + 2
-        
+
         table = doc.add_table(rows=1, cols=col_count)
         table.style = 'Table Grid'
-        
+
         # Sarlavha qatori
         headers = ['T/R', "O'quvchilar F. I. Sh"]
-        
-        if not (is_bsb or is_chsb or is_project):
+        if not is_project:
             headers.append('Variant')
-        
         if is_chsb:
             for qtype in exam_data.get('question_types_summary', []):
-                headers.append(qtype['name'])
+                spq = qtype.get('score_per_question', 0)
+                spq_str = str(int(spq)) if spq == int(spq) else str(round(spq, 1))
+                headers.append(f"{qtype['name']}\n({spq_str} ball) {qtype['count']}ta")
         elif is_project:
             headers.append('Ball')
         elif is_bsb:
@@ -746,18 +761,12 @@ async def generate_word_report(exam_data):
         else:
             for i in range(1, question_count + 1):
                 headers.append(str(i))
-        
         headers.extend(['Jami', '%'])
-        
+
         hdr_cells = table.rows[0].cells
         for idx, header in enumerate(headers):
-            hdr_cells[idx].text = header
-            hdr_cells[idx].paragraphs[0].runs[0].font.bold = True
-            hdr_cells[idx].paragraphs[0].alignment = WD_ALIGN_PARAGRAPH.CENTER
-            shading_elm = OxmlElement('w:shd')
-            shading_elm.set(qn('w:fill'), 'D9D9D9')
-            hdr_cells[idx]._element.get_or_add_tcPr().append(shading_elm)
-        
+            _word_cell(hdr_cells[idx], header, bold=True, align=WD_ALIGN_PARAGRAPH.CENTER, fill='D9D9D9')
+
         # Guruhlar bo'yicha
         students_by_group = {}
         if show_groups:
@@ -768,143 +777,65 @@ async def generate_word_report(exam_data):
                 students_by_group[group].append(student)
         else:
             students_by_group[0] = students
-        
+
         student_number = 1
-        
-        # Track totals
         score_totals = [0.0] * question_count
         jami_total = 0.0
         percentage_total = 0.0
         total_students = len(students)
-        
+
         for group_num in sorted(students_by_group.keys()):
-            # Guruh sarlavhasi
             if show_groups:
-                row = table.add_row()
-                row.cells[0].merge(row.cells[-1])
-                row.cells[0].text = f"{group_num}-guruh"
-                row.cells[0].paragraphs[0].runs[0].font.bold = True
-                shading_elm = OxmlElement('w:shd')
-                shading_elm.set(qn('w:fill'), 'E7E6E6')
-                row.cells[0]._element.get_or_add_tcPr().append(shading_elm)
-            
-            # Guruh o'quvchilari
+                grow = table.add_row()
+                grow.cells[0].merge(grow.cells[-1])
+                _word_cell(grow.cells[0], f"{group_num}-guruh", bold=True,
+                           align=WD_ALIGN_PARAGRAPH.LEFT, fill='E7E6E6')
+
             for student in students_by_group[group_num]:
                 row = table.add_row().cells
-                
                 col_idx = 0
-                
-                # T/R
-                row[col_idx].text = str(student_number)
-                row[col_idx].paragraphs[0].runs[0].font.bold = True
-                row[col_idx].paragraphs[0].alignment = WD_ALIGN_PARAGRAPH.CENTER
-                col_idx += 1
-                
-                # F.I.Sh
-                row[col_idx].text = f"{student['Familiya']} {student['Ism']}"
-                row[col_idx].paragraphs[0].alignment = WD_ALIGN_PARAGRAPH.LEFT
-                col_idx += 1
-                
-                # Variant
-                if not (is_bsb or is_chsb or is_project):
-                    row[col_idx].text = str(exam_data.get('variant', 1))
-                    row[col_idx].paragraphs[0].runs[0].font.bold = True
-                    row[col_idx].paragraphs[0].alignment = WD_ALIGN_PARAGRAPH.CENTER
-                    col_idx += 1
-                
-                # Savol ballari
+                _word_cell(row[col_idx], str(student_number)); col_idx += 1
+                _word_cell(row[col_idx], f"{student['Familiya']} {student['Ism']}",
+                           align=WD_ALIGN_PARAGRAPH.LEFT); col_idx += 1
+                if not is_project:
+                    _word_cell(row[col_idx], str(exam_data.get('variant', 1))); col_idx += 1
                 for idx, score in enumerate(student['scores']):
-                    row[col_idx].text = str(round(score, 1))
-                    row[col_idx].paragraphs[0].runs[0].font.bold = True
-                    row[col_idx].paragraphs[0].alignment = WD_ALIGN_PARAGRAPH.CENTER
+                    _word_cell(row[col_idx], str(round(score, 1)))
                     score_totals[idx] += score
                     col_idx += 1
-                
-                # Jami ball
-                row[col_idx].text = str(round(student['Jami ball'], 1))
-                row[col_idx].paragraphs[0].runs[0].font.bold = True
-                row[col_idx].paragraphs[0].alignment = WD_ALIGN_PARAGRAPH.CENTER
+                _word_cell(row[col_idx], str(round(student['Jami ball'], 1)))
                 jami_total += student['Jami ball']
                 col_idx += 1
-                
-                # Foiz
-                row[col_idx].text = student['Foiz']
-                row[col_idx].paragraphs[0].runs[0].font.bold = True
-                row[col_idx].paragraphs[0].alignment = WD_ALIGN_PARAGRAPH.CENTER
-                percentage_value = float(student['Foiz'].rstrip('%'))
-                percentage_total += percentage_value
-                
+                _word_cell(row[col_idx], student['Foiz'])
+                percentage_total += float(student['Foiz'].rstrip('%'))
                 student_number += 1
-        
+
         # O'rtacha qatori
         row = table.add_row().cells
         col_idx = 0
-        
-        # T/R (bo'sh)
-        row[col_idx].text = ""
-        col_idx += 1
-        
-        # F.I.Sh -> "O'rtacha"
-        row[col_idx].text = "O'rtacha"
-        row[col_idx].paragraphs[0].runs[0].font.bold = True
-        row[col_idx].paragraphs[0].alignment = WD_ALIGN_PARAGRAPH.LEFT
-        shading_elm = OxmlElement('w:shd')
-        shading_elm.set(qn('w:fill'), 'FFD966')
-        row[col_idx]._element.get_or_add_tcPr().append(shading_elm)
-        col_idx += 1
-        
-        # Variant (bo'sh)
-        if not (is_bsb or is_chsb or is_project):
-            row[col_idx].text = ""
-            shading_elm = OxmlElement('w:shd')
-            shading_elm.set(qn('w:fill'), 'FFD966')
-            row[col_idx]._element.get_or_add_tcPr().append(shading_elm)
-            col_idx += 1
-        
-        # O'rtacha ballar
+        _word_cell(row[col_idx], '', fill='FFD966'); col_idx += 1
+        _word_cell(row[col_idx], "O'rtacha", align=WD_ALIGN_PARAGRAPH.LEFT, fill='FFD966'); col_idx += 1
+        if not is_project:
+            _word_cell(row[col_idx], '', fill='FFD966'); col_idx += 1
         for avg_score in score_totals:
-            row[col_idx].text = str(round(avg_score / total_students, 2)) if total_students > 0 else '0'
-            row[col_idx].paragraphs[0].runs[0].font.bold = True
-            row[col_idx].paragraphs[0].alignment = WD_ALIGN_PARAGRAPH.CENTER
-            shading_elm = OxmlElement('w:shd')
-            shading_elm.set(qn('w:fill'), 'FFD966')
-            row[col_idx]._element.get_or_add_tcPr().append(shading_elm)
-            col_idx += 1
-        
-        # O'rtacha jami
-        row[col_idx].text = str(round(jami_total / total_students, 2)) if total_students > 0 else '0'
-        row[col_idx].paragraphs[0].runs[0].font.bold = True
-        row[col_idx].paragraphs[0].alignment = WD_ALIGN_PARAGRAPH.CENTER
-        shading_elm = OxmlElement('w:shd')
-        shading_elm.set(qn('w:fill'), 'FFD966')
-        row[col_idx]._element.get_or_add_tcPr().append(shading_elm)
-        col_idx += 1
-        
-        # O'rtacha foiz
-        avg_percentage = round(percentage_total / total_students, 1) if total_students > 0 else 0
-        row[col_idx].text = f"{avg_percentage}%"
-        row[col_idx].paragraphs[0].runs[0].font.bold = True
-        row[col_idx].paragraphs[0].alignment = WD_ALIGN_PARAGRAPH.CENTER
-        shading_elm = OxmlElement('w:shd')
-        shading_elm.set(qn('w:fill'), 'FFD966')
-        row[col_idx]._element.get_or_add_tcPr().append(shading_elm)
-        
+            val = str(round(avg_score / total_students, 2)) if total_students > 0 else '0'
+            _word_cell(row[col_idx], val, fill='FFD966'); col_idx += 1
+        _word_cell(row[col_idx],
+                   str(round(jami_total / total_students, 2)) if total_students > 0 else '0',
+                   fill='FFD966'); col_idx += 1
+        avg_pct = round(percentage_total / total_students, 1) if total_students > 0 else 0
+        _word_cell(row[col_idx], f"{avg_pct}%", fill='FFD966')
+
         # Ustun kengliklarini sozlash
-        table.columns[0].width = Inches(0.4)
-        table.columns[1].width = Inches(2.5)
-        
-        start_idx = 3 if not (is_bsb or is_chsb or is_project) else 2
-        if not (is_bsb or is_chsb or is_project):
-            table.columns[2].width = Inches(0.5)
-        
+        table.columns[0].width = Inches(0.35)
+        table.columns[1].width = Inches(2.2)
+        if not is_project:
+            table.columns[2].width = Inches(0.45)
+        q_start = 3 if not is_project else 2
         for i in range(question_count):
-            if is_chsb:
-                table.columns[start_idx + i].width = Inches(0.6)
-            else:
-                table.columns[start_idx + i].width = Inches(0.4)
-        
-        table.columns[col_count - 2].width = Inches(0.6)
-        table.columns[col_count - 1].width = Inches(0.6)
+            table.columns[q_start + i].width = Inches(0.75 if is_chsb else 0.38)
+        table.columns[col_count - 2].width = Inches(0.55)
+        table.columns[col_count - 1].width = Inches(0.55)
 
     doc.add_paragraph()
     doc.add_paragraph()
@@ -920,8 +851,10 @@ async def generate_word_report(exam_data):
         para = doc.add_paragraph()
         run1 = para.add_run(label)
         run1.font.bold = True
+        run1.font.name = 'Times New Roman'
         run2 = para.add_run(f" {value}")
         run2.font.bold = True
+        run2.font.name = 'Times New Roman'
 
     doc.save(output)
     output.seek(0)

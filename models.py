@@ -1,6 +1,6 @@
 from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession, async_sessionmaker
 from sqlalchemy.orm import DeclarativeBase, relationship
-from sqlalchemy import Column, Integer, String, Text, Boolean, Float, DateTime, ForeignKey
+from sqlalchemy import Column, Integer, String, Text, Boolean, Float, DateTime, ForeignKey, text
 from werkzeug.security import generate_password_hash, check_password_hash
 from datetime import datetime
 import os
@@ -35,6 +35,11 @@ async def get_db():
 async def init_db():
     async with engine.begin() as conn:
         await conn.run_sync(Base.metadata.create_all)
+        # Safe migration: add new columns if they don't exist yet
+        try:
+            await conn.execute(text("ALTER TABLE exams ADD COLUMN exam_date VARCHAR(20) DEFAULT NULL"))
+        except Exception:
+            pass  # Column already exists
 
 class School(Base):
     __tablename__ = 'schools'
@@ -166,6 +171,7 @@ class Exam(Base):
 
     period = Column(String(200), nullable=True)
     difficulty = Column(String(50), nullable=True)
+    exam_date = Column(String(20), nullable=True)
 
     gender_filter = Column(Integer, nullable=True)
     group_filter = Column(Integer, nullable=True)

@@ -332,13 +332,14 @@ async def enter_scores_page(
             type_groups[tid]['total_max_score'] += q.max_score
         for tid, group in type_groups.items():
             count = len(group['questions'])
+            tms = round(group['total_max_score'], 4)
             question_types_summary.append({
                 'id': tid,
                 'name': group['name'],
                 'count': count,
                 'question_numbers': sorted(group['questions']),
-                'total_max_score': group['total_max_score'],
-                'score_per_question': group['total_max_score'] / count if count else 0,
+                'total_max_score': tms,
+                'score_per_question': round(tms / count, 4) if count else 0,
             })
 
     context = await get_template_context(request)
@@ -380,8 +381,18 @@ async def enter_scores(
     questions = questions_result.scalars().all()
     
     await db.execute(delete(ExamResult).where(ExamResult.exam_id == exam_id))
-    
+
     form_data = await request.form()
+
+    # Save the selected date onto the exam record
+    exam_date_val = form_data.get('exam_date', '').strip()
+    if exam_date_val:
+        # Convert from HTML date format YYYY-MM-DD to DD.MM.YYYY
+        try:
+            from datetime import datetime as _dt
+            exam.exam_date = _dt.strptime(exam_date_val, '%Y-%m-%d').strftime('%d.%m.%Y')
+        except ValueError:
+            exam.exam_date = exam_date_val
     
     # CHSB: grouped by question type; BSB + others: per-question
     questions_by_type: dict = {}
@@ -626,10 +637,10 @@ async def download_results(
     
     period_label = exam.period or (quarter.name if quarter else '')
     header = f"{class_obj.name if class_obj else ''}-sinfida {subject.name if subject else ''} fanidan o'tkazilgan {period_label}\n"
-    header += f" №{exam.variant} {exam_name.name if exam_name else ''} tahlili"
+    header += f"N{exam.variant} {exam_name.name if exam_name else ''} tahlili"
     
     teacher_name = f"{teacher.first_name} {teacher.last_name}" if teacher else ''
-    exam_date = exam.created_at.strftime('%d.%m.%Y') if exam.created_at else ''
+    exam_date = exam.exam_date or (exam.created_at.strftime('%d.%m.%Y') if exam.created_at else '')
     
     total_max_score = sum(q.max_score for q in questions)
     
@@ -655,13 +666,14 @@ async def download_results(
             type_groups[tid]['total_max_score'] += q.max_score
         for tid, group in type_groups.items():
             count = len(group['questions'])
+            tms = round(group['total_max_score'], 4)
             question_types_summary.append({
                 'id': tid,
                 'name': group['name'],
                 'count': count,
                 'question_numbers': sorted(group['questions']),
-                'total_max_score': group['total_max_score'],
-                'score_per_question': group['total_max_score'] / count if count else 0,
+                'total_max_score': tms,
+                'score_per_question': round(tms / count, 4) if count else 0,
             })
 
     students_data = []

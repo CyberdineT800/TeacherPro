@@ -113,6 +113,7 @@
     {{ exam_info.quarter_name }} №{{ exam.variant }} · {{ exam_info.exam_name }}
   </h3>
 
+  <form method="POST" id="scores_form">
   <div class="score-meta">
     <div>
       <strong>{{ _('class_leader') }}:</strong> {{ exam_info.leader_fullname }}
@@ -121,11 +122,16 @@
     </div>
     <div>
       <strong>{{ _('date') }}:</strong>
-      <input type="date" id="exam_date">
+      {# exam_date stored as DD.MM.YYYY — convert back to YYYY-MM-DD for the input #}
+      {% if exam.exam_date %}
+        {% set _d = exam.exam_date.split('.') %}
+        {% set _val = _d[2] + '-' + _d[1] + '-' + _d[0] if _d|length == 3 else '' %}
+      {% else %}
+        {% set _val = '' %}
+      {% endif %}
+      <input type="date" id="exam_date" name="exam_date" value="{{ _val }}">
     </div>
   </div>
-
-  <form method="POST" id="scores_form">
     <div class="score-table">
       <table class="scores">
         <thead>
@@ -144,7 +150,7 @@
                 <span style="font-size:.72rem;font-weight:500;opacity:.8">
                   ({{ spq | int if spq % 1 == 0 else spq | round(1) }}{{ _('ball_label') }}) {{ qt.count }}{{ _('count_suffix') }}
                 </span><br>
-                <span style="font-size:.72rem;font-weight:500;opacity:.7">max: {{ qt.total_max_score | int }}</span>
+                <span style="font-size:.72rem;font-weight:500;opacity:.7">max: {{ qt.total_max_score | round(2) | int if qt.total_max_score | round(2) % 1 == 0 else qt.total_max_score | round(1) }}</span>
               </th>
               {% endfor %}
             {% else %}
@@ -192,7 +198,7 @@
                   <input type="number"
                          name="chsb_score_{{ student.id }}_{{ qt.id }}"
                          data-student="{{ student.id }}" class="score-inp"
-                         min="0" max="{{ qt.total_max_score }}"
+                         min="0" max="{{ qt.total_max_score | round(1) }}"
                          step="0.1" value="0" onfocus="this.select()"
                          oninput="calcRow({{ student.id }})">
                 </td>
