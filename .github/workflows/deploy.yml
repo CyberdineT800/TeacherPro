@@ -22,6 +22,17 @@ jobs:
           python-version: ${{ env.PYTHON_VERSION }}
           cache: pip
 
+      - name: Ensure requirements.txt is UTF-8
+        run: |
+          python -c "
+          with open('requirements.txt', 'rb') as f:
+              raw = f.read()
+          if raw[:2] in (b'\xff\xfe', b'\xfe\xff'):
+              text = raw.decode('utf-16')
+              with open('requirements.txt', 'w', encoding='utf-8') as f:
+                  f.write(text)
+          "
+
       - name: Install dependencies
         run: pip install -r requirements.txt
 
