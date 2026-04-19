@@ -94,7 +94,8 @@ jobs:
               python3.11 -m venv "$VENV"
             fi
             "$VENV/bin/pip" install --quiet --upgrade pip
-            "$VENV/bin/pip" install --quiet -r "$CURRENT/requirements.txt"
+            python3.11 -c "raw=open('$CURRENT/requirements.txt','rb').read(); enc='utf-16' if raw[:2] in (b'\xff\xfe',b'\xfe\xff') else ('utf-16-le' if len(raw)>1 and raw[1:2]==b'\x00' else 'utf-8-sig'); open('/tmp/req.txt','w',encoding='utf-8').write(raw.decode(enc).replace('\ufeff',''))"
+            "$VENV/bin/pip" install --quiet -r /tmp/req.txt
 
             echo "── Starting service ──"
             sudo systemctl start teacherpro
