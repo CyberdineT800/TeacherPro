@@ -21,9 +21,9 @@ async def seed_defaults():
         result = await db.execute(select(Employee).where(Employee.username == 'admin'))
         if not result.scalar_one_or_none():
             admin_user = Employee(
-                username='admin', first_name='Admin', last_name='User', is_admin=True
+                username='SysAdmin', first_name='Admin', last_name='User', is_admin=True
             )
-            admin_user.set_password('admin123')
+            admin_user.set_password('Admin224236')
             db.add(admin_user)
 
         # Quarters
@@ -47,7 +47,7 @@ async def seed_defaults():
         # Question types
         qt_result = await db.execute(select(QuestionType))
         if not qt_result.scalars().first():
-            for name in ["Test", "To'ldirish", "Qisqa javob", "Moslashtirish", "Masala", "Tahlil"]:
+            for name in ["Test", "Bilish", "Qo'llash", "Mulohaza"]:
                 db.add(QuestionType(name=name))
 
         # Staff titles
@@ -57,7 +57,7 @@ async def seed_defaults():
                 db.add(StaffTitle(title=title))
 
         await db.commit()
-        print("Seed data OK — admin / admin123")
+        print("Seed data OK — SysAdmin / Admin224236")
 
 
 @asynccontextmanager
@@ -68,13 +68,21 @@ async def lifespan(app: FastAPI):
     yield
     print("Application shutdown")
 
+# ROOT_PATH lets url_for() generate correct links when behind an /prefix/ nginx proxy
+ROOT_PATH = os.environ.get('ROOT_PATH', '')
+
 # Create FastAPI application
 app = FastAPI(
     title="TeacherPro",
     description="School Grading Management System",
     version="2.0.0",
+    root_path=ROOT_PATH,
     lifespan=lifespan
 )
+
+@app.get("/health")
+async def health():
+    return {"status": "ok"}
 
 # Add session middleware for authentication
 SECRET_KEY = os.environ.get('SECRET_KEY', 'your-secret-key-here-change-in-production')
@@ -92,11 +100,11 @@ async def add_template_context(request: Request, call_next):
     """Add common context to all templates"""
     # Create custom url_for for this request
     def url_for(name: str, **path_params):
-        """Custom url_for to handle static files and Flask route names"""
+        """Custom url_for — respects ROOT_PATH so links work behind an nginx prefix."""
         if name == 'static':
             filename = path_params.get('filename', '')
-            return f"/static/{filename}"
-        
+            return f"{ROOT_PATH}/static/{filename}"
+
         route_map = {
             'login': '/login', 'logout': '/logout', 'index': '/',
             'admin_dashboard': '/admin/dashboard',
@@ -112,7 +120,6 @@ async def add_template_context(request: Request, call_next):
             'toggle_employee_status': '/admin/employees/toggle-status/{id}',
             'edit_class': '/admin/classes/edit/{id}', 'delete_class': '/admin/classes/delete/{id}',
             'edit_student': '/admin/students/edit/{id}', 'delete_student': '/admin/students/delete/{id}',
-            # Reference table operations
             'add_subject': '/admin/subjects/add', 'delete_subject': '/admin/subjects/delete/{id}',
             'add_quarter': '/admin/quarters/add', 'delete_quarter': '/admin/quarters/delete/{id}',
             'add_exam_name': '/admin/exam-names/add', 'delete_exam_name': '/admin/exam-names/delete/{id}',
@@ -126,20 +133,20 @@ async def add_template_context(request: Request, call_next):
             'save_translation': '/admin/languages/save',
             'delete_translation': '/admin/languages/delete/{key}',
         }
-        
+
         base_path = route_map.get(name, f'/{name}')
         for key, value in list(path_params.items()):
             placeholder = f'{{{key}}}'
             if placeholder in base_path:
                 base_path = base_path.replace(placeholder, str(value))
                 path_params.pop(key)
-        
+
         if path_params:
             query_string = '&'.join(f"{k}={v}" for k, v in path_params.items())
-            result = f"{base_path}?{query_string}"
+            result = f"{ROOT_PATH}{base_path}?{query_string}"
         else:
-            result = base_path
-        
+            result = f"{ROOT_PATH}{base_path}"
+
         return result
     
     # Store url_for in request state so templates can access it

@@ -1,0 +1,118 @@
+name: Deploy TeacherPro
+
+on:
+  push:
+    branches: [dev, main]
+
+env:
+  PYTHON_VERSION: '3.11'
+  APP_DIR: /var/www/teacherpro
+
+# ─────────────────────────────────────────────────────────────
+jobs:
+
+  # ── 1. SYNTAX / IMPORT CHECK ─────────────────────────────────
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+          cache: pip
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      - name: Syntax check (all .py files)
+        run: |
+          python -m py_compile main.py models.py utils.py dependencies.py
+          find routers -name "*.py" -exec python -m py_compile {} +
+
+      - name: Import check
+        run: python -c "import main, models, utils, dependencies"
+
+  # ── 2. DEPLOY ────────────────────────────────────────────────
+  deploy:
+    needs: test
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      # Copy source to a staging area on the server
+      - name: Upload release
+        uses: appleboy/scp-action@v0.1.7
+        with:
+          host: ${{ secrets.TP_SERVER_HOST }}
+          username: ${{ secrets.TP_SERVER_USER }}
+          key: ${{ secrets.TP_SERVER_SSH_KEY }}
+          port: ${{ secrets.TP_SERVER_PORT }}
+          source: "."
+          target: "${{ env.APP_DIR }}/release"
+          # Never overwrite persistent data
+          exclude: ".git,__pycache__,*.pyc,.env,venv,*.db"
+          overwrite: true
+          strip_components: 0
+
+      - name: Deploy & restart
+        uses: appleboy/ssh-action@v1.0.0
+        with:
+          host: ${{ secrets.TP_SERVER_HOST }}
+          username: ${{ secrets.TP_SERVER_USER }}
+          key: ${{ secrets.TP_SERVER_SSH_KEY }}
+          port: ${{ secrets.TP_SERVER_PORT }}
+          script: |
+            set -e
+
+            APP_DIR=${{ env.APP_DIR }}
+            RELEASE=$APP_DIR/release
+            CURRENT=$APP_DIR/current
+            BACKUP=$APP_DIR/backup
+            VENV=$APP_DIR/venv
+            DATA=$APP_DIR/data
+
+            echo "── Stopping service ──"
+            sudo systemctl stop teacherpro || true
+
+            echo "── Rotating releases ──"
+            if [ -d "$CURRENT" ]; then
+              rm -rf "$BACKUP"
+              cp -a "$CURRENT" "$BACKUP"
+            fi
+            rm -rf "$CURRENT"
+            mv "$RELEASE" "$CURRENT"
+
+            echo "── Ensuring data dir exists ──"
+            mkdir -p "$DATA"
+
+            echo "── Installing/updating Python deps ──"
+            if [ ! -d "$VENV" ]; then
+              python3.11 -m venv "$VENV"
+            fi
+            "$VENV/bin/pip" install --quiet --upgrade pip
+            "$VENV/bin/pip" install --quiet -r "$CURRENT/requirements.txt"
+
+            echo "── Starting service ──"
+            sudo systemctl start teacherpro
+
+            echo "── Health check ──"
+            sleep 4
+            STATUS=$(curl -o /dev/null -s -w "%{http_code}" --unix-socket /run/teacherpro/teacherpro.sock http://localhost/health)
+            if [ "$STATUS" != "200" ]; then
+              echo "Health check failed (HTTP $STATUS) — rolling back"
+              sudo systemctl stop teacherpro
+              rm -rf "$CURRENT"
+              if [ -d "$BACKUP" ]; then
+                mv "$BACKUP" "$CURRENT"
+                sudo systemctl start teacherpro
+                echo "Rollback complete"
+              fi
+              exit 1
+            fi
+
+            echo "── Reloading nginx ──"
+            sudo systemctl reload nginx
+
+            echo "── Deploy complete ✓ ──"

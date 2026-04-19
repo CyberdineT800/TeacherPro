@@ -1,6 +1,6 @@
 from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession, async_sessionmaker
 from sqlalchemy.orm import DeclarativeBase, relationship
-from sqlalchemy import Column, Integer, String, Text, Boolean, Float, DateTime, ForeignKey, text
+from sqlalchemy import Column, Integer, String, Text, Boolean, Float, DateTime, ForeignKey, text, event
 from werkzeug.security import generate_password_hash, check_password_hash
 from datetime import datetime
 import os
@@ -16,8 +16,20 @@ DATABASE_URL = os.environ.get('DATABASE_URL', 'sqlite+aiosqlite:///school_gradin
 engine = create_async_engine(
     DATABASE_URL,
     echo=False,
-    future=True
+    future=True,
+    connect_args={"timeout": 30},
 )
+
+# WAL mode + performance pragmas — run once per new SQLite connection
+@event.listens_for(engine.sync_engine, "connect")
+def _set_sqlite_pragmas(dbapi_conn, _record):
+    cur = dbapi_conn.cursor()
+    cur.execute("PRAGMA journal_mode=WAL")       # concurrent reads during writes
+    cur.execute("PRAGMA synchronous=NORMAL")     # safe + faster than FULL
+    cur.execute("PRAGMA cache_size=-65536")      # 64 MB page cache
+    cur.execute("PRAGMA foreign_keys=ON")
+    cur.execute("PRAGMA busy_timeout=30000")     # wait 30s on locked DB
+    cur.close()
 
 # Create async session factory
 AsyncSessionLocal = async_sessionmaker(
