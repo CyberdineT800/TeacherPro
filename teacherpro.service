@@ -1,0 +1,30 @@
+[Unit]
+Description=TeacherPro FastAPI Application
+After=network.target
+
+[Service]
+Type=simple
+User=www-data
+Group=www-data
+WorkingDirectory=/var/www/teacherpro/current
+EnvironmentFile=-/var/www/teacherpro/.env
+Environment=ROOT_PATH=/teacherpro
+RuntimeDirectory=teacherpro
+RuntimeDirectoryMode=0755
+ExecStart=/var/www/teacherpro/venv/bin/gunicorn \
+    --worker-class uvicorn.workers.UvicornWorker \
+    --workers 2 \
+    --bind unix:/run/teacherpro/teacherpro.sock \
+    --timeout 120 \
+    --access-logfile - \
+    --error-logfile - \
+    --capture-output \
+    --log-level info \
+    main:app
+Restart=on-failure
+RestartSec=5
+KillMode=mixed
+TimeoutStopSec=10
+
+[Install]
+WantedBy=multi-user.target
