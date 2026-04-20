@@ -1,57 +1,51 @@
 from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession, async_sessionmaker
 from sqlalchemy.orm import DeclarativeBase, relationship
-from sqlalchemy import Column, Integer, String, Text, Boolean, Float, DateTime, ForeignKey, text, event
+from sqlalchemy import Column, Integer, String, Text, Boolean, Float, DateTime, ForeignKey, Index
 from werkzeug.security import generate_password_hash, check_password_hash
 from datetime import datetime
 import os
 
-# Base class for all models
 class Base(DeclarativeBase):
     pass
 
-# Database configuration
-DATABASE_URL = os.environ.get('DATABASE_URL', 'sqlite+aiosqlite:///school_grading.db')
-
-# Create async engine
-engine = create_async_engine(
-    DATABASE_URL,
-    echo=False,
-    future=True,
-    connect_args={"timeout": 30},
+DATABASE_URL = os.environ.get(
+    'DATABASE_URL',
+    'postgresql+asyncpg://teacherpro:teacherpro@localhost:5432/teacherpro',
 )
 
-# WAL mode + performance pragmas — run once per new SQLite connection
-@event.listens_for(engine.sync_engine, "connect")
-def _set_sqlite_pragmas(dbapi_conn, _record):
-    cur = dbapi_conn.cursor()
-    cur.execute("PRAGMA journal_mode=WAL")       # concurrent reads during writes
-    cur.execute("PRAGMA synchronous=NORMAL")     # safe + faster than FULL
-    cur.execute("PRAGMA cache_size=-65536")      # 64 MB page cache
-    cur.execute("PRAGMA foreign_keys=ON")
-    cur.execute("PRAGMA busy_timeout=30000")     # wait 30s on locked DB
-    cur.close()
+_is_sqlite = DATABASE_URL.startswith('sqlite')
 
-# Create async session factory
+if _is_sqlite:
+    engine = create_async_engine(
+        DATABASE_URL,
+        echo=False,
+        future=True,
+        connect_args={"timeout": 30},
+    )
+else:
+    engine = create_async_engine(
+        DATABASE_URL,
+        echo=False,
+        future=True,
+        pool_size=10,
+        max_overflow=20,
+        pool_pre_ping=True,
+        pool_recycle=1800,
+    )
+
 AsyncSessionLocal = async_sessionmaker(
     engine,
     class_=AsyncSession,
     expire_on_commit=False
 )
 
-# Dependency to get database session
 async def get_db():
     async with AsyncSessionLocal() as session:
         yield session
 
-# Initialize database tables
 async def init_db():
     async with engine.begin() as conn:
         await conn.run_sync(Base.metadata.create_all)
-        # Safe migration: add new columns if they don't exist yet
-        try:
-            await conn.execute(text("ALTER TABLE exams ADD COLUMN exam_date VARCHAR(20) DEFAULT NULL"))
-        except Exception:
-            pass  # Column already exists
 
 class School(Base):
     __tablename__ = 'schools'
@@ -61,7 +55,7 @@ class School(Base):
     phone = Column(String(50))
     email = Column(String(100))
     created_at = Column(DateTime, default=datetime.utcnow)
-    
+
     employees = relationship('Employee', back_populates='school', cascade='all, delete-orphan')
     classes = relationship('SchoolClass', back_populates='school', cascade='all, delete-orphan')
 
@@ -69,57 +63,57 @@ class StaffTitle(Base):
     __tablename__ = 'staff_titles'
     id = Column(Integer, primary_key=True)
     title = Column(String(100), nullable=False, unique=True)
-    
+
     employees = relationship('Employee', back_populates='staff_title')
 
 class Employee(Base):
     __tablename__ = 'employees'
     id = Column(Integer, primary_key=True)
-    username = Column(String(80), unique=True, nullable=False)
+    username = Column(String(80), unique=True, nullable=False, index=True)
     password_hash = Column(String(200), nullable=False)
     first_name = Column(String(100), nullable=False)
     last_name = Column(String(100), nullable=False)
     email = Column(String(100))
     is_admin = Column(Boolean, default=False)
     is_active = Column(Boolean, default=True)
-    school_id = Column(Integer, ForeignKey('schools.id'), nullable=True)
+    school_id = Column(Integer, ForeignKey('schools.id'), nullable=True, index=True)
     staff_title_id = Column(Integer, ForeignKey('staff_titles.id'), nullable=True)
     created_at = Column(DateTime, default=datetime.utcnow)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
-    
+
     school = relationship('School', back_populates='employees')
     staff_title = relationship('StaffTitle', back_populates='employees')
     assigned_classes = relationship('SchoolClass', secondary='teacher_classes', back_populates='assigned_teachers')
     assigned_subjects = relationship('Subject', secondary='teacher_subjects', back_populates='assigned_teachers')
-    
+
     def set_password(self, password):
         self.password_hash = generate_password_hash(password)
-    
+
     def check_password(self, password):
         return check_password_hash(self.password_hash, password)
 
 class TeacherClass(Base):
     __tablename__ = 'teacher_classes'
     id = Column(Integer, primary_key=True)
-    teacher_id = Column(Integer, ForeignKey('employees.id'), nullable=False)
-    class_id = Column(Integer, ForeignKey('classes.id'), nullable=False)
+    teacher_id = Column(Integer, ForeignKey('employees.id'), nullable=False, index=True)
+    class_id = Column(Integer, ForeignKey('classes.id'), nullable=False, index=True)
 
 class TeacherSubject(Base):
     __tablename__ = 'teacher_subjects'
     id = Column(Integer, primary_key=True)
-    teacher_id = Column(Integer, ForeignKey('employees.id'), nullable=False)
-    subject_id = Column(Integer, ForeignKey('subjects.id'), nullable=False)
+    teacher_id = Column(Integer, ForeignKey('employees.id'), nullable=False, index=True)
+    subject_id = Column(Integer, ForeignKey('subjects.id'), nullable=False, index=True)
 
 class SchoolClass(Base):
     __tablename__ = 'classes'
     id = Column(Integer, primary_key=True)
     name = Column(String(100), nullable=False)
-    school_id = Column(Integer, ForeignKey('schools.id'), nullable=False)
+    school_id = Column(Integer, ForeignKey('schools.id'), nullable=False, index=True)
     leader_first_name = Column(String(100), nullable=True)
     leader_last_name = Column(String(100), nullable=True)
     leader_phone = Column(String(50), nullable=True)
     created_at = Column(DateTime, default=datetime.utcnow)
-    
+
     school = relationship('School', back_populates='classes')
     students = relationship('Student', back_populates='school_class', cascade='all, delete-orphan')
     exams = relationship('Exam', back_populates='school_class')
@@ -130,18 +124,18 @@ class Student(Base):
     id = Column(Integer, primary_key=True)
     first_name = Column(String(100), nullable=False)
     last_name = Column(String(100), nullable=False)
-    gender = Column(Integer, nullable=False)  # 1=male, 2=female
-    group_number = Column(Integer, default=1)  # 1 or 2
-    class_id = Column(Integer, ForeignKey('classes.id'), nullable=False)
+    gender = Column(Integer, nullable=False)
+    group_number = Column(Integer, default=1)
+    class_id = Column(Integer, ForeignKey('classes.id'), nullable=False, index=True)
     created_at = Column(DateTime, default=datetime.utcnow)
-    
+
     school_class = relationship('SchoolClass', back_populates='students')
 
 class Subject(Base):
     __tablename__ = 'subjects'
     id = Column(Integer, primary_key=True)
     name = Column(String(100), nullable=False, unique=True)
-    
+
     assigned_teachers = relationship('Employee', secondary='teacher_subjects', back_populates='assigned_subjects')
 
 class Quarter(Base):
@@ -168,12 +162,12 @@ class QuestionType(Base):
 class Exam(Base):
     __tablename__ = 'exams'
     id = Column(Integer, primary_key=True)
-    class_id = Column(Integer, ForeignKey('classes.id'), nullable=False)
-    subject_id = Column(Integer, ForeignKey('subjects.id'), nullable=False)
+    class_id = Column(Integer, ForeignKey('classes.id'), nullable=False, index=True)
+    subject_id = Column(Integer, ForeignKey('subjects.id'), nullable=False, index=True)
     quarter_id = Column(Integer, ForeignKey('quarters.id'), nullable=True)
     exam_name_id = Column(Integer, ForeignKey('exam_names.id'), nullable=False)
     exam_type_id = Column(Integer, ForeignKey('exam_types.id'), nullable=False)
-    teacher_id = Column(Integer, ForeignKey('employees.id'), nullable=False)
+    teacher_id = Column(Integer, ForeignKey('employees.id'), nullable=False, index=True)
     created_at = Column(DateTime, default=datetime.utcnow)
 
     is_bsb_exam = Column(Boolean, default=False)
@@ -188,7 +182,7 @@ class Exam(Base):
     gender_filter = Column(Integer, nullable=True)
     group_filter = Column(Integer, nullable=True)
     variant = Column(Integer, default=1)
-    
+
     school_class = relationship('SchoolClass', back_populates='exams')
     subject = relationship('Subject')
     quarter = relationship('Quarter')
@@ -201,33 +195,36 @@ class Exam(Base):
 class CHSBQuestionAssignment(Base):
     __tablename__ = 'chsb_question_assignments'
     id = Column(Integer, primary_key=True)
-    exam_id = Column(Integer, ForeignKey('exams.id'), nullable=False)
+    exam_id = Column(Integer, ForeignKey('exams.id'), nullable=False, index=True)
     question_number = Column(Integer, nullable=False)
     question_type_id = Column(Integer, ForeignKey('question_types.id'), nullable=False)
     max_score = Column(Float, nullable=False)
-    
+
     exam = relationship('Exam')
     question_type = relationship('QuestionType')
 
 class Question(Base):
     __tablename__ = 'questions'
     id = Column(Integer, primary_key=True)
-    exam_id = Column(Integer, ForeignKey('exams.id'), nullable=False)
+    exam_id = Column(Integer, ForeignKey('exams.id'), nullable=False, index=True)
     question_number = Column(Integer, nullable=False)
     question_type_id = Column(Integer, ForeignKey('question_types.id'), nullable=False)
     max_score = Column(Float, nullable=False)
-    
+
     exam = relationship('Exam', back_populates='questions')
     question_type = relationship('QuestionType')
 
 class ExamResult(Base):
     __tablename__ = 'exam_results'
     id = Column(Integer, primary_key=True)
-    exam_id = Column(Integer, ForeignKey('exams.id'), nullable=False)
-    student_id = Column(Integer, ForeignKey('students.id'), nullable=False)
-    question_id = Column(Integer, ForeignKey('questions.id'), nullable=False)
+    exam_id = Column(Integer, ForeignKey('exams.id'), nullable=False, index=True)
+    student_id = Column(Integer, ForeignKey('students.id'), nullable=False, index=True)
+    question_id = Column(Integer, ForeignKey('questions.id'), nullable=False, index=True)
     score = Column(Float, nullable=False)
-    
+
     exam = relationship('Exam', back_populates='results')
     student = relationship('Student')
     question = relationship('Question')
+
+Index('ix_exam_results_exam_student', ExamResult.exam_id, ExamResult.student_id)
+Index('ix_students_class_group', Student.class_id, Student.group_number)
