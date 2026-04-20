@@ -709,9 +709,15 @@ textarea {
     box-shadow: 0 0 0 3px oklch(70% 0.16 220 / 0.18);
 }
 
+select option,
 .form-group select option {
     background: var(--bg-1);
     color: var(--text);
+}
+
+[data-theme="light"] select option {
+    background: #ffffff;
+    color: #0a0e1c;
 }
 
 .form-group textarea { resize: vertical; min-height: 80px; }

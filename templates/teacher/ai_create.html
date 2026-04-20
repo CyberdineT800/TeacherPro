@@ -1,0 +1,214 @@
+{% extends "base.html" %}
+
+{% block title %}{{ _('ai_new_presentation') }}{% endblock %}
+
+{% block extra_css %}
+<style>
+    .ai-form-wrap { max-width: 720px; margin: 0 auto; }
+    .form-row { margin-bottom: 1.4rem; }
+    .form-row label {
+        display: block; margin-bottom: .55rem;
+        font-weight: 600; font-size: .92rem; color: var(--text);
+    }
+    .grade-grid {
+        display: grid; grid-template-columns: repeat(auto-fit, minmax(58px, 1fr));
+        gap: .45rem;
+    }
+    .grade-btn {
+        padding: .7rem .4rem; border-radius: var(--r-sm);
+        background: var(--glass-bg); border: 1px solid var(--glass-border);
+        color: var(--text-muted); font-weight: 600; cursor: pointer;
+        transition: all .15s var(--ease); font-size: 1rem;
+    }
+    .grade-btn:hover { background: var(--glass-bg-hover); color: var(--text); }
+    .grade-btn.active {
+        background: rgba(100,200,255,.2); color: var(--c-cyan);
+        border-color: var(--c-cyan); box-shadow: var(--sh-glow-cyan);
+    }
+    .lang-btns { display: flex; gap: .5rem; flex-wrap: wrap; }
+    .lang-btn {
+        padding: .7rem 1.2rem; border-radius: var(--r-sm);
+        background: var(--glass-bg); border: 1px solid var(--glass-border);
+        color: var(--text-muted); font-weight: 600; cursor: pointer;
+        transition: all .15s var(--ease);
+    }
+    .lang-btn:hover { background: var(--glass-bg-hover); color: var(--text); }
+    .lang-btn.active {
+        background: rgba(100,200,255,.2); color: var(--c-cyan);
+        border-color: var(--c-cyan);
+    }
+    .age-hint {
+        margin-top: .6rem; font-size: .85rem;
+        color: var(--text-muted); padding: .6rem .8rem;
+        background: rgba(255,255,255,.04); border-radius: var(--r-sm);
+        border-left: 3px solid var(--c-cyan);
+    }
+    .topic-input {
+        width: 100%; padding: .9rem 1rem; font-size: 1rem;
+        border-radius: var(--r-sm); background: var(--glass-bg);
+        border: 1px solid var(--glass-border); color: var(--text);
+        font-family: inherit; resize: vertical; min-height: 90px;
+    }
+    .topic-input:focus { border-color: var(--c-cyan); outline: none; box-shadow: 0 0 0 3px rgba(100,200,255,.15); }
+    .submit-row { display: flex; gap: .8rem; align-items: center; margin-top: 1.5rem; }
+
+    .gen-overlay {
+        position: fixed; inset: 0; background: rgba(10,14,28,.85);
+        backdrop-filter: blur(8px); z-index: 9999;
+        display: none; align-items: center; justify-content: center;
+    }
+    .gen-overlay.show { display: flex; }
+    .gen-card {
+        background: var(--glass-bg-strong); border: 1px solid var(--glass-border-strong);
+        border-radius: var(--r-lg); padding: 2.5rem 3rem; text-align: center;
+        max-width: 420px; box-shadow: var(--sh-lg);
+    }
+    .spinner {
+        width: 60px; height: 60px; margin: 0 auto 1.2rem;
+        border: 4px solid rgba(100,200,255,.15);
+        border-top-color: var(--c-cyan); border-radius: 50%;
+        animation: spin 1s linear infinite;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    .gen-card h3 { margin: 0 0 .5rem; }
+    .gen-card p { margin: 0; color: var(--text-muted); }
+    .err-box {
+        margin-top: 1rem; padding: .8rem 1rem;
+        background: rgba(220,80,80,.12); border: 1px solid rgba(220,80,80,.3);
+        color: var(--err); border-radius: var(--r-sm); display: none;
+    }
+    .err-box.show { display: block; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="card ai-form-wrap">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1rem;flex-wrap:wrap;gap:.5rem">
+        <h2 style="margin:0">{{ _('ai_new_presentation') }}</h2>
+        <a href="{{ request.app.root_path }}/teacher/ai" class="btn btn-secondary btn-sm">← {{ _('ai_back') }}</a>
+    </div>
+    <p style="color:var(--text-muted);margin-bottom:1.8rem">
+        {{ _('ai_create_subtitle') }}
+        {{ _('ai_today_limit') }}: <strong style="color:var(--c-cyan)">{{ remaining }}</strong> {{ _('ai_units_short') }}.
+    </p>
+
+    <form id="aiForm">
+        <div class="form-row">
+            <label for="subject_id">{{ _('ai_subject_label') }}</label>
+            <select id="subject_id" name="subject_id" required style="width:100%;padding:.85rem 1rem">
+                <option value="">{{ _('ai_subject_select') }}</option>
+                {% for s in subjects %}
+                <option value="{{ s.id }}">{{ s.name }}</option>
+                {% endfor %}
+            </select>
+        </div>
+
+        <div class="form-row">
+            <label>{{ _('ai_grade_label') }}</label>
+            <div class="grade-grid">
+                {% for g in range(1, 12) %}
+                <button type="button" class="grade-btn" data-grade="{{ g }}" onclick="selectGrade({{ g }})">{{ g }}</button>
+                {% endfor %}
+            </div>
+            <div class="age-hint" id="ageHint">
+                {{ _('ai_grade_select_hint') }}
+            </div>
+            <input type="hidden" id="grade" name="grade" required>
+        </div>
+
+        <div class="form-row">
+            <label>{{ _('ai_language_label') }}</label>
+            <div class="lang-btns">
+                <button type="button" class="lang-btn active" data-lang="uz" onclick="selectLang('uz')">🇺🇿 O'zbekcha</button>
+                <button type="button" class="lang-btn" data-lang="ru" onclick="selectLang('ru')">🇷🇺 Русский</button>
+                <button type="button" class="lang-btn" data-lang="en" onclick="selectLang('en')">🇬🇧 English</button>
+            </div>
+            <input type="hidden" id="language" name="language" value="uz">
+        </div>
+
+        <div class="form-row">
+            <label for="topic">{{ _('ai_topic_label') }}</label>
+            <textarea id="topic" name="topic" class="topic-input" required maxlength="300"
+                placeholder="{{ _('ai_topic_placeholder') }}"></textarea>
+        </div>
+
+        <div class="err-box" id="errBox"></div>
+
+        <div class="submit-row">
+            <button type="submit" class="btn btn-success" id="submitBtn">
+                ✨ {{ _('ai_create_btn') }}
+            </button>
+            <span style="color:var(--text-muted);font-size:.85rem">{{ _('ai_estimated_time') }}</span>
+        </div>
+    </form>
+</div>
+
+<div class="gen-overlay" id="genOverlay">
+    <div class="gen-card">
+        <div class="spinner"></div>
+        <h3>{{ _('ai_generating') }}</h3>
+        <p>{{ _('ai_generating_hint') }}</p>
+    </div>
+</div>
+
+<script>
+const T = {
+    selectGradeFirst: {{ _('ai_select_grade_first') | tojson }},
+    ageHint: {{ _('ai_grade_age_hint') | tojson }},
+    error: {{ _('error') | tojson }}
+};
+
+function selectGrade(g) {
+    document.getElementById('grade').value = g;
+    document.querySelectorAll('.grade-btn').forEach(b => {
+        b.classList.toggle('active', parseInt(b.dataset.grade) === g);
+    });
+    const age = g + 6;
+    document.getElementById('ageHint').innerHTML =
+        T.ageHint.replace('{grade}', `<strong>${g}</strong>`).replace('{age}', `<strong>${age}</strong>`);
+}
+
+function selectLang(l) {
+    document.getElementById('language').value = l;
+    document.querySelectorAll('.lang-btn').forEach(b => {
+        b.classList.toggle('active', b.dataset.lang === l);
+    });
+}
+
+document.getElementById('aiForm').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const errBox = document.getElementById('errBox');
+    errBox.classList.remove('show');
+
+    if (!document.getElementById('grade').value) {
+        errBox.textContent = T.selectGradeFirst;
+        errBox.classList.add('show');
+        return;
+    }
+
+    const overlay = document.getElementById('genOverlay');
+    overlay.classList.add('show');
+    document.getElementById('submitBtn').disabled = true;
+
+    const fd = new FormData(e.target);
+    try {
+        const root = window.ROOT_PATH || '';
+        const resp = await fetch(root + '/teacher/ai/generate', { method: 'POST', body: fd });
+        const data = await resp.json();
+        if (data.ok) {
+            window.location.href = root + data.redirect;
+        } else {
+            overlay.classList.remove('show');
+            document.getElementById('submitBtn').disabled = false;
+            errBox.textContent = data.error || T.error;
+            errBox.classList.add('show');
+        }
+    } catch (err) {
+        overlay.classList.remove('show');
+        document.getElementById('submitBtn').disabled = false;
+        errBox.textContent = T.error + ": " + err.message;
+        errBox.classList.add('show');
+    }
+});
+</script>
+{% endblock %}

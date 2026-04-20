@@ -1,0 +1,117 @@
+{% extends "base.html" %}
+
+{% block title %}{{ _('ai_settings_title') }}{% endblock %}
+
+{% block extra_css %}
+<style>
+    .settings-table { width: 100%; border-collapse: collapse; }
+    .settings-table th, .settings-table td {
+        padding: .85rem 1rem; text-align: left;
+        border-bottom: 1px solid var(--glass-border);
+    }
+    .settings-table th { color: var(--text-muted); font-weight: 600; font-size: .85rem; text-transform: uppercase; letter-spacing: .04em; }
+    .settings-table tr:hover { background: rgba(255,255,255,.03); }
+    .toggle-switch {
+        position: relative; display: inline-block;
+        width: 50px; height: 26px;
+    }
+    .toggle-switch input { opacity: 0; width: 0; height: 0; }
+    .toggle-slider {
+        position: absolute; cursor: pointer; inset: 0;
+        background: rgba(255,255,255,.1); border: 1px solid var(--glass-border);
+        transition: .25s; border-radius: var(--r-pill);
+    }
+    .toggle-slider:before {
+        position: absolute; content: "";
+        height: 18px; width: 18px; left: 3px; top: 3px;
+        background: white; transition: .25s; border-radius: 50%;
+    }
+    input:checked + .toggle-slider { background: var(--c-cyan); border-color: var(--c-cyan); }
+    input:checked + .toggle-slider:before { transform: translateX(24px); }
+    .limit-input {
+        width: 70px; padding: .45rem .6rem; text-align: center;
+        border-radius: var(--r-sm); background: var(--glass-bg);
+        border: 1px solid var(--glass-border); color: var(--text);
+    }
+    .count-badge {
+        padding: .25rem .65rem; border-radius: var(--r-pill);
+        background: rgba(100,200,255,.12); color: var(--c-cyan);
+        font-weight: 700; font-size: .85rem;
+    }
+    .count-badge.zero { background: rgba(255,255,255,.05); color: var(--text-faint); }
+    .save-btn {
+        padding: .4rem .8rem; border-radius: var(--r-sm);
+        background: var(--c-cyan); color: #0a0e1c; border: none;
+        font-weight: 700; cursor: pointer; font-size: .85rem;
+    }
+    .save-btn:hover { opacity: .9; }
+    .school-tag { font-size: .8rem; color: var(--text-faint); display: block; margin-top: .15rem; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="card">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1.5rem;flex-wrap:wrap;gap:.5rem">
+        <div>
+            <h2 style="margin:0">⚙ {{ _('ai_settings_title') }}</h2>
+            <p style="margin:.4rem 0 0;color:var(--text-muted)">
+                {{ _('ai_settings_subtitle') }}
+            </p>
+        </div>
+        <a href="{{ request.app.root_path }}/admin/ai" class="btn btn-secondary btn-sm">← {{ _('ai_back_to_list') }}</a>
+    </div>
+
+    {% if teachers %}
+    <table class="settings-table">
+        <thead>
+            <tr>
+                <th>{{ _('ai_table_teacher') }}</th>
+                <th style="text-align:center">{{ _('ai_table_created') }}</th>
+                <th style="text-align:center">{{ _('ai_table_enabled') }}</th>
+                <th style="text-align:center">{{ _('ai_table_daily_limit') }}</th>
+                <th style="text-align:center">{{ _('ai_table_used_today') }}</th>
+                <th style="text-align:right">{{ _('ai_table_save') }}</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for t in teachers %}
+            <tr>
+                <td>
+                    <strong>{{ t.first_name }} {{ t.last_name }}</strong>
+                    {% if t.school %}<span class="school-tag">{{ t.school.name }}</span>{% endif %}
+                </td>
+                <td style="text-align:center">
+                    <span class="count-badge {% if not counts.get(t.id) %}zero{% endif %}">
+                        {{ counts.get(t.id, 0) }}
+                    </span>
+                </td>
+                <td style="text-align:center">
+                    <form method="POST" action="{{ request.app.root_path }}/admin/ai/settings/{{ t.id }}"
+                        id="form-{{ t.id }}" style="display:inline-flex;gap:.5rem;align-items:center"></form>
+                    <label class="toggle-switch">
+                        <input type="checkbox" name="ai_enabled" form="form-{{ t.id }}"
+                            {% if t.ai_enabled %}checked{% endif %}>
+                        <span class="toggle-slider"></span>
+                    </label>
+                </td>
+                <td style="text-align:center">
+                    <input type="number" class="limit-input" name="ai_daily_limit"
+                        form="form-{{ t.id }}" value="{{ t.ai_daily_limit }}" min="0" max="50">
+                </td>
+                <td style="text-align:center">
+                    <span class="count-badge {% if not t.ai_used_today %}zero{% endif %}">
+                        {{ t.ai_used_today }} / {{ t.ai_daily_limit }}
+                    </span>
+                </td>
+                <td style="text-align:right">
+                    <button type="submit" class="save-btn" form="form-{{ t.id }}">{{ _('ai_table_save') }}</button>
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    {% else %}
+    <p style="text-align:center;color:var(--text-muted);padding:2rem">{{ _('ai_no_teachers') }}</p>
+    {% endif %}
+</div>
+{% endblock %}

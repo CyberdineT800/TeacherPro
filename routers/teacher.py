@@ -73,7 +73,7 @@ async def teacher_dashboard(
         school_result = await db.execute(select(School).where(School.id == employee.school_id))
         school = school_result.scalar_one_or_none()
     
-    context = await get_template_context(request)
+    context = await get_template_context(request, db)
     context.update({
         'employee': employee,
         'school': school,

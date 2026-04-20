@@ -109,5 +109,6 @@ async def get_template_context(request: Request, db: AsyncSession = None) -> Dic
         employee = result.scalar_one_or_none()
         if employee:
             context['user'] = employee
-    
+            request.session['ai_enabled'] = bool(employee.ai_enabled)
+
     return context

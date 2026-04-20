@@ -55,6 +55,10 @@
                     class="nav-link {% if request.endpoint == 'employees_list' %}active{% endif %}">
                     {{ _('employees') }}
                 </a>
+                <a href="{{ url_for('admin_ai_list') }}"
+                    class="nav-link {% if request.endpoint == 'admin_ai_list' %}active{% endif %}">
+                    {{ _('ai_presentation') }}
+                </a>
                 <div class="nav-dropdown" id="settingsDropdown">
                     <a href="#" class="nav-link" tabindex="0">
                         {{ _('settings') }}
@@ -79,6 +83,12 @@
                     class="nav-link {% if request.endpoint == 'create_exam' %}active{% endif %}">
                     {{ _('create_exam') }}
                 </a>
+                {% if session.ai_enabled %}
+                <a href="{{ url_for('teacher_ai_list') }}"
+                    class="nav-link {% if request.endpoint == 'teacher_ai_list' %}active{% endif %}">
+                    {{ _('ai_presentation') }}
+                </a>
+                {% endif %}
                 {% endif %}
             </div>
 

@@ -1,9 +1,12 @@
 from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession, async_sessionmaker
 from sqlalchemy.orm import DeclarativeBase, relationship
-from sqlalchemy import Column, Integer, String, Text, Boolean, Float, DateTime, ForeignKey, Index
+from sqlalchemy import Column, Integer, String, Text, Boolean, Float, DateTime, Date, ForeignKey, Index
 from werkzeug.security import generate_password_hash, check_password_hash
 from datetime import datetime
+from dotenv import load_dotenv
 import os
+
+load_dotenv()
 
 class Base(DeclarativeBase):
     pass
@@ -44,8 +47,17 @@ async def get_db():
         yield session
 
 async def init_db():
+    from sqlalchemy import text
     async with engine.begin() as conn:
         await conn.run_sync(Base.metadata.create_all)
+        if not _is_sqlite:
+            await conn.execute(text(
+                "ALTER TABLE employees "
+                "ADD COLUMN IF NOT EXISTS ai_enabled BOOLEAN NOT NULL DEFAULT FALSE, "
+                "ADD COLUMN IF NOT EXISTS ai_daily_limit INTEGER NOT NULL DEFAULT 3, "
+                "ADD COLUMN IF NOT EXISTS ai_used_today INTEGER NOT NULL DEFAULT 0, "
+                "ADD COLUMN IF NOT EXISTS ai_last_reset DATE"
+            ))
 
 class School(Base):
     __tablename__ = 'schools'
@@ -80,6 +92,11 @@ class Employee(Base):
     staff_title_id = Column(Integer, ForeignKey('staff_titles.id'), nullable=True)
     created_at = Column(DateTime, default=datetime.utcnow)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+    ai_enabled = Column(Boolean, default=False, nullable=False)
+    ai_daily_limit = Column(Integer, default=3, nullable=False)
+    ai_used_today = Column(Integer, default=0, nullable=False)
+    ai_last_reset = Column(Date, nullable=True)
 
     school = relationship('School', back_populates='employees')
     staff_title = relationship('StaffTitle', back_populates='employees')
@@ -226,5 +243,22 @@ class ExamResult(Base):
     student = relationship('Student')
     question = relationship('Question')
 
+class AIPresentation(Base):
+    __tablename__ = 'ai_presentations'
+    id = Column(Integer, primary_key=True)
+    teacher_id = Column(Integer, ForeignKey('employees.id'), nullable=False, index=True)
+    subject_id = Column(Integer, ForeignKey('subjects.id'), nullable=True)
+    subject_name = Column(String(100), nullable=False)
+    grade = Column(Integer, nullable=False)
+    topic = Column(String(300), nullable=False)
+    language = Column(String(10), nullable=False, default='uz')
+    content = Column(Text, nullable=False)
+    slides_count = Column(Integer, default=0, nullable=False)
+    created_at = Column(DateTime, default=datetime.utcnow, index=True)
+
+    teacher = relationship('Employee')
+    subject = relationship('Subject')
+
 Index('ix_exam_results_exam_student', ExamResult.exam_id, ExamResult.student_id)
 Index('ix_students_class_group', Student.class_id, Student.group_number)
+Index('ix_ai_presentations_teacher_created', AIPresentation.teacher_id, AIPresentation.created_at)
