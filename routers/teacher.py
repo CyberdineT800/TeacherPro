@@ -318,7 +318,6 @@ async def enter_scores_page(
         'difficulty': exam.difficulty or '',
     }
 
-    # CHSB only: grouped by question type with score_per_question
     question_types_summary = []
     if exam.is_chsb_exam:
         type_groups: dict = {}
@@ -342,6 +341,21 @@ async def enter_scores_page(
                 'score_per_question': round(tms / count, 4) if count else 0,
             })
 
+    existing_rows = (await db.execute(
+        select(ExamResult).where(ExamResult.exam_id == exam_id)
+    )).scalars().all()
+
+    existing_scores: dict = {}
+    chsb_existing: dict = {}
+    if existing_rows:
+        q_to_type = {q.id: q.question_type_id for q in questions}
+        for er in existing_rows:
+            existing_scores[(er.student_id, er.question_id)] = er.score
+            tid = q_to_type.get(er.question_id)
+            if tid is not None:
+                key = (er.student_id, tid)
+                chsb_existing[key] = chsb_existing.get(key, 0.0) + er.score
+
     context = await get_template_context(request)
     context.update({
         'exam': exam,
@@ -351,6 +365,9 @@ async def enter_scores_page(
         'question_types_summary': question_types_summary,
         'total_max_score': total_max_score,
         'group_filter': exam.group_filter,
+        'existing_scores': existing_scores,
+        'chsb_existing': chsb_existing,
+        'is_edit': bool(existing_rows),
     })
 
     return templates.TemplateResponse('teacher/enter_scores.html', context)

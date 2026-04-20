@@ -53,7 +53,12 @@
       {% if exam_info.leader_phone %}· <strong>{{ _('phone') }}:</strong> {{ exam_info.leader_phone }}{% endif %}
       · <strong>{{ _('max_score') }}:</strong> {{ total_max_score | int }}
     </div>
-    <div><strong>{{ _('teacher') }}:</strong> {{ exam_info.teacher_name }}</div>
+    <div style="display:flex;align-items:center;gap:.8rem;flex-wrap:wrap">
+      <span><strong>{{ _('teacher') }}:</strong> {{ exam_info.teacher_name }}</span>
+      <a href="{{ request.app.root_path }}/teacher/enter-scores/{{ exam.id }}" class="btn btn-primary btn-sm">
+        ✏ {{ _('edit_results') }}
+      </a>
+    </div>
   </div>
 
   <div class="score-table">

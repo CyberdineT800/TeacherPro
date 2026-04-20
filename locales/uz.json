@@ -173,6 +173,8 @@
     "student_name": "O'quvchi F.I.Sh",
     "max": "max",
     "save_results": "Natijalarni saqlash",
+    "edit_results": "Natijalarni tahrirlash",
+    "editing_results": "Tahrirlash rejimi",
     "variant": "Variant",
     "color_mode": "Rang rejimi",
     "format": "Format",

@@ -172,6 +172,8 @@
     "student_name": "Student Name",
     "max": "max",
     "save_results": "Save Results",
+    "edit_results": "Edit Results",
+    "editing_results": "Editing Mode",
     "variant": "Variant",
     "color_mode": "Color Mode",
     "add_new": "Add New",

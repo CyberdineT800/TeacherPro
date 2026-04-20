@@ -108,11 +108,18 @@
 
 {% block content %}
 <div class="card">
-  <h3 class="score-header">
-    {{ exam_info.class_name }} {{ _('class') }} · {{ exam_info.subject_name }} ·
-    {{ exam_info.quarter_name }} №{{ exam.variant }} · {{ exam_info.exam_name }}
-    {% if exam.group_filter %} · {{ exam.group_filter }}-{{ _('group') }}{% endif %}
-  </h3>
+  <div style="display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:.5rem;margin-bottom:1rem">
+    <h3 class="score-header" style="margin-bottom:0">
+      {{ exam_info.class_name }} {{ _('class') }} · {{ exam_info.subject_name }} ·
+      {{ exam_info.quarter_name }} №{{ exam.variant }} · {{ exam_info.exam_name }}
+      {% if exam.group_filter %} · {{ exam.group_filter }}-{{ _('group') }}{% endif %}
+    </h3>
+    {% if is_edit %}
+    <span style="padding:.3rem .8rem;border-radius:var(--r-pill);background:rgba(100,200,255,.12);border:1px solid rgba(100,200,255,.3);color:var(--c-cyan);font-size:.8rem;font-weight:600;white-space:nowrap">
+      ✏ {{ _('editing_results') }}
+    </span>
+    {% endif %}
+  </div>
 
   <form method="POST" id="scores_form">
   <div class="score-meta">
@@ -185,33 +192,38 @@
               <td>{{ exam.variant }}</td>
 
               {% if exam.is_project_exam %}
+              {% set _qid = questions[0].id if questions else 0 %}
+              {% set _max = questions[0].max_score if questions else 15 %}
+              {% set _val = existing_scores.get((student.id, _qid), 0) %}
               <td>
                 <input type="number"
-                       name="score_{{ student.id }}_{{ questions[0].id if questions else 0 }}"
+                       name="score_{{ student.id }}_{{ _qid }}"
                        data-student="{{ student.id }}" class="score-inp"
-                       min="0" max="{{ (questions[0].max_score if questions else 15) }}"
-                       step="0.1" value="0" onfocus="this.select()"
+                       min="0" max="{{ _max }}"
+                       step="0.1" value="{{ _val }}" onfocus="this.select()"
                        oninput="calcRow({{ student.id }})">
               </td>
               {% elif exam.is_chsb_exam %}
                 {% for qt in question_types_summary %}
+                {% set _val = chsb_existing.get((student.id, qt.id), 0) %}
                 <td>
                   <input type="number"
                          name="chsb_score_{{ student.id }}_{{ qt.id }}"
                          data-student="{{ student.id }}" class="score-inp"
                          min="0" max="{{ qt.total_max_score | round(1) }}"
-                         step="0.1" value="0" onfocus="this.select()"
+                         step="0.1" value="{{ _val | round(2) }}" onfocus="this.select()"
                          oninput="calcRow({{ student.id }})">
                 </td>
                 {% endfor %}
               {% else %}
                 {% for question in questions %}
+                {% set _val = existing_scores.get((student.id, question.id), 0) %}
                 <td>
                   <input type="number"
                          name="score_{{ student.id }}_{{ question.id }}"
                          data-student="{{ student.id }}" class="score-inp"
                          min="0" max="{{ question.max_score }}"
-                         step="0.1" value="0" onfocus="this.select()"
+                         step="0.1" value="{{ _val }}" onfocus="this.select()"
                          oninput="calcRow({{ student.id }})">
                 </td>
                 {% endfor %}
@@ -227,7 +239,11 @@
 
     <div class="form-actions">
       <button type="submit" class="btn btn-success">{{ _('save_results') }}</button>
+      {% if is_edit %}
+      <a href="{{ request.app.root_path }}/teacher/results/{{ exam.id }}" class="btn btn-secondary">{{ _('cancel') }}</a>
+      {% else %}
       <a href="{{ url_for('teacher_dashboard') }}" class="btn btn-secondary">{{ _('cancel') }}</a>
+      {% endif %}
     </div>
   </form>
 </div>
@@ -244,5 +260,13 @@ function calcRow(sid) {
   const pct = totalMax > 0 ? (sum / totalMax * 100).toFixed(1) : '0.0';
   pctEl.textContent   = pct + '%';
 }
+// Recalculate totals for all students on load (handles pre-populated edit values)
+document.addEventListener('DOMContentLoaded', function() {
+  const sids = new Set();
+  document.querySelectorAll('.score-inp[data-student]').forEach(function(inp) {
+    sids.add(inp.dataset.student);
+  });
+  sids.forEach(function(sid) { calcRow(sid); });
+});
 </script>
 {% endblock %}
