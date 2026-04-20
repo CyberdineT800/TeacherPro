@@ -68,13 +68,14 @@ async def migrate():
     async with dst_engine.begin() as conn:
         await conn.run_sync(Base.metadata.create_all)
 
+    print("── Wiping target tables (RESTART IDENTITY CASCADE) ──")
+    table_list = ', '.join(m.__tablename__ for m in MIGRATION_ORDER)
+    async with DstSession() as dst:
+        await dst.execute(text(f'TRUNCATE TABLE {table_list} RESTART IDENTITY CASCADE'))
+        await dst.commit()
+
     async with SrcSession() as src, DstSession() as dst:
         for model in MIGRATION_ORDER:
-            existing = (await dst.execute(select(model))).scalars().first()
-            if existing:
-                print(f"  {model.__tablename__}: skipped (target not empty)")
-                continue
-
             rows = (await src.execute(select(model))).scalars().all()
             if not rows:
                 print(f"  {model.__tablename__}: 0 rows")
