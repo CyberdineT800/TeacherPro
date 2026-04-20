@@ -256,6 +256,7 @@
     "ai_correct_label": "TRUE",
     "ai_incorrect_label": "FALSE",
     "ai_check": "Check",
+    "ai_reset": "Reset",
     "ai_show_answer": "Answer",
     "ai_your_answer_placeholder": "Your answer...",
     "ai_correct_short": "Correct!",

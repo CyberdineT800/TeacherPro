@@ -20,6 +20,7 @@
     }
     .v-chip.lang { background: rgba(100,200,255,.12); color: var(--c-cyan); border-color: rgba(100,200,255,.25); }
 
+    /* STAGE — contains slides + controls */
     .stage {
         position: relative;
         aspect-ratio: 16/9;
@@ -28,22 +29,20 @@
         border-radius: var(--r-lg); overflow: hidden;
         box-shadow: var(--sh-lg);
     }
-    .stage.fs {
-        position: fixed; inset: 0; aspect-ratio: auto;
-        border-radius: 0; z-index: 9000; max-width: none;
-        background: var(--bg-0);
-        background-image:
-            radial-gradient(50% 40% at 20% 25%, oklch(60% 0.18 270 / .35), transparent 70%),
-            radial-gradient(45% 40% at 80% 80%, oklch(60% 0.18 220 / .30), transparent 70%);
+    /* When real fullscreen is active */
+    .stage:fullscreen,
+    .stage:-webkit-full-screen {
+        border-radius: 0;
+        aspect-ratio: auto;
+        background: #0a0e1c;
     }
-    [data-theme="light"] .stage.fs {
+    [data-theme="light"] .stage:fullscreen,
+    [data-theme="light"] .stage:-webkit-full-screen {
         background: #f5f7fb;
-        background-image:
-            radial-gradient(50% 40% at 20% 25%, rgba(100,150,255,.18), transparent 70%),
-            radial-gradient(45% 40% at 80% 80%, rgba(180,140,255,.15), transparent 70%);
     }
+
     .slide {
-        position: absolute; inset: 0; padding: 3rem;
+        position: absolute; inset: 0; bottom: 56px; padding: 3rem;
         display: none; flex-direction: column;
         opacity: 0; transition: opacity .35s var(--ease);
     }
@@ -52,20 +51,20 @@
     .slide h2 { font-size: clamp(1.3rem, 2.2vw, 2rem); margin: 0 0 1.5rem; color: var(--c-cyan); line-height: 1.25; }
     .slide p, .slide li { font-size: clamp(1rem, 1.4vw, 1.3rem); line-height: 1.6; }
 
-    .slide.s-title { justify-content: center; align-items: center; text-align: center; }
+    .slide.s-title { bottom: 56px; justify-content: center; align-items: center; text-align: center; }
     .slide.s-title h1 { font-size: clamp(2.2rem, 4.5vw, 4rem); color: var(--c-cyan); }
     .slide.s-title h2 { color: var(--text-muted); }
-    .slide.s-title img { max-width: 40%; max-height: 40%; border-radius: var(--r-md); margin-top: 1rem; box-shadow: var(--sh-md); }
+    .slide.s-title img { max-width: 40%; max-height: 35%; border-radius: var(--r-md); margin-top: 1rem; box-shadow: var(--sh-md); object-fit: cover; }
 
     .slide.s-content { flex-direction: row; gap: 2rem; }
     .slide.s-content .col-text { flex: 1; min-width: 0; display: flex; flex-direction: column; }
     .slide.s-content .col-img { flex: 0 0 40%; display: flex; align-items: center; justify-content: center; }
-    .slide.s-content .col-img img { max-width: 100%; max-height: 100%; border-radius: var(--r-md); box-shadow: var(--sh-md); }
+    .slide.s-content .col-img img { max-width: 100%; max-height: 100%; border-radius: var(--r-md); box-shadow: var(--sh-md); object-fit: cover; }
     .slide.s-content ul { padding-left: 1.5rem; margin: 0; }
     .slide.s-content li { margin-bottom: .8rem; color: var(--text); }
 
     .slide.s-image_focus { align-items: center; justify-content: center; text-align: center; }
-    .slide.s-image_focus img { max-width: 70%; max-height: 65%; border-radius: var(--r-md); box-shadow: var(--sh-lg); margin: 1rem 0; }
+    .slide.s-image_focus img { max-width: 70%; max-height: 55%; border-radius: var(--r-md); box-shadow: var(--sh-lg); margin: 1rem 0; object-fit: cover; }
     .slide.s-image_focus .caption { color: var(--text-muted); font-style: italic; }
 
     .slide.s-quiz { justify-content: flex-start; }
@@ -141,6 +140,50 @@
     .match-item.matched { background: rgba(80,200,120,.18); border-color: var(--ok); color: var(--ok); cursor: default; }
     .match-item.wrong-flash { background: rgba(220,80,80,.2); border-color: var(--err); }
 
+    /* SEQUENCE slide */
+    .slide.s-sequence { }
+    .seq-items { display: flex; flex-direction: column; gap: .7rem; margin-top: 1rem; }
+    .seq-item {
+        padding: .85rem 1.2rem; border-radius: var(--r-md);
+        background: var(--glass-bg); border: 2px solid var(--glass-border);
+        color: var(--text); cursor: pointer; transition: all .18s var(--ease);
+        font-size: clamp(.95rem, 1.3vw, 1.15rem); font-weight: 500;
+        display: flex; align-items: center; gap: .8rem;
+    }
+    .seq-item:hover:not(.placed):not(.correct-place) { background: var(--glass-bg-hover); border-color: var(--c-cyan); }
+    .seq-item.selected { border-color: var(--c-cyan); background: rgba(100,200,255,.15); }
+    .seq-item.placed { background: rgba(80,200,120,.18); border-color: var(--ok); cursor: default; }
+    .seq-item.correct-place { background: rgba(80,200,120,.18); border-color: var(--ok); cursor: default; }
+    .seq-item.wrong-flash { background: rgba(220,80,80,.2); border-color: var(--err); }
+    .seq-num {
+        min-width: 28px; height: 28px; border-radius: 50%;
+        background: var(--glass-border); display: flex; align-items: center; justify-content: center;
+        font-weight: 700; font-size: .85rem; color: var(--text-muted);
+        transition: all .2s;
+    }
+    .seq-item.placed .seq-num { background: var(--ok); color: #fff; }
+    .seq-reveal { margin-top: 1rem; display: none; }
+    .seq-reveal.show { display: block; }
+    .seq-explain { padding: 1rem; background: rgba(100,200,255,.1); border-left: 3px solid var(--c-cyan); border-radius: var(--r-sm); }
+    .seq-actions { margin-top: .8rem; display: flex; gap: .6rem; }
+
+    /* OPEN QUESTION slide */
+    .slide.s-open_question { justify-content: center; align-items: center; text-align: center; }
+    .oq-bubble {
+        background: linear-gradient(135deg, rgba(100,200,255,.12), rgba(180,120,255,.1));
+        border: 2px solid rgba(100,200,255,.3);
+        border-radius: 1.5rem; padding: 2rem 2.5rem; max-width: 85%;
+        box-shadow: 0 0 40px rgba(100,200,255,.12);
+    }
+    .oq-icon { font-size: 3rem; margin-bottom: 1rem; }
+    .oq-question { font-size: clamp(1.4rem, 2.5vw, 2.2rem); font-weight: 700; color: var(--text); line-height: 1.4; }
+    .oq-hints { margin-top: 1.5rem; display: flex; flex-direction: column; gap: .5rem; }
+    .oq-hint {
+        font-size: clamp(.9rem, 1.2vw, 1.05rem); color: var(--text-muted);
+        padding: .5rem 1rem; background: rgba(255,255,255,.04);
+        border-radius: var(--r-pill); border: 1px solid var(--glass-border);
+    }
+
     .slide.s-summary { }
     .slide.s-summary ul { padding-left: 1.5rem; }
     .slide.s-summary li { margin-bottom: .8rem; }
@@ -150,23 +193,29 @@
         padding: .35rem .8rem; border-radius: var(--r-pill);
         background: rgba(0,0,0,.4); color: var(--text-muted);
         font-size: .8rem; font-weight: 600; backdrop-filter: blur(8px);
+        z-index: 30;
     }
 
-    .nav-controls {
-        display: flex; align-items: center; justify-content: space-between;
-        padding: 1rem; gap: 1rem;
+    /* Stage bottom controls bar (inside stage) */
+    .stage-controls {
+        position: absolute; bottom: 0; left: 0; right: 0;
+        display: flex; align-items: center; gap: .8rem; padding: .7rem 1rem;
+        background: linear-gradient(to top, rgba(0,0,0,.55), transparent);
+        z-index: 20;
     }
     .nav-btn {
-        padding: .65rem 1.2rem; border-radius: var(--r-pill);
-        background: var(--glass-bg); border: 1px solid var(--glass-border);
-        color: var(--text); cursor: pointer; transition: all .15s;
-        font-family: inherit; font-weight: 600; display: inline-flex; align-items: center; gap: .4rem;
+        padding: .45rem .9rem; border-radius: var(--r-pill);
+        background: rgba(255,255,255,.12); border: 1px solid rgba(255,255,255,.2);
+        color: #fff; cursor: pointer; transition: all .15s;
+        font-family: inherit; font-weight: 600; font-size: .85rem;
+        display: inline-flex; align-items: center; gap: .3rem;
+        flex-shrink: 0;
     }
-    .nav-btn:hover:not(:disabled) { background: var(--glass-bg-hover); border-color: var(--c-cyan); }
-    .nav-btn:disabled { opacity: .4; cursor: not-allowed; }
+    .nav-btn:hover:not(:disabled) { background: rgba(255,255,255,.22); }
+    .nav-btn:disabled { opacity: .35; cursor: not-allowed; }
 
     .progress-bar {
-        flex: 1; height: 6px; background: rgba(255,255,255,.08);
+        flex: 1; height: 5px; background: rgba(255,255,255,.15);
         border-radius: var(--r-pill); overflow: hidden;
     }
     .progress-fill {
@@ -175,16 +224,17 @@
     }
 
     .fs-toggle {
-        position: absolute; bottom: 1rem; right: 1rem; z-index: 10;
-        padding: .5rem; border-radius: var(--r-sm);
-        background: rgba(0,0,0,.4); border: 1px solid var(--glass-border);
-        color: var(--text); cursor: pointer; backdrop-filter: blur(8px);
+        flex-shrink: 0; padding: .4rem; border-radius: var(--r-sm);
+        background: rgba(255,255,255,.12); border: 1px solid rgba(255,255,255,.2);
+        color: #fff; cursor: pointer;
+        display: inline-flex; align-items: center; justify-content: center;
     }
+    .fs-toggle:hover { background: rgba(255,255,255,.22); }
 
     .danger-actions { margin-top: 2rem; padding-top: 1.5rem; border-top: 1px solid var(--glass-border); }
 
     @media (max-width: 768px) {
-        .slide { padding: 1.5rem; }
+        .slide { padding: 1.2rem 1rem; }
         .slide.s-content { flex-direction: column; }
         .slide.s-content .col-img { flex: 0 0 35%; }
         .match-grid { gap: .6rem; }
@@ -217,11 +267,6 @@
 
     <div class="stage" id="stage">
         <div class="slide-num" id="slideNum">1 / {{ data.slides|length }}</div>
-        <button class="fs-toggle" onclick="toggleFs()" title="Fullscreen">
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <path d="M3 7V3h4M21 7V3h-4M3 17v4h4M21 17v4h-4"/>
-            </svg>
-        </button>
 
         {% for slide in data.slides %}
         <div class="slide s-{{ slide.type }}" data-idx="{{ loop.index0 }}">
@@ -290,6 +335,40 @@
                     {% endfor %}
                 </div>
 
+            {% elif slide.type == 'sequence' %}
+                <h1 style="font-size:1.5rem">{{ slide.title }}</h1>
+                <div class="seq-items" id="seq-{{ loop.index0 }}"
+                     data-correct="{{ slide['items'] | tojson | e }}">
+                    {% for item in slide['items'] | sort %}
+                    <div class="seq-item" data-val="{{ item }}" onclick="clickSeq(this)">
+                        <span class="seq-num">?</span>
+                        <span>{{ item }}</span>
+                    </div>
+                    {% endfor %}
+                </div>
+                <div class="seq-actions">
+                    <button class="btn btn-secondary btn-sm" onclick="resetSeq(this)">{{ _('ai_reset') }}</button>
+                    <button class="btn btn-success btn-sm" onclick="checkSeq(this)">{{ _('ai_check') }}</button>
+                </div>
+                <div class="seq-reveal">
+                    {% if slide.explanation %}
+                    <div class="seq-explain">💡 {{ slide.explanation }}</div>
+                    {% endif %}
+                </div>
+
+            {% elif slide.type == 'open_question' %}
+                <div class="oq-bubble">
+                    <div class="oq-icon">💬</div>
+                    <div class="oq-question">{{ slide.question }}</div>
+                    {% if slide.hints %}
+                    <div class="oq-hints">
+                        {% for hint in slide.hints %}
+                        <div class="oq-hint">• {{ hint }}</div>
+                        {% endfor %}
+                    </div>
+                    {% endif %}
+                </div>
+
             {% elif slide.type == 'summary' %}
                 <h1>📌 {{ slide.title }}</h1>
                 <ul>
@@ -298,12 +377,21 @@
             {% endif %}
         </div>
         {% endfor %}
-    </div>
 
-    <div class="nav-controls">
-        <button class="nav-btn" id="prevBtn" onclick="navSlide(-1)">← {{ _('ai_previous') }}</button>
-        <div class="progress-bar"><div class="progress-fill" id="progressFill"></div></div>
-        <button class="nav-btn" id="nextBtn" onclick="navSlide(1)">{{ _('ai_next') }} →</button>
+        <!-- Controls bar inside stage -->
+        <div class="stage-controls">
+            <button class="nav-btn" id="prevBtn" onclick="navSlide(-1)">← {{ _('ai_previous') }}</button>
+            <div class="progress-bar"><div class="progress-fill" id="progressFill"></div></div>
+            <button class="nav-btn" id="nextBtn" onclick="navSlide(1)">{{ _('ai_next') }} →</button>
+            <button class="fs-toggle" id="fsToggle" onclick="toggleFs()" title="Fullscreen">
+                <svg id="fsIconExpand" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M3 7V3h4M21 7V3h-4M3 17v4h4M21 17v4h-4"/>
+                </svg>
+                <svg id="fsIconCollapse" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="display:none">
+                    <path d="M8 3v3a2 2 0 01-2 2H3M21 8h-3a2 2 0 01-2-2V3M3 16h3a2 2 0 012 2v3M16 21v-3a2 2 0 012-2h3"/>
+                </svg>
+            </button>
+        </div>
     </div>
 
     {% if presentation.teacher_id == session.user_id or session.is_admin %}
@@ -346,14 +434,28 @@ document.addEventListener('keydown', (e) => {
     if (e.key === 'ArrowRight' || e.key === ' ') { e.preventDefault(); navSlide(1); }
     if (e.key === 'ArrowLeft') { e.preventDefault(); navSlide(-1); }
     if (e.key === 'f' || e.key === 'F') toggleFs();
-    if (e.key === 'Escape') { const stage = document.getElementById('stage'); if (stage.classList.contains('fs')) toggleFs(); }
 });
 
 function toggleFs() {
     const stage = document.getElementById('stage');
-    stage.classList.toggle('fs');
+    if (!document.fullscreenElement && !document.webkitFullscreenElement) {
+        const req = stage.requestFullscreen || stage.webkitRequestFullscreen;
+        if (req) req.call(stage).catch(err => console.warn('Fullscreen error:', err));
+    } else {
+        const exit = document.exitFullscreen || document.webkitExitFullscreen;
+        if (exit) exit.call(document);
+    }
 }
 
+function _updateFsIcon(isFs) {
+    document.getElementById('fsIconExpand').style.display = isFs ? 'none' : '';
+    document.getElementById('fsIconCollapse').style.display = isFs ? '' : 'none';
+}
+
+document.addEventListener('fullscreenchange', () => _updateFsIcon(!!document.fullscreenElement));
+document.addEventListener('webkitfullscreenchange', () => _updateFsIcon(!!document.webkitFullscreenElement));
+
+/* ─── Quiz ─── */
 function answerQuiz(btn, idx, correct) {
     const opts = btn.parentElement.querySelectorAll('.quiz-opt');
     opts.forEach(o => o.classList.add('disabled'));
@@ -366,6 +468,7 @@ function answerQuiz(btn, idx, correct) {
     btn.parentElement.parentElement.querySelector('.quiz-explain').classList.add('show');
 }
 
+/* ─── True/False ─── */
 function answerTF(btn, chosen, actual) {
     const btns = btn.parentElement.querySelectorAll('.tf-btn');
     btns.forEach(b => b.disabled = true);
@@ -378,6 +481,7 @@ function answerTF(btn, chosen, actual) {
     btn.parentElement.parentElement.querySelector('.tf-explain').classList.add('show');
 }
 
+/* ─── Fill Blank ─── */
 function checkFill(btn) {
     const slide = btn.closest('.slide');
     const input = slide.querySelector('.fb-input');
@@ -395,6 +499,7 @@ function revealFill(btn) {
     fb.className = 'fb-feedback ok';
 }
 
+/* ─── Match ─── */
 let matchSel = null;
 function selectMatch(el) {
     if (el.classList.contains('matched')) return;
@@ -421,11 +526,51 @@ function selectMatch(el) {
         matchSel = null;
         wrong.classList.add('wrong-flash');
         el.classList.add('wrong-flash');
-        setTimeout(() => {
-            wrong.classList.remove('wrong-flash');
-            el.classList.remove('wrong-flash');
-        }, 600);
+        setTimeout(() => { wrong.classList.remove('wrong-flash'); el.classList.remove('wrong-flash'); }, 600);
     }
+}
+
+/* ─── Sequence ─── */
+let seqPicked = {};  // container id → next pick index (1-based)
+function clickSeq(el) {
+    if (el.classList.contains('placed')) return;
+    const container = el.closest('.seq-items');
+    const id = container.id;
+    if (!seqPicked[id]) seqPicked[id] = 1;
+    const num = seqPicked[id];
+    el.querySelector('.seq-num').textContent = num;
+    el.classList.add('placed');
+    seqPicked[id]++;
+}
+function resetSeq(btn) {
+    const slide = btn.closest('.slide');
+    const container = slide.querySelector('.seq-items');
+    seqPicked[container.id] = 1;
+    container.querySelectorAll('.seq-item').forEach(el => {
+        el.classList.remove('placed','correct-place','wrong-flash');
+        el.querySelector('.seq-num').textContent = '?';
+    });
+    slide.querySelector('.seq-reveal').classList.remove('show');
+}
+function checkSeq(btn) {
+    const slide = btn.closest('.slide');
+    const container = slide.querySelector('.seq-items');
+    const correct = JSON.parse(container.dataset.correct);
+    const items = [...container.querySelectorAll('.seq-item')];
+    const placed = items.filter(i => i.classList.contains('placed'));
+    if (placed.length < correct.length) return;
+    // Build ordered array by the number assigned
+    const ordered = [...items].sort((a,b) => {
+        return parseInt(a.querySelector('.seq-num').textContent) - parseInt(b.querySelector('.seq-num').textContent);
+    });
+    let allOk = true;
+    ordered.forEach((el, i) => {
+        if (!el.classList.contains('placed')) return;
+        const ok = el.dataset.val === correct[i];
+        el.classList.toggle('correct-place', ok);
+        if (!ok) { allOk = false; el.classList.add('wrong-flash'); setTimeout(()=>el.classList.remove('wrong-flash'),700); }
+    });
+    slide.querySelector('.seq-reveal').classList.add('show');
 }
 
 showSlide(0);

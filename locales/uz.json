@@ -256,6 +256,7 @@
     "ai_correct_label": "TO'G'RI",
     "ai_incorrect_label": "NOTO'G'RI",
     "ai_check": "Tekshirish",
+    "ai_reset": "Qayta boshlash",
     "ai_show_answer": "Javob",
     "ai_your_answer_placeholder": "Javobingiz...",
     "ai_correct_short": "To'g'ri!",

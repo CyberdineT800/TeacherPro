@@ -23,13 +23,15 @@ SYSTEM_PROMPT = """You are an expert teacher creating an interactive educational
 Rules:
 - Generate content STRICTLY in the requested language. All text fields (titles, content, questions, options, explanations) must be in that language only.
 - Adapt vocabulary, examples, and complexity to the student's grade. In Uzbekistan, students start school at age 7, so grade N corresponds to age N+6.
-- Make it INTERACTIVE: include quizzes, true/false, fill-in-the-blank, and matching exercises.
+- Make it INTERACTIVE: include quizzes, true/false, fill-in-the-blank, matching, sequence ordering, and open discussion questions.
 - Provide rich, accurate, age-appropriate information on the topic.
 - For every slide that benefits from a visual, include an `image_prompt` field in ENGLISH (it is used by an image generator) describing what to show. Do NOT translate image_prompt — keep it English.
 - Aim for 8–12 slides total. Mix slide types for variety.
 - For quizzes: 4 options, the index of the correct answer (0-3), and a short explanation.
 - For matching: 3–5 pairs of [left, right] items.
 - For fill-in-the-blank: a sentence with `___` where the blank is, plus the correct answer.
+- For sequence: 4–6 ordered items provided already in correct order (they will be shuffled for the student).
+- For open_question: a thought-provoking discussion question with 2–3 discussion hints for the teacher.
 
 Return ONLY valid JSON matching this schema (no markdown, no commentary):
 {
@@ -43,6 +45,8 @@ Return ONLY valid JSON matching this schema (no markdown, no commentary):
     {"type": "true_false", "statement": "...", "is_true": true, "explanation": "..."},
     {"type": "fill_blank", "title": "...", "sentence": "Sun is a ___.", "answer": "star", "hint": "..."},
     {"type": "match", "title": "...", "pairs": [["left1","right1"], ["left2","right2"]]},
+    {"type": "sequence", "title": "...", "items": ["step1","step2","step3","step4"], "explanation": "..."},
+    {"type": "open_question", "question": "...", "hints": ["hint1","hint2","hint3"]},
     {"type": "summary", "title": "...", "points": ["...", "..."]}
   ]
 }
@@ -56,13 +60,19 @@ def _clean_json(text: str) -> str:
     return text.strip()
 
 
+_STOP_WORDS = {
+    'a','an','the','of','in','on','at','to','for','with','and','or','is','are',
+    'was','were','be','been','having','showing','depicting','photo','image',
+    'picture','illustration','drawing','realistic','photograph','students','student',
+}
+
+
 def _image_url(prompt: str, seed: int = 1, width: int = 1024, height: int = 576) -> str:
-    """Pollinations.ai — free, no API key, returns an image directly from URL."""
-    encoded = quote((prompt or 'school education classroom').strip()[:300])
-    return (
-        f"https://image.pollinations.ai/prompt/{encoded}"
-        f"?width={width}&height={height}&seed={seed}&nologo=true&model=flux"
-    )
+    """Unsplash Source — real topic-relevant photos, no API key needed."""
+    words = re.sub(r'[^\w\s]', '', (prompt or 'education').lower()).split()
+    keywords = [w for w in words if w not in _STOP_WORDS and len(w) > 3][:4]
+    kw_str = quote(','.join(keywords) if keywords else 'education,science')
+    return f"https://source.unsplash.com/{width}x{height}/?{kw_str}&sig={seed}"
 
 
 def _attach_image_urls(presentation: dict) -> dict:
@@ -83,7 +93,7 @@ def _build_user_prompt(subject: str, grade: int, topic: str, language: str) -> s
         f"Grade: {grade} (students aged ~{age})\n"
         f"Topic: {topic}\n\n"
         f"Generate 8–12 varied slides. Start with a title slide, mix content slides "
-        f"with at least 3 interactive slides (quiz / true_false / fill_blank / match), "
+        f"with at least 4 interactive slides (quiz / true_false / fill_blank / match / sequence / open_question), "
         f"and end with a summary slide. Include image_prompt (in English) for visual slides."
     )
 

@@ -212,16 +212,18 @@ async def teacher_ai_delete(pid: int, request: Request, db: AsyncSession = Depen
 @router.get("/admin/ai", response_class=HTMLResponse, dependencies=[Depends(require_admin)])
 async def admin_ai_list(
     request: Request,
-    teacher_id: Optional[int] = None,
+    teacher_id: Optional[str] = None,
     db: AsyncSession = Depends(get_db),
 ):
+    tid: Optional[int] = int(teacher_id) if teacher_id and teacher_id.strip().isdigit() else None
+
     query = (
         select(AIPresentation, Employee)
         .join(Employee, Employee.id == AIPresentation.teacher_id)
         .order_by(AIPresentation.created_at.desc())
     )
-    if teacher_id:
-        query = query.where(AIPresentation.teacher_id == teacher_id)
+    if tid:
+        query = query.where(AIPresentation.teacher_id == tid)
 
     rows = (await db.execute(query)).all()
     items = [{'p': p, 't': t} for p, t in rows]
@@ -234,7 +236,7 @@ async def admin_ai_list(
     context.update({
         'items': items,
         'teachers': teachers,
-        'selected_teacher_id': teacher_id,
+        'selected_teacher_id': tid,
         'language_display': LANGUAGE_DISPLAY,
     })
     return templates.TemplateResponse('admin/ai_presentations.html', context)
@@ -454,6 +456,25 @@ async def _build_pptx(data: dict, presentation: AIPresentation) -> bytes:
                              Inches(0.6), size=18, bold=True, color=(0x1a, 0x4d, 0x9e))
                     add_text(slide, "→  " + str(pair[1]), Inches(7), Inches(1.7 + i * 0.7),
                              Inches(5), Inches(0.6), size=18)
+
+        elif stype == 'sequence':
+            add_text(slide, slide_data.get('title', ''), Inches(0.5), Inches(0.4), Inches(12),
+                     Inches(0.9), size=28, bold=True, color=(0x1a, 0x4d, 0x9e))
+            for i, item in enumerate(slide_data.get('items', [])):
+                add_text(slide, f"{i + 1}.  {item}", Inches(1), Inches(1.7 + i * 0.7),
+                         Inches(11), Inches(0.6), size=20)
+            if slide_data.get('explanation'):
+                add_text(slide, "💡 " + slide_data['explanation'], Inches(0.5), Inches(5.8),
+                         Inches(12), Inches(1.2), size=14, color=(0x66, 0x66, 0x66))
+
+        elif stype == 'open_question':
+            add_text(slide, "💬 " + slide_data.get('question', ''), Inches(0.5), Inches(1.5),
+                     Inches(12), Inches(2.5), size=30, bold=True, color=(0x1a, 0x4d, 0x9e))
+            hints = slide_data.get('hints', [])
+            if hints:
+                hint_text = '\n'.join(f"•  {h}" for h in hints)
+                add_text(slide, hint_text, Inches(0.5), Inches(4.5), Inches(12), Inches(2.5),
+                         size=16, color=(0x55, 0x66, 0x77))
 
         elif stype == 'summary':
             add_text(slide, "📌 " + slide_data.get('title', 'Xulosa'), Inches(0.5), Inches(0.4),

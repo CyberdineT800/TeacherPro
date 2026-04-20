@@ -256,6 +256,7 @@
     "ai_correct_label": "ВЕРНО",
     "ai_incorrect_label": "НЕВЕРНО",
     "ai_check": "Проверить",
+    "ai_reset": "Сбросить",
     "ai_show_answer": "Ответ",
     "ai_your_answer_placeholder": "Ваш ответ...",
     "ai_correct_short": "Верно!",
