@@ -29,7 +29,7 @@
     <div class="bg-grain" aria-hidden="true"></div>
 
     <nav class="navbar">
-        <div class="nav-brand">
+        <a class="nav-brand" href="{% if session.user_id %}{% if session.is_admin %}{{ url_for('admin_dashboard') }}{% else %}{{ url_for('teacher_dashboard') }}{% endif %}{% else %}{{ url_for('login') }}{% endif %}" style="text-decoration:none">
             <div class="nav-icon" aria-hidden="true">
                 <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
                     <path d="M3 8l9-5 9 5-9 5-9-5z" stroke="#0a0e1c" stroke-width="2" stroke-linejoin="round"/>
@@ -37,7 +37,7 @@
                 </svg>
             </div>
             <h1>{{ _('app_name') }}</h1>
-        </div>
+        </a>
 
         <div class="nav-links">
             {% if session.user_id %}
