@@ -46,6 +46,63 @@ function changeLanguage(langCode) {
         .catch(() => { window.location.href = rootPath + '/set-language/' + langCode; });
 }
 
+/* ---------- Hamburger menu ---------- */
+document.addEventListener('DOMContentLoaded', function () {
+    var hamburgerBtn = document.getElementById('hamburgerBtn');
+    var navLinks = document.querySelector('.nav-links');
+    if (hamburgerBtn && navLinks) {
+        hamburgerBtn.addEventListener('click', function (e) {
+            e.stopPropagation();
+            var open = navLinks.classList.toggle('mobile-open');
+            hamburgerBtn.classList.toggle('open', open);
+            hamburgerBtn.setAttribute('aria-expanded', open);
+        });
+
+        // Settings dropdown toggle on mobile (collapsed by default)
+        navLinks.querySelectorAll('.nav-dropdown > .nav-link').forEach(function (link) {
+            link.addEventListener('click', function (e) {
+                if (navLinks.classList.contains('mobile-open')) {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    link.closest('.nav-dropdown').classList.toggle('mobile-expanded');
+                }
+            });
+        });
+
+        // Close when clicking an actual page link (not dropdown toggles)
+        navLinks.addEventListener('click', function (e) {
+            var link = e.target.closest('a.dropdown-link, a.nav-link:not(.nav-dropdown > .nav-link)');
+            if (link) {
+                navLinks.classList.remove('mobile-open');
+                hamburgerBtn.classList.remove('open');
+                hamburgerBtn.setAttribute('aria-expanded', 'false');
+            }
+        });
+
+        // Close on outside click
+        document.addEventListener('click', function () {
+            navLinks.classList.remove('mobile-open');
+            hamburgerBtn.classList.remove('open');
+            hamburgerBtn.setAttribute('aria-expanded', 'false');
+            navLinks.querySelectorAll('.nav-dropdown').forEach(function (d) {
+                d.classList.remove('mobile-expanded');
+            });
+        });
+    }
+});
+
+/* ---------- Auto-wrap tables for mobile scroll ---------- */
+document.addEventListener('DOMContentLoaded', function () {
+    document.querySelectorAll('table').forEach(function (table) {
+        if (!table.parentElement.classList.contains('table-wrap')) {
+            var wrap = document.createElement('div');
+            wrap.className = 'table-wrap';
+            table.parentNode.insertBefore(wrap, table);
+            wrap.appendChild(table);
+        }
+    });
+});
+
 /* Language dropdown toggle + theme button init */
 document.addEventListener('DOMContentLoaded', function () {
     const languageCurrent = document.getElementById('languageCurrent');

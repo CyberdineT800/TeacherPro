@@ -39,6 +39,12 @@
             <h1>{{ _('app_name') }}</h1>
         </a>
 
+        {% if session.user_id %}
+        <button class="hamburger-btn" id="hamburgerBtn" aria-label="Menu" aria-expanded="false">
+            <span></span><span></span><span></span>
+        </button>
+        {% endif %}
+
         <div class="nav-links">
             {% if session.user_id %}
             <div class="nav-menu" id="navMenu">

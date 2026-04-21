@@ -21,6 +21,7 @@
 
     {% if exams %}
     <h3>{{ _('recent_exams') }}</h3>
+    <div style="overflow-x:auto">
     <table>
         <thead>
             <tr>
@@ -48,6 +49,7 @@
             {% endfor %}
         </tbody>
     </table>
+    </div>
     {% else %}
     <p>{{ _('no_exams_yet') }}</p>
     {% endif %}

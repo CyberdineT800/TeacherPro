@@ -1292,12 +1292,39 @@ table tbody tr:hover {
 }
 @keyframes spin { to { transform: rotate(360deg); } }
 
+/* ---------- Hamburger button ---------- */
+.hamburger-btn {
+    display: none;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    gap: 5px;
+    width: 36px; height: 36px;
+    background: var(--glass-bg);
+    border: 1px solid var(--glass-border);
+    border-radius: var(--r-sm);
+    cursor: pointer;
+    padding: 0;
+    margin-left: auto;
+    flex-shrink: 0;
+}
+.hamburger-btn span {
+    display: block;
+    width: 18px; height: 2px;
+    background: var(--text);
+    border-radius: 2px;
+    transition: all .25s var(--ease);
+}
+.hamburger-btn.open span:nth-child(1) { transform: translateY(7px) rotate(45deg); }
+.hamburger-btn.open span:nth-child(2) { opacity: 0; transform: scaleX(0); }
+.hamburger-btn.open span:nth-child(3) { transform: translateY(-7px) rotate(-45deg); }
+
 /* ---------- Responsive ---------- */
 @media (max-width: 860px) {
     .navbar {
         flex-wrap: wrap;
         border-radius: var(--r-lg);
-        padding: 12px;
+        padding: 10px 14px;
     }
     .nav-links { width: 100%; justify-content: space-between; }
     .nav-menu { flex-wrap: wrap; }
@@ -1306,12 +1333,85 @@ table tbody tr:hover {
     .footer { margin: 40px 10px 10px; padding: 28px 20px 16px; }
 }
 
-@media (max-width: 560px) {
-    .nav-menu { display: none; }
-    .user-info-compact { padding: 3px 8px 3px 3px; }
-    .card { padding: 20px 18px; border-radius: var(--r-md); }
+@media (max-width: 700px) {
+    /* Show hamburger, hide desktop nav-menu */
+    .hamburger-btn { display: flex; }
+    .nav-links { display: none; width: 100%; }
+    .nav-links.mobile-open {
+        display: flex;
+        flex-direction: column;
+        align-items: stretch;
+        gap: 6px;
+        padding-top: 8px;
+        border-top: 1px solid var(--glass-border);
+        margin-top: 8px;
+        max-height: 75vh;
+        overflow-y: auto;
+        -webkit-overflow-scrolling: touch;
+        overscroll-behavior: contain;
+    }
+    .nav-links.mobile-open .nav-menu {
+        display: flex;
+        flex-direction: column;
+        align-items: stretch;
+        width: 100%;
+        background: none;
+        border: none;
+        border-radius: 0;
+        padding: 0;
+        gap: 2px;
+    }
+    .nav-links.mobile-open .nav-link {
+        padding: 10px 14px;
+        border-radius: var(--r-sm);
+        white-space: normal;
+    }
+    .nav-links.mobile-open .nav-user {
+        width: 100%;
+        justify-content: space-between;
+        padding-top: 6px;
+        border-top: 1px solid var(--glass-border);
+        flex-wrap: wrap;
+    }
+    .nav-links.mobile-open .user-name-short { display: inline; }
+    /* Dropdown on mobile: collapsed by default, expands on .mobile-expanded */
+    .nav-links.mobile-open .nav-dropdown { position: static; }
+    .nav-links.mobile-open .dropdown-menu {
+        position: static;
+        transform: none;
+        opacity: 0;
+        visibility: hidden;
+        max-height: 0;
+        overflow: hidden;
+        box-shadow: none;
+        background: rgba(0,0,0,.18) !important;
+        border-radius: var(--r-sm);
+        padding: 0;
+        margin-top: 0;
+        transition: max-height .28s var(--ease), opacity .2s, padding .2s, margin .2s;
+    }
+    .nav-links.mobile-open .nav-dropdown.mobile-expanded .dropdown-menu {
+        opacity: 1;
+        visibility: visible;
+        max-height: none;
+        overflow: visible;
+        padding: 4px;
+        margin-top: 2px;
+    }
+    /* Rotate arrow on expand */
+    .nav-links.mobile-open .nav-dropdown .dropdown-arrow { display: inline-block; transition: transform .25s; }
+    .nav-links.mobile-open .nav-dropdown.mobile-expanded .dropdown-arrow { transform: rotate(180deg); }
+
+    /* General mobile fixes */
+    .card { padding: 16px 14px; border-radius: var(--r-md); }
+    .stats-grid { grid-template-columns: 1fr 1fr; }
+    table th, table td { padding: 8px 10px; font-size: 0.82rem; }
+    .table-wrap { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+}
+
+@media (max-width: 420px) {
     .stats-grid { grid-template-columns: 1fr; }
-    table th, table td { padding: 10px 12px; font-size: 0.85rem; }
+    .navbar { margin: 8px 10px 0; padding: 10px 12px; }
 }
 
 /* ---------- List / form helpers ---------- */

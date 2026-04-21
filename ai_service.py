@@ -3,9 +3,9 @@ import json
 import os
 import re
 import asyncio
-from typing import Optional
 from urllib.parse import quote
 
+import httpx
 from google import genai
 from google.genai import types
 
@@ -26,7 +26,7 @@ Rules:
 - Make it INTERACTIVE: include quizzes, true/false, fill-in-the-blank, matching, sequence ordering, and open discussion questions.
 - Provide rich, accurate, age-appropriate information on the topic.
 - For every slide that benefits from a visual, include an `image_prompt` field in ENGLISH (it is used by an image generator) describing what to show. Do NOT translate image_prompt — keep it English.
-- Aim for 8–12 slides total. Mix slide types for variety.
+- Aim for 12–15 slides total. Mix slide types for variety.
 - For quizzes: 4 options, the index of the correct answer (0-3), and a short explanation.
 - For matching: 3–5 pairs of [left, right] items.
 - For fill-in-the-blank: a sentence with `___` where the blank is, plus the correct answer.
@@ -40,6 +40,8 @@ Return ONLY valid JSON matching this schema (no markdown, no commentary):
   "slides": [
     {"type": "title", "title": "...", "subtitle": "...", "image_prompt": "..."},
     {"type": "content", "title": "...", "points": ["...", "..."], "image_prompt": "..."},
+    {"type": "other_content", "title": "...", "points": ["...", "..."], "image_prompt": "..."},
+    {"type": "other_content", "title": "...", "points": ["...", "..."], "image_prompt": "..."},
     {"type": "image_focus", "title": "...", "caption": "...", "image_prompt": "..."},
     {"type": "quiz", "question": "...", "options": ["A", "B", "C", "D"], "correct": 0, "explanation": "..."},
     {"type": "true_false", "statement": "...", "is_true": true, "explanation": "..."},
@@ -67,20 +69,55 @@ _STOP_WORDS = {
 }
 
 
-def _image_url(prompt: str, seed: int = 1, width: int = 1024, height: int = 576) -> str:
-    """Unsplash Source — real topic-relevant photos, no API key needed."""
-    words = re.sub(r'[^\w\s]', '', (prompt or 'education').lower()).split()
-    keywords = [w for w in words if w not in _STOP_WORDS and len(w) > 3][:4]
-    kw_str = quote(','.join(keywords) if keywords else 'education,science')
-    return f"https://source.unsplash.com/{width}x{height}/?{kw_str}&sig={seed}"
+async def _fetch_slide_image(client: httpx.AsyncClient, prompt: str, seed: int) -> str:
+    """Fetch a real educational image via Wikipedia REST API; fall back to Picsum."""
+    words = re.sub(r'[^\w\s]', '', (prompt or 'science').lower()).split()
+    kws = [w for w in words if w not in _STOP_WORDS and len(w) > 3]
+
+    # Try with 3, 2, then 1 keyword combinations
+    for n in range(min(3, len(kws)), 0, -1):
+        article = '_'.join(kws[:n])
+        try:
+            r = await client.get(
+                f"https://en.wikipedia.org/api/rest_v1/page/summary/{quote(article)}",
+                headers={'Accept': 'application/json'},
+                timeout=5.0,
+            )
+            if r.status_code == 200:
+                d = r.json()
+                # Prefer original full-size image
+                orig = d.get('originalimage', {}).get('source', '')
+                if orig:
+                    return orig
+                # Fall back to thumbnail, upscaled
+                thumb = d.get('thumbnail', {}).get('source', '')
+                if thumb:
+                    return re.sub(r'/\d+px-', '/1024px-', thumb)
+        except Exception:
+            break  # Network error → skip to Picsum
+
+    # Reliable real-photo fallback
+    return f"https://picsum.photos/seed/{seed}/1024/576"
 
 
-def _attach_image_urls(presentation: dict) -> dict:
-    """Mutates slides to include `image_url` derived from each slide's image_prompt."""
-    for i, slide in enumerate(presentation.get('slides', []), start=1):
-        prompt = slide.get('image_prompt')
-        if prompt:
-            slide['image_url'] = _image_url(prompt, seed=i)
+async def _attach_image_urls(presentation: dict) -> dict:
+    """Fetch real image URLs for all slides in parallel."""
+    slides_with_prompts = [
+        (i, s) for i, s in enumerate(presentation.get('slides', []), 1)
+        if s.get('image_prompt')
+    ]
+    if not slides_with_prompts:
+        return presentation
+
+    async with httpx.AsyncClient(follow_redirects=True, timeout=8.0) as client:
+        results = await asyncio.gather(
+            *[_fetch_slide_image(client, s['image_prompt'], i) for i, s in slides_with_prompts],
+            return_exceptions=True,
+        )
+
+    for (i, slide), url in zip(slides_with_prompts, results):
+        slide['image_url'] = url if isinstance(url, str) else f"https://picsum.photos/seed/{i}/1024/576"
+
     return presentation
 
 
@@ -99,7 +136,7 @@ def _build_user_prompt(subject: str, grade: int, topic: str, language: str) -> s
 
 
 async def generate_presentation(subject: str, grade: int, topic: str, language: str = 'uz') -> dict:
-    """Call Gemini and return a parsed presentation dict with image URLs attached."""
+    """Call Gemini and return a parsed presentation dict with real image URLs attached."""
     if not GEMINI_API_KEY:
         raise RuntimeError("GEMINI_API_KEY is not set in environment")
 
@@ -130,4 +167,4 @@ async def generate_presentation(subject: str, grade: int, topic: str, language: 
     if 'slides' not in data or not isinstance(data['slides'], list) or not data['slides']:
         raise RuntimeError("AI response missing 'slides'")
 
-    return _attach_image_urls(data)
+    return await _attach_image_urls(data)

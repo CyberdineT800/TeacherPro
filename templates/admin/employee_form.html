@@ -61,9 +61,12 @@
 
         <div class="form-group">
             <label>{{ _('assigned_classes') }}</label>
-            <div class="checkbox-group">
+            <div id="noSchoolHint" style="color:var(--text-muted);font-size:.85rem;padding:.5rem 0;display:none">
+                {{ _('select_school_first') }}
+            </div>
+            <div class="checkbox-group" id="classCheckboxGroup">
                 {% for class in classes %}
-                <div class="checkbox-item">
+                <div class="checkbox-item class-filter-item" data-school="{{ class.school_id }}">
                     <input type="checkbox" id="class_{{ class.id }}" name="assigned_classes" value="{{ class.id }}"
                         {% if employee and class in employee.assigned_classes %}checked{% endif %}>
                     <label for="class_{{ class.id }}">{{ class.name }}</label>
@@ -113,4 +116,28 @@
         </div>
     </form>
 </div>
+
+<script>
+(function () {
+    const schoolSel = document.getElementById('school_id');
+    const hint = document.getElementById('noSchoolHint');
+    const group = document.getElementById('classCheckboxGroup');
+
+    function filterClasses() {
+        const sid = schoolSel.value;
+        const items = group.querySelectorAll('.class-filter-item');
+        let visible = 0;
+        items.forEach(function (item) {
+            const show = !sid || String(item.dataset.school) === sid;
+            item.style.display = show ? '' : 'none';
+            if (show) visible++;
+        });
+        hint.style.display = !sid ? 'block' : 'none';
+        group.style.display = (sid && visible === 0) ? 'none' : '';
+    }
+
+    schoolSel.addEventListener('change', filterClasses);
+    filterClasses();
+})();
+</script>
 {% endblock %}
