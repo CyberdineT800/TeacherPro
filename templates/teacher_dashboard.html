@@ -20,6 +20,7 @@
     </div>
 
     {% if exams %}
+    {% include '_pagination.html' %}
     <h3>{{ _('recent_exams') }}</h3>
     <div style="overflow-x:auto">
     <table>
@@ -50,6 +51,7 @@
         </tbody>
     </table>
     </div>
+    {% include '_pagination.html' %}
     {% else %}
     <p>{{ _('no_exams_yet') }}</p>
     {% endif %}

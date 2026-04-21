@@ -1,0 +1,25 @@
+{% if total_pages > 1 %}
+<nav class="pagination" aria-label="Pagination">
+    {% if page > 1 %}
+    <a href="{{ page_base }}{{ page - 1 }}" class="page-btn">‹</a>
+    {% else %}
+    <span class="page-btn disabled">‹</span>
+    {% endif %}
+
+    {% for p in page_numbers %}
+        {% if p is none %}
+        <span class="page-btn ellipsis">…</span>
+        {% elif p == page %}
+        <span class="page-btn active">{{ p }}</span>
+        {% else %}
+        <a href="{{ page_base }}{{ p }}" class="page-btn">{{ p }}</a>
+        {% endif %}
+    {% endfor %}
+
+    {% if page < total_pages %}
+    <a href="{{ page_base }}{{ page + 1 }}" class="page-btn">›</a>
+    {% else %}
+    <span class="page-btn disabled">›</span>
+    {% endif %}
+</nav>
+{% endif %}

@@ -3,7 +3,7 @@ from fastapi.responses import HTMLResponse, RedirectResponse, StreamingResponse
 from fastapi.templating import Jinja2Templates
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
-from sqlalchemy import select, delete
+from sqlalchemy import select, delete, func
 from typing import Optional
 from io import BytesIO
 import json
@@ -12,7 +12,7 @@ from models import (
     CHSBQuestionAssignment, get_db, Employee, School, SchoolClass, Student, Subject, Quarter, 
     ExamName, ExamType, QuestionType, Exam, Question, ExamResult
 )
-from dependencies import require_login, flash, get_template_context
+from dependencies import require_login, flash, get_template_context, page_info
 from utils import generate_excel_report, generate_pdf_report, generate_word_report
 
 router = APIRouter(prefix="/teacher", dependencies=[Depends(require_login)])
@@ -25,21 +25,26 @@ templates = Jinja2Templates(directory="templates")
 @router.get("/dashboard", response_class=HTMLResponse)
 async def teacher_dashboard(
     request: Request,
+    page: int = 1,
     db: AsyncSession = Depends(get_db)
 ):
     """Teacher dashboard"""
+    per_page = 10
     teacher_id = request.session.get('user_id')
-    
-    # Get teacher info
+
     teacher_result = await db.execute(select(Employee).where(Employee.id == teacher_id))
     employee = teacher_result.scalar_one_or_none()
-    
-    # Get teacher's exams
+
+    total_exams = (await db.execute(
+        select(func.count(Exam.id)).where(Exam.teacher_id == teacher_id)
+    )).scalar()
+    pg = page_info(total_exams, page, per_page, request)
+
     exams_result = await db.execute(
         select(Exam)
         .where(Exam.teacher_id == teacher_id)
         .order_by(Exam.created_at.desc())
-        .limit(10)
+        .offset(pg['row_offset']).limit(per_page)
     )
     exams = exams_result.scalars().all()
     
@@ -77,7 +82,8 @@ async def teacher_dashboard(
     context.update({
         'employee': employee,
         'school': school,
-        'exams': exams_data
+        'exams': exams_data,
+        **pg,
     })
     return templates.TemplateResponse('teacher_dashboard.html', context)
 

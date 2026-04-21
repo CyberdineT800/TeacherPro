@@ -19,6 +19,7 @@
     </form>
 
     {% if quarters %}
+    {% include '_pagination.html' %}
     <div class="table-container">
         <table>
             <thead>
@@ -32,7 +33,7 @@
             <tbody>
                 {% for quarter in quarters %}
                 <tr>
-                    <td class="row-number">{{ loop.index }}</td>
+                    <td class="row-number">{{ loop.index0 + row_offset + 1 }}</td>
                     <td><span class="count-pill">{{ quarter.order_num }}</span></td>
                     <td>{{ quarter.name }}</td>
                     <td>
@@ -45,6 +46,7 @@
             </tbody>
         </table>
     </div>
+    {% include '_pagination.html' %}
     {% else %}
     <div class="no-data"><p>{{ _('no_data') }}</p></div>
     {% endif %}

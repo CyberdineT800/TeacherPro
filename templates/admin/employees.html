@@ -26,6 +26,7 @@
     </div>
 
     {% if employees %}
+    {% include '_pagination.html' %}
     <div class="table-container">
         <table>
             <thead>
@@ -44,7 +45,7 @@
             <tbody>
                 {% for employee in employees %}
                 <tr>
-                    <td class="row-number">{{ loop.index }}</td>
+                    <td class="row-number">{{ loop.index0 + row_offset + 1 }}</td>
                     <td>
                         <div class="name-cell">
                             <span class="mini-avatar">{{ employee.first_name[0]|upper }}{{ employee.last_name[0]|upper }}</span>
@@ -87,6 +88,7 @@
             </tbody>
         </table>
     </div>
+    {% include '_pagination.html' %}
     {% else %}
     <div class="no-data"><p>{{ _('no_data') }}</p></div>
     {% endif %}

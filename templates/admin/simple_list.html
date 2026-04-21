@@ -15,6 +15,7 @@
     </form>
 
     {% if items %}
+    {% include '_pagination.html' %}
     <div class="table-container">
         <table>
             <thead>
@@ -27,7 +28,7 @@
             <tbody>
                 {% for item in items %}
                 <tr>
-                    <td class="row-number">{{ loop.index }}</td>
+                    <td class="row-number">{{ loop.index0 + row_offset + 1 }}</td>
                     <td>{% if item.title %}{{ item.title }}{% else %}{{ item.name }}{% endif %}</td>
                     <td>
                         <form method="POST" action="{{ url_for(delete_url, id=item.id) }}" style="display:inline;"
@@ -40,6 +41,7 @@
             </tbody>
         </table>
     </div>
+    {% include '_pagination.html' %}
     {% else %}
     <div class="no-data"><p>{{ _('no_data') }}</p></div>
     {% endif %}

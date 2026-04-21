@@ -1,10 +1,47 @@
-from typing import Optional, Dict, Any
+from math import ceil
+from typing import Optional, Dict, Any, List
 from fastapi import Depends, HTTPException, Request, status
 from fastapi.responses import RedirectResponse
 from sqlalchemy.ext.asyncio import AsyncSession
 from models import get_db, Employee
 from sqlalchemy import select
 from language import language_manager
+
+
+def page_info(total: int, page: int, per_page: int, request: Request) -> dict:
+    """Build pagination context for templates."""
+    total_pages = max(1, ceil(total / per_page)) if total else 1
+    page = max(1, min(page, total_pages))
+
+    qp = {k: v for k, v in request.query_params.items() if k != 'page'}
+    path = request.url.path
+    if qp:
+        page_base = path + '?' + '&'.join(f"{k}={v}" for k, v in qp.items()) + '&page='
+    else:
+        page_base = path + '?page='
+
+    if total_pages <= 7:
+        page_numbers: List = list(range(1, total_pages + 1))
+    else:
+        pages = {1, total_pages}
+        for p in range(max(1, page - 2), min(total_pages + 1, page + 3)):
+            pages.add(p)
+        page_numbers = []
+        prev = 0
+        for p in sorted(pages):
+            if p - prev > 1:
+                page_numbers.append(None)
+            page_numbers.append(p)
+            prev = p
+
+    return {
+        'page': page,
+        'total_pages': total_pages,
+        'page_base': page_base,
+        'page_numbers': page_numbers,
+        'row_offset': (page - 1) * per_page,
+        'total_count': total,
+    }
 
 def get_flashed_messages(request: Request, with_categories: bool = False):
     """Get flash messages from session (compatible with Flask)"""

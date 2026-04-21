@@ -2,7 +2,7 @@ from fastapi import APIRouter, Request, Depends, Form, UploadFile, File
 from fastapi.responses import HTMLResponse, RedirectResponse
 from fastapi.templating import Jinja2Templates
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select, delete
+from sqlalchemy import select, delete, func
 from sqlalchemy.orm import selectinload
 from datetime import datetime
 from typing import Optional
@@ -12,7 +12,7 @@ from models import (
     Subject, Quarter, ExamName, ExamType, QuestionType, Exam, Question, ExamResult,
     TeacherClass, TeacherSubject
 )
-from dependencies import require_admin, flash, get_template_context
+from dependencies import require_admin, flash, get_template_context, page_info
 from utils import process_student_excel
 
 router = APIRouter(prefix="/admin", dependencies=[Depends(require_admin)])
@@ -136,14 +136,22 @@ async def delete_translation(
 @router.get("/schools", response_class=HTMLResponse)
 async def schools_list(
     request: Request,
+    page: int = 1,
     db: AsyncSession = Depends(get_db)
 ):
     """List all schools"""
-    result = await db.execute(select(School).order_by(School.created_at.desc()))
+    per_page = 10
+    total = (await db.execute(select(func.count(School.id)))).scalar()
+    pg = page_info(total, page, per_page, request)
+
+    result = await db.execute(
+        select(School).order_by(School.created_at.desc())
+        .offset(pg['row_offset']).limit(per_page)
+    )
     schools = result.scalars().all()
-    
+
     context = await get_template_context(request)
-    context['schools'] = schools
+    context.update({'schools': schools, **pg})
     return templates.TemplateResponse('admin/schools.html', context)
 
 @router.get("/schools/add", response_class=HTMLResponse)
@@ -267,34 +275,40 @@ async def delete_school(
 async def employees_list(
     request: Request,
     school_id: Optional[str] = None,
+    page: int = 1,
     db: AsyncSession = Depends(get_db)
 ):
     """List all employees"""
+    per_page = 10
+    school_id_int = None
     if school_id and school_id.strip():
         try:
             school_id_int = int(school_id)
         except ValueError:
-            school_id_int = None
+            pass
 
-    if school_id:
-        result = await db.execute(
-            select(Employee)
-            .options(selectinload(Employee.school), selectinload(Employee.staff_title))
-            .where(Employee.school_id == school_id_int)
-        )
+    base_q = (
+        select(Employee)
+        .options(selectinload(Employee.school), selectinload(Employee.staff_title))
+    )
+    count_q = select(func.count(Employee.id))
+    if school_id_int:
+        base_q = base_q.where(Employee.school_id == school_id_int)
+        count_q = count_q.where(Employee.school_id == school_id_int)
     else:
-        result = await db.execute(
-            select(Employee)
-            .options(selectinload(Employee.school), selectinload(Employee.staff_title))
-            .order_by(Employee.created_at.desc())
-        )
+        base_q = base_q.order_by(Employee.created_at.desc())
+
+    total = (await db.execute(count_q)).scalar()
+    pg = page_info(total, page, per_page, request)
+
+    result = await db.execute(base_q.offset(pg['row_offset']).limit(per_page))
     employees = result.scalars().all()
-    
+
     schools_result = await db.execute(select(School))
     schools = schools_result.scalars().all()
-    
+
     context = await get_template_context(request)
-    context.update({'employees': employees, 'schools': schools})
+    context.update({'employees': employees, 'schools': schools, **pg})
     return templates.TemplateResponse('admin/employees.html', context)  
 
 @router.get("/employees/add", response_class=HTMLResponse)
@@ -527,31 +541,47 @@ async def toggle_employee_status(
 @router.get("/classes", response_class=HTMLResponse)
 async def classes_list(
     request: Request,
-    school_id: Optional[str] = None,  
+    school_id: Optional[str] = None,
+    page: int = 1,
     db: AsyncSession = Depends(get_db)
 ):
     """List all classes"""
+    per_page = 10
     school_id_int = None
     if school_id and school_id.strip():
         try:
             school_id_int = int(school_id)
         except ValueError:
-            school_id_int = None
-    
+            pass
+
+    base_q = select(SchoolClass)
+    count_q = select(func.count(SchoolClass.id))
     if school_id_int:
-        result = await db.execute(select(SchoolClass).where(SchoolClass.school_id == school_id_int))
+        base_q = base_q.where(SchoolClass.school_id == school_id_int)
+        count_q = count_q.where(SchoolClass.school_id == school_id_int)
     else:
-        result = await db.execute(select(SchoolClass).order_by(SchoolClass.created_at.desc()))
+        base_q = base_q.order_by(SchoolClass.created_at.desc())
+
+    total = (await db.execute(count_q)).scalar()
+    pg = page_info(total, page, per_page, request)
+
+    result = await db.execute(base_q.offset(pg['row_offset']).limit(per_page))
     classes = result.scalars().all()
-    
+
     schools_result = await db.execute(select(School))
     schools = schools_result.scalars().all()
-    
-    students_result = await db.execute(select(Student))
-    students = students_result.scalars().all()
-    
+
+    # Load student counts per class (only for displayed classes)
+    class_ids = [c.id for c in classes]
+    student_counts_rows = (await db.execute(
+        select(Student.class_id, func.count(Student.id))
+        .where(Student.class_id.in_(class_ids))
+        .group_by(Student.class_id)
+    )).all() if class_ids else []
+    student_counts = dict(student_counts_rows)
+
     context = await get_template_context(request)
-    context.update({'classes': classes, 'schools': schools, 'students': students})
+    context.update({'classes': classes, 'schools': schools, 'student_counts': student_counts, **pg})
     return templates.TemplateResponse('admin/classes.html', context)
 
 @router.get("/classes/add", response_class=HTMLResponse)
@@ -700,40 +730,46 @@ async def delete_class(
 async def students_list(
     request: Request,
     class_id: Optional[str] = None,
+    page: int = 1,
     db: AsyncSession = Depends(get_db)
 ):
     """List all students"""
-    # Convert class_id to int if provided and not empty
+    per_page = 10
     class_id_int = None
     if class_id and class_id.strip():
         try:
             class_id_int = int(class_id)
         except ValueError:
             pass
-    
+
     if class_id_int:
+        # No pagination when viewing a specific class
         result = await db.execute(select(Student).where(Student.class_id == class_id_int))
         students = result.scalars().all()
-        # Eagerly load the school relationship to avoid lazy loading in template
         class_result = await db.execute(
             select(SchoolClass)
             .options(selectinload(SchoolClass.school))
             .where(SchoolClass.id == class_id_int)
         )
         selected_class = class_result.scalar_one_or_none()
+        pg = page_info(len(students), 1, len(students) or 1, request)
     else:
-        result = await db.execute(select(Student).order_by(Student.created_at.desc()))
+        total = (await db.execute(select(func.count(Student.id)))).scalar()
+        pg = page_info(total, page, per_page, request)
+        result = await db.execute(
+            select(Student).order_by(Student.created_at.desc())
+            .offset(pg['row_offset']).limit(per_page)
+        )
         students = result.scalars().all()
         selected_class = None
-    
-    # Eagerly load schools for all classes
+
     classes_result = await db.execute(
         select(SchoolClass).options(selectinload(SchoolClass.school))
     )
     classes = classes_result.scalars().all()
-    
+
     context = await get_template_context(request)
-    context.update({'students': students, 'classes': classes, 'selected_class': selected_class})
+    context.update({'students': students, 'classes': classes, 'selected_class': selected_class, **pg})
     return templates.TemplateResponse('admin/students.html', context)  
 
 @router.get("/students/add", response_class=HTMLResponse)
@@ -857,21 +893,26 @@ async def delete_student(
 @router.get("/subjects", response_class=HTMLResponse)
 async def subjects_list(
     request: Request,
+    page: int = 1,
     db: AsyncSession = Depends(get_db)
 ):
     """List all subjects"""
-    result = await db.execute(select(Subject))
+    per_page = 10
+    total = (await db.execute(select(func.count(Subject.id)))).scalar()
+    pg = page_info(total, page, per_page, request)
+    result = await db.execute(select(Subject).offset(pg['row_offset']).limit(per_page))
     subjects = result.scalars().all()
 
     from language import language_manager
     lang = request.session.get('language', 'uz')
-    
+
     context = await get_template_context(request)
     context.update({
         'items': subjects,
         'title': language_manager.get('subjects', lang),
         'add_url': 'add_subject',
-        'delete_url': 'delete_subject'
+        'delete_url': 'delete_subject',
+        **pg,
     })
     return templates.TemplateResponse('admin/simple_list.html', context)
 
@@ -923,14 +964,21 @@ async def delete_subject(
 @router.get("/quarters", response_class=HTMLResponse)
 async def quarters_list(
     request: Request,
+    page: int = 1,
     db: AsyncSession = Depends(get_db)
 ):
     """List all quarters"""
-    result = await db.execute(select(Quarter).order_by(Quarter.order_num))
+    per_page = 10
+    total = (await db.execute(select(func.count(Quarter.id)))).scalar()
+    pg = page_info(total, page, per_page, request)
+    result = await db.execute(
+        select(Quarter).order_by(Quarter.order_num)
+        .offset(pg['row_offset']).limit(per_page)
+    )
     quarters = result.scalars().all()
-    
+
     context = await get_template_context(request)
-    context['quarters'] = quarters
+    context.update({'quarters': quarters, **pg})
     return templates.TemplateResponse('admin/quarters.html', context) 
 
 @router.post("/quarters/add")
@@ -966,21 +1014,26 @@ async def delete_quarter(
 @router.get("/exam-names", response_class=HTMLResponse)
 async def exam_names_list(
     request: Request,
+    page: int = 1,
     db: AsyncSession = Depends(get_db)
 ):
     """List all exam names"""
-    result = await db.execute(select(ExamName))
+    per_page = 10
+    total = (await db.execute(select(func.count(ExamName.id)))).scalar()
+    pg = page_info(total, page, per_page, request)
+    result = await db.execute(select(ExamName).offset(pg['row_offset']).limit(per_page))
     exam_names = result.scalars().all()
 
     from language import language_manager
     lang = request.session.get('language', 'uz')
-    
+
     context = await get_template_context(request)
     context.update({
         'items': exam_names,
         'title': language_manager.get('exam_names', lang),
         'add_url': 'add_exam_name',
-        'delete_url': 'delete_exam_name'
+        'delete_url': 'delete_exam_name',
+        **pg,
     })
     return templates.TemplateResponse('admin/simple_list.html', context)  
 
@@ -1016,21 +1069,26 @@ async def delete_exam_name(
 @router.get("/exam-types", response_class=HTMLResponse)
 async def exam_types_list(
     request: Request,
+    page: int = 1,
     db: AsyncSession = Depends(get_db)
 ):
     """List all exam types"""
-    result = await db.execute(select(ExamType))
+    per_page = 10
+    total = (await db.execute(select(func.count(ExamType.id)))).scalar()
+    pg = page_info(total, page, per_page, request)
+    result = await db.execute(select(ExamType).offset(pg['row_offset']).limit(per_page))
     exam_types = result.scalars().all()
 
     from language import language_manager
     lang = request.session.get('language', 'uz')
-    
+
     context = await get_template_context(request)
     context.update({
         'items': exam_types,
         'title': language_manager.get('exam_types', lang),
         'add_url': 'add_exam_type',
-        'delete_url': 'delete_exam_type'
+        'delete_url': 'delete_exam_type',
+        **pg,
     })
     return templates.TemplateResponse('admin/simple_list.html', context) 
 
@@ -1066,21 +1124,26 @@ async def delete_exam_type(
 @router.get("/question-types", response_class=HTMLResponse)
 async def question_types_list(
     request: Request,
+    page: int = 1,
     db: AsyncSession = Depends(get_db)
 ):
     """List all question types"""
-    result = await db.execute(select(QuestionType))
+    per_page = 10
+    total = (await db.execute(select(func.count(QuestionType.id)))).scalar()
+    pg = page_info(total, page, per_page, request)
+    result = await db.execute(select(QuestionType).offset(pg['row_offset']).limit(per_page))
     question_types = result.scalars().all()
 
     from language import language_manager
     lang = request.session.get('language', 'uz')
-    
+
     context = await get_template_context(request)
     context.update({
         'items': question_types,
         'title': language_manager.get('question_types', lang),
         'add_url': 'add_question_type',
-        'delete_url': 'delete_question_type'
+        'delete_url': 'delete_question_type',
+        **pg,
     })
     return templates.TemplateResponse('admin/simple_list.html', context)
 
@@ -1116,21 +1179,26 @@ async def delete_question_type(
 @router.get("/staff-titles", response_class=HTMLResponse)
 async def staff_titles_list(
     request: Request,
+    page: int = 1,
     db: AsyncSession = Depends(get_db)
 ):
     """List all staff titles"""
-    result = await db.execute(select(StaffTitle))
+    per_page = 10
+    total = (await db.execute(select(func.count(StaffTitle.id)))).scalar()
+    pg = page_info(total, page, per_page, request)
+    result = await db.execute(select(StaffTitle).offset(pg['row_offset']).limit(per_page))
     staff_titles = result.scalars().all()
 
     from language import language_manager
     lang = request.session.get('language', 'uz')
-    
+
     context = await get_template_context(request)
     context.update({
         'items': staff_titles,
         'title': language_manager.get('staff_titles', lang),
         'add_url': 'add_staff_title',
-        'delete_url': 'delete_staff_title'
+        'delete_url': 'delete_staff_title',
+        **pg,
     })
     return templates.TemplateResponse('admin/simple_list.html', context) 
 

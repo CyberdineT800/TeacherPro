@@ -71,6 +71,7 @@
                         <span class="dropdown-arrow">▼</span>
                     </a>
                     <div class="dropdown-menu">
+                        <a href="{{ url_for('admin_ai_settings') }}" class="dropdown-link">{{ _('ai_settings_title') }}</a>
                         <a href="{{ url_for('subjects_list') }}" class="dropdown-link">{{ _('subjects') }}</a>
                         <a href="{{ url_for('quarters_list') }}" class="dropdown-link">{{ _('quarters') }}</a>
                         <a href="{{ url_for('exam_names_list') }}" class="dropdown-link">{{ _('exam_names') }}</a>

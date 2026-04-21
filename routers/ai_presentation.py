@@ -20,7 +20,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
 from models import get_db, Employee, Subject, AIPresentation, School
-from dependencies import require_login, require_admin, flash, get_template_context
+from dependencies import require_login, require_admin, flash, get_template_context, page_info
 from ai_service import generate_presentation
 from language import language_manager
 
@@ -44,7 +44,8 @@ LANGUAGE_DISPLAY = {
 # ============================================================================
 
 @router.get("/teacher/ai", response_class=HTMLResponse, dependencies=[Depends(require_login)])
-async def teacher_ai_list(request: Request, db: AsyncSession = Depends(get_db)):
+async def teacher_ai_list(request: Request, page: int = 1, db: AsyncSession = Depends(get_db)):
+    per_page = 6
     teacher_id = request.session.get('user_id')
     teacher = (await db.execute(select(Employee).where(Employee.id == teacher_id))).scalar_one()
 
@@ -55,10 +56,16 @@ async def teacher_ai_list(request: Request, db: AsyncSession = Depends(get_db)):
     _reset_if_new_day(teacher)
     await db.commit()
 
+    total = (await db.execute(
+        select(func.count(AIPresentation.id)).where(AIPresentation.teacher_id == teacher_id)
+    )).scalar()
+    pg = page_info(total, page, per_page, request)
+
     presentations = (await db.execute(
         select(AIPresentation)
         .where(AIPresentation.teacher_id == teacher_id)
         .order_by(AIPresentation.created_at.desc())
+        .offset(pg['row_offset']).limit(per_page)
     )).scalars().all()
 
     context = await get_template_context(request, db)
@@ -67,6 +74,7 @@ async def teacher_ai_list(request: Request, db: AsyncSession = Depends(get_db)):
         'teacher': teacher,
         'remaining': max(0, teacher.ai_daily_limit - teacher.ai_used_today),
         'language_display': LANGUAGE_DISPLAY,
+        **pg,
     })
     return templates.TemplateResponse('teacher/ai_list.html', context)
 
@@ -213,19 +221,26 @@ async def teacher_ai_delete(pid: int, request: Request, db: AsyncSession = Depen
 async def admin_ai_list(
     request: Request,
     teacher_id: Optional[str] = None,
+    page: int = 1,
     db: AsyncSession = Depends(get_db),
 ):
+    per_page = 6
     tid: Optional[int] = int(teacher_id) if teacher_id and teacher_id.strip().isdigit() else None
 
-    query = (
+    count_q = select(func.count(AIPresentation.id))
+    data_q = (
         select(AIPresentation, Employee)
         .join(Employee, Employee.id == AIPresentation.teacher_id)
         .order_by(AIPresentation.created_at.desc())
     )
     if tid:
-        query = query.where(AIPresentation.teacher_id == tid)
+        count_q = count_q.where(AIPresentation.teacher_id == tid)
+        data_q = data_q.where(AIPresentation.teacher_id == tid)
 
-    rows = (await db.execute(query)).all()
+    total = (await db.execute(count_q)).scalar()
+    pg = page_info(total, page, per_page, request)
+
+    rows = (await db.execute(data_q.offset(pg['row_offset']).limit(per_page))).all()
     items = [{'p': p, 't': t} for p, t in rows]
 
     teachers = (await db.execute(
@@ -238,6 +253,7 @@ async def admin_ai_list(
         'teachers': teachers,
         'selected_teacher_id': tid,
         'language_display': LANGUAGE_DISPLAY,
+        **pg,
     })
     return templates.TemplateResponse('admin/ai_presentations.html', context)
 

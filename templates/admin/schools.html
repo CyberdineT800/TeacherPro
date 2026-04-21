@@ -10,6 +10,7 @@
     </div>
 
     {% if schools %}
+    {% include '_pagination.html' %}
     <div class="table-container">
         <table>
             <thead>
@@ -25,7 +26,7 @@
             <tbody>
                 {% for school in schools %}
                 <tr>
-                    <td class="row-number">{{ loop.index }}</td>
+                    <td class="row-number">{{ loop.index0 + row_offset + 1 }}</td>
                     <td><strong>{{ school.name }}</strong></td>
                     <td>{{ school.address if school.address else '—' }}</td>
                     <td>{{ school.phone if school.phone else '—' }}</td>
@@ -43,6 +44,7 @@
             </tbody>
         </table>
     </div>
+    {% include '_pagination.html' %}
     {% else %}
     <div class="no-data"><p>{{ _('no_data') }}</p></div>
     {% endif %}

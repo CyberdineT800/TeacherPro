@@ -35,6 +35,7 @@
     {% endif %}
 
     {% if students %}
+    {% include '_pagination.html' %}
     <div class="table-container">
         <table>
             <thead>
@@ -51,7 +52,7 @@
             <tbody>
                 {% for student in students %}
                 <tr>
-                    <td class="row-number">{{ loop.index }}</td>
+                    <td class="row-number">{{ loop.index0 + row_offset + 1 }}</td>
                     <td>{{ student.first_name }}</td>
                     <td>{{ student.last_name }}</td>
                     <td>
@@ -74,6 +75,7 @@
             </tbody>
         </table>
     </div>
+    {% if not selected_class %}{% include '_pagination.html' %}{% endif %}
     {% else %}
     <div class="no-data"><p>{{ _('no_data') }}</p></div>
     {% endif %}
