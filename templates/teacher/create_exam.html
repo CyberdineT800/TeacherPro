@@ -214,13 +214,13 @@
 .dist-table th{
   font-size:.7rem;color:var(--text-dim);font-weight:700;text-align:left;
   padding:4px 4px 8px;text-transform:uppercase;letter-spacing:.05em;}
-.dist-table td{padding:4px}
+.dist-table td{padding:2px}
 .dist-table select,
 .dist-table input[type=number]{
-  padding:6px 8px;background:rgba(255,255,255,.05);border:1px solid var(--glass-border);
+  padding:3px 4px;background:rgba(255,255,255,.05);border:1px solid var(--glass-border);
   border-radius:8px;font:inherit;font-size:.82rem;color:var(--text);}
 .dist-table select{width:100%}
-.dist-table input[type=number]{width:56px;text-align:center;font-weight:600}
+.dist-table input[type=number]{width:40px;text-align:center;font-weight:600}
 .dist-table select option{background:var(--bg-1)}
 .dist-x,.dist-ball,.dist-eq{color:var(--text-dim);font-size:.78rem}
 .dist-total-val{font-weight:800;color:var(--text);min-width:28px;text-align:right;font-variant-numeric:tabular-nums}
@@ -596,13 +596,13 @@
               <table class="dist-table">
                 <thead>
                   <tr>
-                    <th style="width:55%">{{ _('type_col') }}</th>
-                    <th style="width:18%">{{ _('count_col') }}</th>
+                    <th style="width:72%">{{ _('type_col') }}</th>
+                    <th style="width:10%">{{ _('count_col') }}</th>
                     <th style="width:2%"></th>
-                    <th style="width:16%">{{ _('ball_label') }}</th>
-                    <th style="width:4%"></th>
-                    <th style="width:14%">=</th>
-                    <th style="width:6%"></th>
+                    <th style="width:10%">{{ _('ball_label') }}</th>
+                    <th style="width:2%"></th>
+                    <th style="width:2%">=</th>
+                    <th style="width:2%"></th>
                   </tr>
                 </thead>
                 <tbody id="dist_tbody"></tbody>
@@ -732,7 +732,7 @@ function selectFormat(f){
   else{ph.className='preview-header chsb';sub.className='preview-subtitle chsb';sub.textContent=T.chsb_subtitle;}
   document.getElementById('pi_period_label').textContent=f==='bsb'?T.period:T.quarter;
   markDone(1,f==='bsb'?'BSB':'ChSB');expandStep(2);resetDefaults();
-  updateVariantStyle();updateDiffStyle();resetPeriodSelection();
+  updateVariantStyle();updateDiffStyle();resetPeriodSelection();selectGroup(0);
 }
 
 function selectClass(id,name){
@@ -849,6 +849,8 @@ function markDone(step,label){
 function expandStep(step){
   for(let i=1;i<=4;i++){const body=document.getElementById(`s${i}body`);if(body)body.style.display=i===step?'':'none';}
   const prog=document.getElementById(`prog${step}`);if(prog&&!prog.classList.contains('done'))prog.classList.add('active');
+  const card=document.getElementById(`s${step}`);
+  if(card)setTimeout(()=>card.scrollIntoView({behavior:'smooth',block:'nearest'}),50);
 }
 function tryExpand(step){
   if(step===2&&!fmt)return;if(step===3&&!selClass)return;if(step===4&&!selSubject)return;expandStep(step);

@@ -14,7 +14,8 @@ def page_info(total: int, page: int, per_page: int, request: Request) -> dict:
     page = max(1, min(page, total_pages))
 
     qp = {k: v for k, v in request.query_params.items() if k != 'page'}
-    path = request.url.path
+    root = (getattr(request.app, 'root_path', '') or '').rstrip('/')
+    path = root + request.url.path
     if qp:
         page_base = path + '?' + '&'.join(f"{k}={v}" for k, v in qp.items()) + '&page='
     else:
