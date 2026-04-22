@@ -58,6 +58,16 @@ async def init_db():
                 "ADD COLUMN IF NOT EXISTS ai_used_today INTEGER NOT NULL DEFAULT 0, "
                 "ADD COLUMN IF NOT EXISTS ai_last_reset DATE"
             ))
+            await conn.execute(text(
+                "ALTER TABLE ai_presentations "
+                "ADD COLUMN IF NOT EXISTS template VARCHAR(50) NOT NULL DEFAULT 'cosmos'"
+            ))
+            await conn.execute(text(
+                "ALTER TABLE employees "
+                "ADD COLUMN IF NOT EXISTS ai_questions_daily_limit INTEGER NOT NULL DEFAULT 5, "
+                "ADD COLUMN IF NOT EXISTS ai_questions_used_today INTEGER NOT NULL DEFAULT 0, "
+                "ADD COLUMN IF NOT EXISTS ai_questions_last_reset DATE"
+            ))
 
 class School(Base):
     __tablename__ = 'schools'
@@ -97,6 +107,10 @@ class Employee(Base):
     ai_daily_limit = Column(Integer, default=3, nullable=False)
     ai_used_today = Column(Integer, default=0, nullable=False)
     ai_last_reset = Column(Date, nullable=True)
+
+    ai_questions_daily_limit = Column(Integer, default=5, nullable=False)
+    ai_questions_used_today = Column(Integer, default=0, nullable=False)
+    ai_questions_last_reset = Column(Date, nullable=True)
 
     school = relationship('School', back_populates='employees')
     staff_title = relationship('StaffTitle', back_populates='employees')
@@ -252,6 +266,7 @@ class AIPresentation(Base):
     grade = Column(Integer, nullable=False)
     topic = Column(String(300), nullable=False)
     language = Column(String(10), nullable=False, default='uz')
+    template = Column(String(50), nullable=False, default='cosmos')
     content = Column(Text, nullable=False)
     slides_count = Column(Integer, default=0, nullable=False)
     created_at = Column(DateTime, default=datetime.utcnow, index=True)
@@ -259,6 +274,22 @@ class AIPresentation(Base):
     teacher = relationship('Employee')
     subject = relationship('Subject')
 
+class AIQuestionSet(Base):
+    __tablename__ = 'ai_question_sets'
+    id = Column(Integer, primary_key=True)
+    teacher_id = Column(Integer, ForeignKey('employees.id'), nullable=False, index=True)
+    subject_name = Column(String(100), nullable=False)
+    grade = Column(Integer, nullable=False)
+    topic = Column(String(300), nullable=False)
+    language = Column(String(10), nullable=False, default='uz')
+    question_type = Column(String(10), nullable=False, default='test')
+    question_count = Column(Integer, nullable=False, default=10)
+    content = Column(Text, nullable=False)
+    created_at = Column(DateTime, default=datetime.utcnow, index=True)
+
+    teacher = relationship('Employee')
+
 Index('ix_exam_results_exam_student', ExamResult.exam_id, ExamResult.student_id)
 Index('ix_students_class_group', Student.class_id, Student.group_number)
 Index('ix_ai_presentations_teacher_created', AIPresentation.teacher_id, AIPresentation.created_at)
+Index('ix_ai_question_sets_teacher_created', AIQuestionSet.teacher_id, AIQuestionSet.created_at)

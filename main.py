@@ -11,7 +11,7 @@ from models import (
     init_db, AsyncSessionLocal,
     Employee, Quarter, ExamName, ExamType, QuestionType, StaffTitle
 )
-from routers import auth, admin, teacher, language, ai_presentation
+from routers import auth, admin, teacher, language, ai_presentation, ai_questions
 from dependencies import get_flashed_messages
 
 
@@ -136,6 +136,9 @@ async def add_template_context(request: Request, call_next):
             'teacher_ai_create': '/teacher/ai/create',
             'admin_ai_list': '/admin/ai',
             'admin_ai_settings': '/admin/ai/settings',
+            'teacher_ai_questions_list': '/teacher/ai-questions',
+            'teacher_ai_questions_create': '/teacher/ai-questions/create',
+            'admin_ai_questions': '/admin/ai-questions',
         }
 
         base_path = route_map.get(name, f'/{name}')
@@ -164,6 +167,7 @@ app.include_router(admin.router, tags=["Admin"])
 app.include_router(teacher.router, tags=["Teacher"])
 app.include_router(language.router, tags=["Language"])
 app.include_router(ai_presentation.router, tags=["AI"])
+app.include_router(ai_questions.router, tags=["AI Questions"])
 
 # Root redirect (handled by auth router)
 # Additional routes can be added here if needed

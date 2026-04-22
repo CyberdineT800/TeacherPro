@@ -25,15 +25,18 @@
         display: flex; flex-direction: column;
         position: relative; overflow: hidden;
     }
+    .ai-card {
+        --card-accent: var(--c-cyan);
+    }
     .ai-card::before {
         content: ""; position: absolute; left: 0; top: 0; bottom: 0; width: 4px;
-        background: linear-gradient(180deg, var(--c-cyan), var(--c-violet));
-        opacity: .8;
+        background: var(--card-accent);
+        opacity: .9;
     }
     .ai-card:hover {
-        transform: translateY(-3px); box-shadow: var(--sh-glow-cyan);
-        border-color: var(--c-cyan);
-        background: linear-gradient(160deg, rgba(100,200,255,.12), rgba(180,120,255,.08));
+        transform: translateY(-3px);
+        box-shadow: 0 0 0 1px var(--card-accent), 0 8px 24px rgba(0,0,0,.3);
+        border-color: var(--card-accent);
     }
     .ai-card .topic {
         font-weight: 700; font-size: 1.08rem; color: var(--text);
@@ -88,20 +91,25 @@
     {% include '_pagination.html' %}
     <div class="ai-grid">
         {% for item in items %}
-        <div class="ai-card">
+        {% set tpl_key = item.p.template if item.p.template else 'cosmos' %}
+        {% set tpl = presentation_templates.get(tpl_key, presentation_templates['cosmos']) %}
+        <div class="ai-card" style="--card-accent:{{ tpl.accent }}">
             <div class="teacher-name">{{ item.t.first_name }} {{ item.t.last_name }}</div>
             <h3 class="topic">{{ item.p.topic }}</h3>
             <div class="meta">
                 <span class="ai-chip">{{ item.p.subject_name }}</span>
                 <span class="ai-chip">{{ item.p.grade }}{{ _('ai_grade_suffix') }}</span>
-                <span class="ai-chip lang">{{ language_display.get(item.p.language, item.p.language) }}</span>
+                <span class="ai-chip lang" style="color:{{ tpl.accent }}">{{ language_display.get(item.p.language, item.p.language) }}</span>
                 <span class="ai-chip">{{ item.p.slides_count }} {{ _('ai_slides_count') }}</span>
+                <span class="ai-chip" style="color:{{ tpl.accent }}">{{ tpl.label }}</span>
             </div>
             <div class="footer">
                 <span>{{ item.p.created_at.strftime('%d.%m.%Y %H:%M') }}</span>
                 <div class="actions">
                     <a href="{{ request.app.root_path }}/teacher/ai/{{ item.p.id }}" class="btn btn-primary btn-sm">{{ _('ai_view_action') }}</a>
-                    <a href="{{ request.app.root_path }}/admin/ai/{{ item.p.id }}/download" class="btn btn-success btn-sm" title="{{ _('ai_pptx_download') }}">⬇</a>
+                    <a href="{{ request.app.root_path }}/admin/ai/{{ item.p.id }}/download" class="btn btn-success btn-sm" title="{{ _('ai_pptx_download') }}">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+                    </a>
                 </div>
             </div>
         </div>

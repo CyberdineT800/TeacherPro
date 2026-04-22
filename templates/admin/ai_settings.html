@@ -9,7 +9,7 @@
         padding: .85rem 1rem; text-align: left;
         border-bottom: 1px solid var(--glass-border);
     }
-    .settings-table th { color: var(--text-muted); font-weight: 600; font-size: .85rem; text-transform: uppercase; letter-spacing: .04em; }
+    .settings-table th { color: var(--text-muted); font-weight: 600; font-size: .8rem; text-transform: uppercase; letter-spacing: .04em; }
     .settings-table tr:hover { background: rgba(255,255,255,.03); }
     .toggle-switch {
         position: relative; display: inline-block;
@@ -29,23 +29,34 @@
     input:checked + .toggle-slider { background: var(--c-cyan); border-color: var(--c-cyan); }
     input:checked + .toggle-slider:before { transform: translateX(24px); }
     .limit-input {
-        width: 70px; padding: .45rem .6rem; text-align: center;
+        width: 65px; padding: .4rem .5rem; text-align: center;
         border-radius: var(--r-sm); background: var(--glass-bg);
         border: 1px solid var(--glass-border); color: var(--text);
+        font-size: .9rem;
     }
     .count-badge {
         padding: .25rem .65rem; border-radius: var(--r-pill);
         background: rgba(100,200,255,.12); color: var(--c-cyan);
-        font-weight: 700; font-size: .85rem;
+        font-weight: 700; font-size: .82rem;
     }
     .count-badge.zero { background: rgba(255,255,255,.05); color: var(--text-faint); }
+    .count-badge.q { background: rgba(180,120,255,.12); color: var(--c-violet); }
+    .count-badge.q.zero { background: rgba(255,255,255,.05); color: var(--text-faint); }
     .save-btn {
         padding: .4rem .8rem; border-radius: var(--r-sm);
         background: var(--c-cyan); color: #0a0e1c; border: none;
-        font-weight: 700; cursor: pointer; font-size: .85rem;
+        font-weight: 700; cursor: pointer; font-size: .82rem;
+        white-space: nowrap;
     }
     .save-btn:hover { opacity: .9; }
-    .school-tag { font-size: .8rem; color: var(--text-faint); display: block; margin-top: .15rem; }
+    .school-tag { font-size: .78rem; color: var(--text-faint); display: block; margin-top: .1rem; }
+    .section-divider {
+        padding: .3rem 1rem; background: rgba(255,255,255,.03);
+        font-size: .78rem; font-weight: 700; color: var(--text-muted);
+        text-transform: uppercase; letter-spacing: .06em;
+        border-bottom: 1px solid var(--glass-border);
+        border-top: 1px solid var(--glass-border);
+    }
 </style>
 {% endblock %}
 
@@ -53,22 +64,31 @@
 <div class="card">
     <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1.5rem;flex-wrap:wrap;gap:.5rem">
         <div>
-            <h2 style="margin:0">⚙ {{ _('ai_settings_title') }}</h2>
+            <h2 style="margin:0">{{ _('ai_settings_title') }}</h2>
             <p style="margin:.4rem 0 0;color:var(--text-muted)">
                 {{ _('ai_settings_subtitle') }}
             </p>
         </div>
-        <a href="{{ request.app.root_path }}/admin/ai" class="btn btn-secondary btn-sm">← {{ _('ai_back_to_list') }}</a>
+        <div style="display:flex;gap:.5rem;flex-wrap:wrap">
+            <a href="{{ request.app.root_path }}/admin/ai-questions" class="btn btn-secondary btn-sm">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="margin-right:.3rem"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 015.83 1c0 2-3 3-3 3"/><circle cx="12" cy="17" r=".5" fill="currentColor"/></svg>
+                Savollar
+            </a>
+            <a href="{{ request.app.root_path }}/admin/ai" class="btn btn-secondary btn-sm">← {{ _('ai_back_to_list') }}</a>
+        </div>
     </div>
 
     {% if teachers %}
+    <div style="overflow-x:auto">
     <table class="settings-table">
         <thead>
             <tr>
                 <th>{{ _('ai_table_teacher') }}</th>
-                <th style="text-align:center">{{ _('ai_table_created') }}</th>
+                <th style="text-align:center">Taqdimotlar</th>
+                <th style="text-align:center">Savollar</th>
                 <th style="text-align:center">{{ _('ai_table_enabled') }}</th>
-                <th style="text-align:center">{{ _('ai_table_daily_limit') }}</th>
+                <th style="text-align:center">Taqdimot limiti</th>
+                <th style="text-align:center">Savol limiti</th>
                 <th style="text-align:center">{{ _('ai_table_used_today') }}</th>
                 <th style="text-align:right">{{ _('ai_table_save') }}</th>
             </tr>
@@ -86,6 +106,11 @@
                     </span>
                 </td>
                 <td style="text-align:center">
+                    <span class="count-badge q {% if not q_counts.get(t.id) %}zero{% endif %}">
+                        {{ q_counts.get(t.id, 0) }}
+                    </span>
+                </td>
+                <td style="text-align:center">
                     <form method="POST" action="{{ request.app.root_path }}/admin/ai/settings/{{ t.id }}"
                         id="form-{{ t.id }}" style="display:inline-flex;gap:.5rem;align-items:center"></form>
                     <label class="toggle-switch">
@@ -99,9 +124,18 @@
                         form="form-{{ t.id }}" value="{{ t.ai_daily_limit }}" min="0" max="50">
                 </td>
                 <td style="text-align:center">
-                    <span class="count-badge {% if not t.ai_used_today %}zero{% endif %}">
-                        {{ t.ai_used_today }} / {{ t.ai_daily_limit }}
-                    </span>
+                    <input type="number" class="limit-input" name="ai_questions_daily_limit"
+                        form="form-{{ t.id }}" value="{{ t.ai_questions_daily_limit }}" min="0" max="100">
+                </td>
+                <td style="text-align:center">
+                    <div style="display:flex;flex-direction:column;gap:.25rem;align-items:center">
+                        <span class="count-badge {% if not t.ai_used_today %}zero{% endif %}" title="Taqdimot">
+                            {{ t.ai_used_today }} / {{ t.ai_daily_limit }}
+                        </span>
+                        <span class="count-badge q {% if not t.ai_questions_used_today %}zero{% endif %}" title="Savol">
+                            {{ t.ai_questions_used_today }} / {{ t.ai_questions_daily_limit }}
+                        </span>
+                    </div>
                 </td>
                 <td style="text-align:right">
                     <button type="submit" class="save-btn" form="form-{{ t.id }}">{{ _('ai_table_save') }}</button>
@@ -110,6 +144,7 @@
             {% endfor %}
         </tbody>
     </table>
+    </div>
     {% else %}
     <p style="text-align:center;color:var(--text-muted);padding:2rem">{{ _('ai_no_teachers') }}</p>
     {% endif %}

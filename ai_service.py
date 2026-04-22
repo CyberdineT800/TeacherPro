@@ -129,10 +129,99 @@ def _build_user_prompt(subject: str, grade: int, topic: str, language: str) -> s
         f"Subject: {subject}\n"
         f"Grade: {grade} (students aged ~{age})\n"
         f"Topic: {topic}\n\n"
-        f"Generate 8–12 varied slides. Start with a title slide, mix content slides "
+        f"Generate 12–15 varied slides. Start with a title slide, mix content slides "
         f"with at least 4 interactive slides (quiz / true_false / fill_blank / match / sequence / open_question), "
         f"and end with a summary slide. Include image_prompt (in English) for visual slides."
     )
+
+
+_QUESTION_SYSTEM_PROMPT_TEST = """You are an expert teacher creating a multiple-choice test for school students.
+
+Rules:
+- Generate EXACTLY the requested number of questions.
+- All text must be in the requested language only.
+- Adapt vocabulary and complexity to the student's grade (in Uzbekistan grade N = age N+6).
+- Each question must have exactly 4 options.
+- The correct field is the 0-based index of the correct option (0=A, 1=B, 2=C, 3=D).
+- Questions must cover different aspects of the topic, not repeat the same idea.
+
+Return ONLY valid JSON (no markdown, no commentary):
+{
+  "title": "string (test title)",
+  "questions": [
+    {"number": 1, "question": "...", "options": ["A. ...", "B. ...", "C. ...", "D. ..."], "correct": 0},
+    ...
+  ]
+}
+"""
+
+_QUESTION_SYSTEM_PROMPT_OPEN = """You are an expert teacher creating open-ended questions for school students.
+
+Rules:
+- Generate EXACTLY the requested number of questions.
+- All text must be in the requested language only.
+- Adapt vocabulary and complexity to the student's grade (in Uzbekistan grade N = age N+6).
+- Questions should require analytical thinking, not simple yes/no answers.
+- Each question may have an optional short hint for the teacher.
+
+Return ONLY valid JSON (no markdown, no commentary):
+{
+  "title": "string (question set title)",
+  "questions": [
+    {"number": 1, "question": "...", "hint": "optional short teacher hint"},
+    ...
+  ]
+}
+"""
+
+
+async def generate_questions(subject: str, grade: int, topic: str, language: str,
+                             question_type: str, count: int) -> dict:
+    """Call Gemini and return a parsed question set dict."""
+    if not GEMINI_API_KEY:
+        raise RuntimeError("GEMINI_API_KEY is not set in environment")
+
+    age = grade + 6
+    lang_label = LANGUAGE_NAMES.get(language, LANGUAGE_NAMES['uz'])
+    type_label = "multiple-choice test" if question_type == 'test' else "open-ended questions"
+
+    user_prompt = (
+        f"Generate {count} {type_label} {lang_label}.\n\n"
+        f"Subject: {subject}\n"
+        f"Grade: {grade} (students aged ~{age})\n"
+        f"Topic: {topic}\n\n"
+        f"Generate exactly {count} questions."
+    )
+
+    system = _QUESTION_SYSTEM_PROMPT_TEST if question_type == 'test' else _QUESTION_SYSTEM_PROMPT_OPEN
+
+    client = genai.Client(api_key=GEMINI_API_KEY)
+
+    def _call_sync():
+        return client.models.generate_content(
+            model=MODEL_NAME,
+            contents=user_prompt,
+            config=types.GenerateContentConfig(
+                system_instruction=system,
+                response_mime_type="application/json",
+                temperature=0.7,
+                max_output_tokens=9000,
+            ),
+        )
+
+    response = await asyncio.to_thread(_call_sync)
+    raw = response.text or ''
+    cleaned = _clean_json(raw)
+
+    try:
+        data = json.loads(cleaned)
+    except json.JSONDecodeError as e:
+        raise RuntimeError(f"AI returned invalid JSON: {e}. Raw: {raw[:500]}")
+
+    if 'questions' not in data or not isinstance(data['questions'], list) or not data['questions']:
+        raise RuntimeError("AI response missing 'questions'")
+
+    return data
 
 
 async def generate_presentation(subject: str, grade: int, topic: str, language: str = 'uz') -> dict:
@@ -151,7 +240,7 @@ async def generate_presentation(subject: str, grade: int, topic: str, language: 
                 system_instruction=SYSTEM_PROMPT,
                 response_mime_type="application/json",
                 temperature=0.8,
-                max_output_tokens=8000,
+                max_output_tokens=10000,
             ),
         )
 

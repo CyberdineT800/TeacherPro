@@ -27,15 +27,15 @@
         text-decoration: none; color: inherit;
         position: relative; overflow: hidden;
     }
+    .ai-card { --card-accent: var(--c-cyan); }
     .ai-card::before {
         content: ""; position: absolute; left: 0; top: 0; bottom: 0; width: 4px;
-        background: linear-gradient(180deg, var(--c-cyan), var(--c-violet));
-        opacity: .8;
+        background: var(--card-accent); opacity: .9;
     }
     .ai-card:hover {
-        transform: translateY(-3px); box-shadow: var(--sh-glow-cyan);
-        border-color: var(--c-cyan);
-        background: linear-gradient(160deg, rgba(100,200,255,.12), rgba(180,120,255,.08));
+        transform: translateY(-3px);
+        box-shadow: 0 0 0 1px var(--card-accent), 0 8px 24px rgba(0,0,0,.3);
+        border-color: var(--card-accent);
     }
 
     .ai-card .topic {
@@ -60,6 +60,7 @@
         font-weight: 500; line-height: 1.5;
     }
     .ai-chip.lang { background: rgba(100,200,255,.18); color: var(--c-cyan); border-color: rgba(100,200,255,.4); font-weight: 600; }
+    .ai-chip.tpl { color: var(--card-accent); }
     .ai-card .footer {
         display: flex; justify-content: space-between;
         align-items: center; font-size: .85rem;
@@ -67,7 +68,7 @@
         padding-top: .8rem; border-top: 1px solid var(--glass-border-strong);
     }
     .ai-card .footer .view-arrow {
-        color: var(--c-cyan); font-weight: 700;
+        color: var(--card-accent); font-weight: 700;
         transition: transform .2s var(--ease);
     }
     .ai-card:hover .footer .view-arrow { transform: translateX(4px); }
@@ -106,13 +107,17 @@
     {% include '_pagination.html' %}
     <div class="ai-grid">
         {% for p in presentations %}
-        <a href="{{ request.app.root_path }}/teacher/ai/{{ p.id }}" class="ai-card">
+        {% set tpl_key = p.template if p.template else 'cosmos' %}
+        {% set tpl = presentation_templates.get(tpl_key, presentation_templates['cosmos']) %}
+        <a href="{{ request.app.root_path }}/teacher/ai/{{ p.id }}" class="ai-card"
+           style="--card-accent:{{ tpl.accent }}">
             <h3 class="topic">{{ p.topic }}</h3>
             <div class="meta">
                 <span class="ai-chip">{{ p.subject_name }}</span>
                 <span class="ai-chip">{{ p.grade }}{{ _('ai_grade_suffix') }}</span>
-                <span class="ai-chip lang">{{ language_display.get(p.language, p.language) }}</span>
+                <span class="ai-chip lang" style="color:{{ tpl.accent }}">{{ language_display.get(p.language, p.language) }}</span>
                 <span class="ai-chip">{{ p.slides_count }} {{ _('ai_slides_count') }}</span>
+                <span class="ai-chip tpl">{{ tpl.label }}</span>
             </div>
             <div class="spacer"></div>
             <div class="footer">

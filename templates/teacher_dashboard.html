@@ -15,7 +15,8 @@
     <div style="margin-bottom: 2rem;display:flex;gap:.6rem;flex-wrap:wrap">
         <a href="{{ url_for('create_exam') }}" class="btn btn-success">+ {{ _('create_exam') }}</a>
         {% if session.ai_enabled %}
-        <a href="{{ url_for('teacher_ai_list') }}" class="btn btn-primary">{{ _('ai_presentation') }}</a>
+        <a href="{{ url_for('teacher_ai_list') }}" class="btn btn-primary">{{ _('ai_presentations') }}</a>
+        <a href="{{ request.app.root_path }}/teacher/ai-questions" class="btn btn-primary">{{ _('ai_questions') }}</a>
         {% endif %}
     </div>
 

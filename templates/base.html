@@ -65,6 +65,10 @@
                     class="nav-link {% if request.endpoint == 'admin_ai_list' %}active{% endif %}">
                     {{ _('ai_presentation') }}
                 </a>
+                <a href="{{ url_for('admin_ai_questions') }}"
+                    class="nav-link {% if request.endpoint == 'admin_ai_questions' %}active{% endif %}">
+                    {{ _('ai_questions') }}
+                </a>
                 <div class="nav-dropdown" id="settingsDropdown">
                     <a href="#" class="nav-link" tabindex="0">
                         {{ _('settings') }}
@@ -93,7 +97,11 @@
                 {% if session.ai_enabled %}
                 <a href="{{ url_for('teacher_ai_list') }}"
                     class="nav-link {% if request.endpoint == 'teacher_ai_list' %}active{% endif %}">
-                    {{ _('ai_presentation') }}
+                    {{ _('ai_presentations') }}
+                </a>
+                <a href="{{ request.app.root_path }}/teacher/ai-questions"
+                    class="nav-link {% if request.endpoint == 'teacher_ai_list' %}active{% endif %}">
+                    {{ _('ai_questions') }}
                 </a>
                 {% endif %}
                 {% endif %}

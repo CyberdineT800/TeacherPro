@@ -1,0 +1,268 @@
+{% extends "base.html" %}
+
+{% block title %}{{ _('aq_new_set') }}{% endblock %}
+
+{% block extra_css %}
+<style>
+    .qc-wrap { max-width: 720px; margin: 0 auto; }
+    .form-row { margin-bottom: 1.4rem; }
+    .form-row label {
+        display: block; margin-bottom: .55rem;
+        font-weight: 600; font-size: .92rem; color: var(--text);
+    }
+    .grade-grid {
+        display: grid; grid-template-columns: repeat(auto-fit, minmax(58px, 1fr)); gap: .45rem;
+    }
+    .grade-btn {
+        padding: .7rem .4rem; border-radius: var(--r-sm);
+        background: var(--glass-bg); border: 1px solid var(--glass-border);
+        color: var(--text-muted); font-weight: 600; cursor: pointer;
+        transition: all .15s var(--ease); font-size: 1rem;
+    }
+    .grade-btn:hover { background: var(--glass-bg-hover); color: var(--text); }
+    .grade-btn.active {
+        background: rgba(180,120,255,.2); color: var(--c-violet);
+        border-color: var(--c-violet); box-shadow: 0 0 10px rgba(180,120,255,.2);
+    }
+    .type-btns { display: flex; gap: .6rem; flex-wrap: wrap; }
+    .type-btn {
+        flex: 1; min-width: 160px; padding: 1rem 1.2rem; border-radius: var(--r-md);
+        background: var(--glass-bg); border: 2px solid var(--glass-border);
+        color: var(--text-muted); cursor: pointer; transition: all .15s var(--ease);
+        text-align: left; font-family: inherit;
+    }
+    .type-btn:hover { background: var(--glass-bg-hover); color: var(--text); }
+    .type-btn.active {
+        border-color: var(--c-violet); color: var(--text);
+        background: rgba(180,120,255,.1);
+    }
+    .type-btn .type-name { font-weight: 700; font-size: 1rem; display: block; margin-bottom: .25rem; }
+    .type-btn .type-desc { font-size: .82rem; color: var(--text-muted); }
+    .count-row {
+        display: flex; align-items: center; gap: .8rem; flex-wrap: wrap;
+    }
+    .count-input {
+        width: 90px; padding: .7rem .9rem; text-align: center; font-size: 1rem;
+        border-radius: var(--r-sm); background: var(--glass-bg);
+        border: 1px solid var(--glass-border); color: var(--text); font-family: inherit;
+    }
+    .count-input:focus { border-color: var(--c-violet); outline: none; box-shadow: 0 0 0 3px rgba(180,120,255,.15); }
+    .count-hint { font-size: .85rem; color: var(--text-muted); }
+    .lang-btns { display: flex; gap: .5rem; flex-wrap: wrap; }
+    .lang-btn {
+        padding: .7rem 1.2rem; border-radius: var(--r-sm);
+        background: var(--glass-bg); border: 1px solid var(--glass-border);
+        color: var(--text-muted); font-weight: 600; cursor: pointer;
+        transition: all .15s var(--ease);
+    }
+    .lang-btn:hover { background: var(--glass-bg-hover); color: var(--text); }
+    .lang-btn.active { background: rgba(180,120,255,.2); color: var(--c-violet); border-color: var(--c-violet); }
+    .topic-input {
+        width: 100%; padding: .9rem 1rem; font-size: 1rem;
+        border-radius: var(--r-sm); background: var(--glass-bg);
+        border: 1px solid var(--glass-border); color: var(--text);
+        font-family: inherit; resize: vertical; min-height: 90px;
+    }
+    .topic-input:focus { border-color: var(--c-violet); outline: none; box-shadow: 0 0 0 3px rgba(180,120,255,.15); }
+    .submit-row { display: flex; gap: .8rem; align-items: center; margin-top: 1.5rem; }
+
+    .gen-overlay {
+        position: fixed; inset: 0; background: rgba(10,14,28,.85);
+        backdrop-filter: blur(8px); z-index: 9999;
+        display: none; align-items: center; justify-content: center;
+    }
+    .gen-overlay.show { display: flex; }
+    .gen-card {
+        background: var(--glass-bg-strong); border: 1px solid var(--glass-border-strong);
+        border-radius: var(--r-lg); padding: 2.5rem 3rem; text-align: center;
+        max-width: 420px; box-shadow: var(--sh-lg);
+    }
+    .spinner {
+        width: 56px; height: 56px; margin: 0 auto 1.2rem;
+        border: 4px solid rgba(180,120,255,.15);
+        border-top-color: var(--c-violet); border-radius: 50%;
+        animation: spin 1s linear infinite;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    .gen-card h3 { margin: 0 0 .5rem; }
+    .gen-card p { margin: 0; color: var(--text-muted); }
+    .err-box {
+        margin-top: 1rem; padding: .8rem 1rem;
+        background: rgba(220,80,80,.12); border: 1px solid rgba(220,80,80,.3);
+        color: var(--err); border-radius: var(--r-sm); display: none;
+    }
+    .err-box.show { display: block; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="card qc-wrap">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1rem;flex-wrap:wrap;gap:.5rem">
+        <h2 style="margin:0">{{ _('aq_new_set') }}</h2>
+        <a href="{{ request.app.root_path }}/teacher/ai-questions" class="btn btn-secondary btn-sm">← {{ _('ai_back') }}</a>
+    </div>
+    <p style="color:var(--text-muted);margin-bottom:1.8rem">
+        {{ _('aq_create_desc') }}
+        {{ _('aq_remaining') }}: <strong style="color:var(--c-violet)">{{ remaining }}</strong>{{ _('count_suffix') }}.
+    </p>
+
+    <form id="qcForm">
+        <div class="form-row">
+            <label for="subject_id">{{ _('subject') }}</label>
+            <select id="subject_id" name="subject_id" required style="width:100%;padding:.85rem 1rem">
+                <option value="">{{ _('ai_subject_select') }}</option>
+                {% for s in subjects %}
+                <option value="{{ s.id }}">{{ s.name }}</option>
+                {% endfor %}
+            </select>
+        </div>
+
+        <div class="form-row">
+            <label>{{ _('class') }}</label>
+            <div class="grade-grid">
+                {% for g in range(1, 12) %}
+                <button type="button" class="grade-btn" data-grade="{{ g }}" onclick="selectGrade({{ g }})">{{ g }}</button>
+                {% endfor %}
+            </div>
+            <input type="hidden" id="grade" name="grade" required>
+        </div>
+
+        <div class="form-row">
+            <label>{{ _('aq_question_type') }}</label>
+            <div class="type-btns">
+                <button type="button" class="type-btn active" data-type="test" onclick="selectType('test')">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="margin-bottom:.4rem"><circle cx="12" cy="12" r="10"/><path d="M9 12l2 2 4-4"/></svg>
+                    <span class="type-name">{{ _('aq_type_test') }}</span>
+                    <span class="type-desc">{{ _('aq_test_desc') }}</span>
+                </button>
+                <button type="button" class="type-btn" data-type="open" onclick="selectType('open')">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="margin-bottom:.4rem"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 015.83 1c0 2-3 3-3 3"/><circle cx="12" cy="17" r=".5" fill="currentColor"/></svg>
+                    <span class="type-name">{{ _('aq_type_open') }}</span>
+                    <span class="type-desc">{{ _('aq_open_desc') }}</span>
+                </button>
+            </div>
+            <input type="hidden" id="question_type" name="question_type" value="test">
+        </div>
+
+        <div class="form-row">
+            <label>{{ _('aq_count_label') }}</label>
+            <div class="count-row">
+                <input type="number" id="question_count" name="question_count" class="count-input"
+                    value="10" min="10" max="30" required>
+                <span class="count-hint" id="countHint">{{ _('aq_count_test_hint') }}</span>
+            </div>
+        </div>
+
+        <div class="form-row">
+            <label>{{ _('language') }}</label>
+            <div class="lang-btns">
+                <button type="button" class="lang-btn active" data-lang="uz" onclick="selectLang('uz')">O'zbekcha</button>
+                <button type="button" class="lang-btn" data-lang="ru" onclick="selectLang('ru')">Русский</button>
+                <button type="button" class="lang-btn" data-lang="en" onclick="selectLang('en')">English</button>
+            </div>
+            <input type="hidden" id="language" name="language" value="uz">
+        </div>
+
+        <div class="form-row">
+            <label for="topic">{{ _('aq_topic_label') }}</label>
+            <textarea id="topic" name="topic" class="topic-input" required maxlength="300"
+                placeholder="{{ _('aq_topic_placeholder') }}"></textarea>
+        </div>
+
+        <div class="err-box" id="errBox"></div>
+
+        <div class="submit-row">
+            <button type="submit" class="btn btn-primary" id="submitBtn">
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="margin-right:.35rem"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
+                {{ _('aq_create_btn') }}
+            </button>
+            <span style="color:var(--text-muted);font-size:.85rem">{{ _('aq_estimated_time') }}</span>
+        </div>
+    </form>
+</div>
+
+<div class="gen-overlay" id="genOverlay">
+    <div class="gen-card">
+        <div class="spinner"></div>
+        <h3>{{ _('aq_generating') }}</h3>
+        <p>{{ _('aq_generating_hint') }}</p>
+    </div>
+</div>
+
+<script>
+const _aqHints = {
+    test: {{ _('aq_count_test_hint')|tojson }},
+    open: {{ _('aq_count_open_hint')|tojson }},
+    gradeFirst: {{ _('aq_select_grade_first')|tojson }}
+};
+
+function selectGrade(g) {
+    document.getElementById('grade').value = g;
+    document.querySelectorAll('.grade-btn').forEach(b => {
+        b.classList.toggle('active', parseInt(b.dataset.grade) === g);
+    });
+}
+
+function selectType(t) {
+    document.getElementById('question_type').value = t;
+    document.querySelectorAll('.type-btn').forEach(b => {
+        b.classList.toggle('active', b.dataset.type === t);
+    });
+    const countInput = document.getElementById('question_count');
+    const hint = document.getElementById('countHint');
+    if (t === 'test') {
+        countInput.min = 10; countInput.max = 30;
+        if (parseInt(countInput.value) > 30) countInput.value = 30;
+        hint.textContent = _aqHints.test;
+    } else {
+        countInput.min = 10; countInput.max = 15;
+        if (parseInt(countInput.value) > 15) countInput.value = 15;
+        hint.textContent = _aqHints.open;
+    }
+}
+
+function selectLang(l) {
+    document.getElementById('language').value = l;
+    document.querySelectorAll('.lang-btn').forEach(b => {
+        b.classList.toggle('active', b.dataset.lang === l);
+    });
+}
+
+document.getElementById('qcForm').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const errBox = document.getElementById('errBox');
+    errBox.classList.remove('show');
+
+    if (!document.getElementById('grade').value) {
+        errBox.textContent = _aqHints.gradeFirst;
+        errBox.classList.add('show');
+        return;
+    }
+
+    const overlay = document.getElementById('genOverlay');
+    overlay.classList.add('show');
+    document.getElementById('submitBtn').disabled = true;
+
+    try {
+        const root = window.ROOT_PATH || '';
+        const resp = await fetch(root + '/teacher/ai-questions/generate', {
+            method: 'POST', body: new FormData(e.target)
+        });
+        const data = await resp.json();
+        if (data.ok) {
+            window.location.href = root + data.redirect;
+        } else {
+            overlay.classList.remove('show');
+            document.getElementById('submitBtn').disabled = false;
+            errBox.textContent = data.error || '{{ _("error") }}';
+            errBox.classList.add('show');
+        }
+    } catch (err) {
+        overlay.classList.remove('show');
+        document.getElementById('submitBtn').disabled = false;
+        errBox.textContent = err.message;
+        errBox.classList.add('show');
+    }
+});
+</script>
+{% endblock %}

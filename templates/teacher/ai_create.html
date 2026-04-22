@@ -52,6 +52,40 @@
     .topic-input:focus { border-color: var(--c-cyan); outline: none; box-shadow: 0 0 0 3px rgba(100,200,255,.15); }
     .submit-row { display: flex; gap: .8rem; align-items: center; margin-top: 1.5rem; }
 
+    /* Template cards */
+    .tpl-grid {
+        display: grid; grid-template-columns: repeat(3, 1fr); gap: .75rem;
+    }
+    .tpl-card {
+        border: 2px solid var(--glass-border); border-radius: var(--r-md);
+        background: transparent; cursor: pointer; padding: 0;
+        transition: border-color .15s var(--ease), transform .15s var(--ease);
+        overflow: hidden; text-align: center;
+    }
+    .tpl-card:hover { border-color: var(--glass-border-strong); transform: translateY(-2px); }
+    .tpl-card.active { border-color: var(--c-cyan); box-shadow: 0 0 0 3px rgba(100,200,255,.18); }
+    .tpl-preview {
+        width: 100%; aspect-ratio: 16/9;
+        display: flex; flex-direction: column;
+        align-items: center; justify-content: center; gap: .35rem;
+        padding: .8rem;
+    }
+    .tpl-preview-title {
+        font-size: 1.1rem; font-weight: 800; letter-spacing: .02em;
+    }
+    .tpl-preview-bar {
+        width: 55%; height: 3px; border-radius: 2px; opacity: .85;
+    }
+    .tpl-preview-bar2 {
+        width: 38%; height: 2px; border-radius: 2px; opacity: .45;
+    }
+    .tpl-label {
+        padding: .45rem .5rem; font-size: .8rem; font-weight: 600;
+        color: var(--text-muted); background: var(--glass-bg);
+        border-top: 1px solid var(--glass-border);
+    }
+    .tpl-card.active .tpl-label { color: var(--c-cyan); }
+
     .gen-overlay {
         position: fixed; inset: 0; background: rgba(10,14,28,.85);
         backdrop-filter: blur(8px); z-index: 9999;
@@ -119,9 +153,9 @@
         <div class="form-row">
             <label>{{ _('ai_language_label') }}</label>
             <div class="lang-btns">
-                <button type="button" class="lang-btn active" data-lang="uz" onclick="selectLang('uz')">🇺🇿 O'zbekcha</button>
-                <button type="button" class="lang-btn" data-lang="ru" onclick="selectLang('ru')">🇷🇺 Русский</button>
-                <button type="button" class="lang-btn" data-lang="en" onclick="selectLang('en')">🇬🇧 English</button>
+                <button type="button" class="lang-btn active" data-lang="uz" onclick="selectLang('uz')">O'zbekcha</button>
+                <button type="button" class="lang-btn" data-lang="ru" onclick="selectLang('ru')">Русский</button>
+                <button type="button" class="lang-btn" data-lang="en" onclick="selectLang('en')">English</button>
             </div>
             <input type="hidden" id="language" name="language" value="uz">
         </div>
@@ -132,11 +166,37 @@
                 placeholder="{{ _('ai_topic_placeholder') }}"></textarea>
         </div>
 
+        <div class="form-row">
+            <label>{{ _('ai_template_label') if _('ai_template_label') != 'ai_template_label' else 'Shablon' }}</label>
+            <div class="tpl-grid">
+                {% set tpl_list = [
+                    ('cosmos', 'Cosmos', '#182448', '#0a0e1c', '#64c8ff'),
+                    ('ocean',  'Ocean',  '#0d2b3e', '#071a2c', '#00d4aa'),
+                    ('aurora', 'Aurora', '#1e1244', '#0d0a2e', '#b478ff')
+                ] %}
+                {% for key, label, bg1, bg2, accent in tpl_list %}
+                <button type="button" class="tpl-card{% if loop.first %} active{% endif %}"
+                        data-tpl="{{ key }}" onclick="selectTemplate('{{ key }}')">
+                    <div class="tpl-preview" style="background: linear-gradient(135deg, {{ bg1 }}, {{ bg2 }});">
+                        <div class="tpl-preview-title" style="color:{{ accent }}">Aa</div>
+                        <div class="tpl-preview-bar" style="background:{{ accent }}"></div>
+                        <div class="tpl-preview-bar2" style="background:{{ accent }}"></div>
+                    </div>
+                    <div class="tpl-label">{{ label }}</div>
+                </button>
+                {% endfor %}
+            </div>
+            <input type="hidden" id="template" name="template" value="cosmos">
+        </div>
+
         <div class="err-box" id="errBox"></div>
 
         <div class="submit-row">
             <button type="submit" class="btn btn-success" id="submitBtn">
-                ✨ {{ _('ai_create_btn') }}
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="margin-right:.3rem">
+                    <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/>
+                </svg>
+                {{ _('ai_create_btn') }}
             </button>
             <span style="color:var(--text-muted);font-size:.85rem">{{ _('ai_estimated_time') }}</span>
         </div>
@@ -172,6 +232,13 @@ function selectLang(l) {
     document.getElementById('language').value = l;
     document.querySelectorAll('.lang-btn').forEach(b => {
         b.classList.toggle('active', b.dataset.lang === l);
+    });
+}
+
+function selectTemplate(key) {
+    document.getElementById('template').value = key;
+    document.querySelectorAll('.tpl-card').forEach(c => {
+        c.classList.toggle('active', c.dataset.tpl === key);
     });
 }
 
