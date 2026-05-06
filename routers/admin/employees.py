@@ -1,0 +1,186 @@
+"""Admin employee management routes."""
+from datetime import datetime
+from typing import Optional
+
+from fastapi import APIRouter, Request, Depends, Form
+from fastapi.responses import HTMLResponse, RedirectResponse
+from fastapi.templating import Jinja2Templates
+from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy import select, delete, func
+from sqlalchemy.orm import selectinload
+
+from models import (
+    get_db, School, Employee, StaffTitle, SchoolClass, Subject,
+    Exam, Question, ExamResult, TeacherClass, TeacherSubject,
+)
+from dependencies import require_admin, flash, get_template_context, page_info
+
+router = APIRouter(prefix="/admin", dependencies=[Depends(require_admin)])
+templates = Jinja2Templates(directory="templates")
+
+
+@router.get("/employees", response_class=HTMLResponse)
+async def employees_list(
+    request: Request, school_id: Optional[str] = None, page: int = 1,
+    db: AsyncSession = Depends(get_db)
+):
+    per_page = 10
+    sid = None
+    if school_id and school_id.strip():
+        try:
+            sid = int(school_id)
+        except ValueError:
+            pass
+
+    base_q = select(Employee).options(
+        selectinload(Employee.school), selectinload(Employee.staff_title)
+    )
+    count_q = select(func.count(Employee.id))
+    if sid:
+        base_q = base_q.where(Employee.school_id == sid)
+        count_q = count_q.where(Employee.school_id == sid)
+    else:
+        base_q = base_q.order_by(Employee.created_at.desc())
+
+    total = (await db.execute(count_q)).scalar()
+    pg = page_info(total, page, per_page, request)
+    employees = (await db.execute(base_q.offset(pg['row_offset']).limit(per_page))).scalars().all()
+    schools = (await db.execute(select(School))).scalars().all()
+
+    context = await get_template_context(request)
+    context.update({'employees': employees, 'schools': schools, **pg})
+    return templates.TemplateResponse('admin/employees.html', context)
+
+
+@router.get("/employees/add", response_class=HTMLResponse)
+async def add_employee_page(request: Request, db: AsyncSession = Depends(get_db)):
+    schools = (await db.execute(select(School))).scalars().all()
+    titles = (await db.execute(select(StaffTitle))).scalars().all()
+    classes = (await db.execute(select(SchoolClass))).scalars().all()
+    subjects = (await db.execute(select(Subject))).scalars().all()
+    context = await get_template_context(request)
+    context.update({'employee': None, 'schools': schools, 'titles': titles,
+                    'classes': classes, 'subjects': subjects})
+    return templates.TemplateResponse('admin/employee_form.html', context)
+
+
+@router.post("/employees/add")
+async def add_employee(
+    request: Request,
+    username: str = Form(...), password: str = Form(...),
+    first_name: str = Form(...), last_name: str = Form(...),
+    email: str = Form(""), is_admin: bool = Form(False),
+    is_active: bool = Form(False), school_id: Optional[int] = Form(None),
+    staff_title_id: Optional[int] = Form(None),
+    assigned_classes: list = Form([]), assigned_subjects: list = Form([]),
+    db: AsyncSession = Depends(get_db)
+):
+    emp = Employee(username=username, first_name=first_name, last_name=last_name,
+                   email=email, is_admin=is_admin, is_active=is_active,
+                   school_id=school_id, staff_title_id=staff_title_id)
+    emp.set_password(password)
+    db.add(emp)
+    await db.flush()
+    for cid in assigned_classes:
+        db.add(TeacherClass(teacher_id=emp.id, class_id=int(cid)))
+    for sid in assigned_subjects:
+        db.add(TeacherSubject(teacher_id=emp.id, subject_id=int(sid)))
+    await db.commit()
+    flash(request, "Xodim qo'shildi", 'success')
+    return RedirectResponse(url="/admin/employees", status_code=303)
+
+
+@router.get("/employees/edit/{id}", response_class=HTMLResponse)
+async def edit_employee_page(request: Request, id: int, db: AsyncSession = Depends(get_db)):
+    emp = (await db.execute(
+        select(Employee)
+        .options(selectinload(Employee.assigned_classes), selectinload(Employee.assigned_subjects))
+        .where(Employee.id == id)
+    )).scalar_one_or_none()
+    if not emp:
+        flash(request, 'Xodim topilmadi', 'danger')
+        return RedirectResponse(url="/admin/employees", status_code=303)
+    schools = (await db.execute(select(School))).scalars().all()
+    titles = (await db.execute(select(StaffTitle))).scalars().all()
+    classes = (await db.execute(select(SchoolClass))).scalars().all()
+    subjects = (await db.execute(select(Subject))).scalars().all()
+    context = await get_template_context(request)
+    context.update({'employee': emp, 'schools': schools, 'titles': titles,
+                    'classes': classes, 'subjects': subjects})
+    return templates.TemplateResponse('admin/employee_form.html', context)
+
+
+@router.post("/employees/edit/{id}")
+async def edit_employee(
+    request: Request, id: int,
+    username: str = Form(...), first_name: str = Form(...),
+    last_name: str = Form(...), email: str = Form(""),
+    is_admin: bool = Form(False), is_active: bool = Form(False),
+    school_id: Optional[int] = Form(None), staff_title_id: Optional[int] = Form(None),
+    assigned_classes: list = Form([]), assigned_subjects: list = Form([]),
+    password: str = Form(""), db: AsyncSession = Depends(get_db)
+):
+    emp = (await db.execute(select(Employee).where(Employee.id == id))).scalar_one_or_none()
+    if not emp:
+        flash(request, 'Xodim topilmadi', 'danger')
+        return RedirectResponse(url="/admin/employees", status_code=303)
+    emp.username = username
+    emp.first_name = first_name
+    emp.last_name = last_name
+    emp.email = email
+    emp.is_admin = is_admin
+    emp.is_active = is_active
+    emp.school_id = school_id
+    emp.staff_title_id = staff_title_id
+    emp.updated_at = datetime.utcnow()
+    if password:
+        emp.set_password(password)
+    await db.execute(delete(TeacherClass).where(TeacherClass.teacher_id == id))
+    for cid in assigned_classes:
+        db.add(TeacherClass(teacher_id=id, class_id=int(cid)))
+    await db.execute(delete(TeacherSubject).where(TeacherSubject.teacher_id == id))
+    for sid in assigned_subjects:
+        db.add(TeacherSubject(teacher_id=id, subject_id=int(sid)))
+    await db.commit()
+    flash(request, "Xodim ma'lumotlari yangilandi", 'success')
+    return RedirectResponse(url="/admin/employees", status_code=303)
+
+
+@router.post("/employees/delete/{id}")
+async def delete_employee(request: Request, id: int, db: AsyncSession = Depends(get_db)):
+    if id == request.session.get('user_id'):
+        flash(request, "O'zingizni o'chira olmaysiz", 'danger')
+        return RedirectResponse(url="/admin/employees", status_code=303)
+    emp = (await db.execute(select(Employee).where(Employee.id == id))).scalar_one_or_none()
+    if not emp:
+        flash(request, 'Xodim topilmadi', 'danger')
+        return RedirectResponse(url="/admin/employees", status_code=303)
+    try:
+        for exam in (await db.execute(select(Exam).where(Exam.teacher_id == id))).scalars().all():
+            await db.execute(delete(Question).where(Question.exam_id == exam.id))
+            await db.execute(delete(ExamResult).where(ExamResult.exam_id == exam.id))
+            await db.delete(exam)
+        await db.delete(emp)
+        await db.commit()
+        flash(request, "Xodim va uning yaratgan imtihonlari o'chirildi", 'success')
+    except Exception as e:
+        await db.rollback()
+        flash(request, f"Xodimni o'chirishda xatolik: {e}", 'danger')
+    return RedirectResponse(url="/admin/employees", status_code=303)
+
+
+@router.post("/employees/toggle-status/{id}")
+async def toggle_employee_status(request: Request, id: int, db: AsyncSession = Depends(get_db)):
+    if id == request.session.get('user_id'):
+        flash(request, "O'zingizni faolligini o'zgartira olmaysiz", 'danger')
+        return RedirectResponse(url="/admin/employees", status_code=303)
+    emp = (await db.execute(select(Employee).where(Employee.id == id))).scalar_one_or_none()
+    if not emp:
+        flash(request, 'Xodim topilmadi', 'danger')
+        return RedirectResponse(url="/admin/employees", status_code=303)
+    emp.is_active = not emp.is_active
+    emp.updated_at = datetime.utcnow()
+    await db.commit()
+    status = "faollashtirildi" if emp.is_active else "bloklandi"
+    flash(request, f"Xodim {status}", 'success')
+    return RedirectResponse(url="/admin/employees", status_code=303)

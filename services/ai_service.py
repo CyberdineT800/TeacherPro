@@ -1,4 +1,4 @@
-"""Gemini-powered AI presentation generator."""
+"""Gemini-powered AI service: presentations, question sets, and game questions."""
 import json
 import os
 import re
@@ -74,7 +74,6 @@ async def _fetch_slide_image(client: httpx.AsyncClient, prompt: str, seed: int) 
     words = re.sub(r'[^\w\s]', '', (prompt or 'science').lower()).split()
     kws = [w for w in words if w not in _STOP_WORDS and len(w) > 3]
 
-    # Try with 3, 2, then 1 keyword combinations
     for n in range(min(3, len(kws)), 0, -1):
         article = '_'.join(kws[:n])
         try:
@@ -85,18 +84,15 @@ async def _fetch_slide_image(client: httpx.AsyncClient, prompt: str, seed: int) 
             )
             if r.status_code == 200:
                 d = r.json()
-                # Prefer original full-size image
                 orig = d.get('originalimage', {}).get('source', '')
                 if orig:
                     return orig
-                # Fall back to thumbnail, upscaled
                 thumb = d.get('thumbnail', {}).get('source', '')
                 if thumb:
                     return re.sub(r'/\d+px-', '/1024px-', thumb)
         except Exception:
-            break  # Network error → skip to Picsum
+            break
 
-    # Reliable real-photo fallback
     return f"https://picsum.photos/seed/{seed}/1024/576"
 
 
@@ -174,6 +170,35 @@ Return ONLY valid JSON (no markdown, no commentary):
 }
 """
 
+_GAME_QUESTION_SYSTEM_PROMPT = """You are an expert teacher creating a fast-paced quiz game for school students.
+
+Rules:
+- Generate EXACTLY the requested number of questions.
+- All text must be in the requested language only.
+- Adapt vocabulary and complexity to the student's grade (in Uzbekistan grade N = age N+6).
+- Questions must be SHORT and clear — students have limited time to read and answer.
+- Each question must have exactly 4 options (A, B, C, D). Only ONE is correct.
+- The correct field is the 0-based index (0=A, 1=B, 2=C, 3=D).
+- Questions must cover DIFFERENT aspects of the topic. No repetition.
+- Keep options roughly the same length for fairness.
+
+Return ONLY valid JSON (no markdown, no commentary):
+{
+  "title": "string (quiz title)",
+  "questions": [
+    {
+      "number": 1,
+      "question": "Short question text?",
+      "option_a": "First option",
+      "option_b": "Second option",
+      "option_c": "Third option",
+      "option_d": "Fourth option",
+      "correct": 0
+    }
+  ]
+}
+"""
+
 
 async def generate_questions(subject: str, grade: int, topic: str, language: str,
                              question_type: str, count: int) -> dict:
@@ -203,6 +228,52 @@ async def generate_questions(subject: str, grade: int, topic: str, language: str
             contents=user_prompt,
             config=types.GenerateContentConfig(
                 system_instruction=system,
+                response_mime_type="application/json",
+                temperature=0.7,
+                max_output_tokens=9000,
+            ),
+        )
+
+    response = await asyncio.to_thread(_call_sync)
+    raw = response.text or ''
+    cleaned = _clean_json(raw)
+
+    try:
+        data = json.loads(cleaned)
+    except json.JSONDecodeError as e:
+        raise RuntimeError(f"AI returned invalid JSON: {e}. Raw: {raw[:500]}")
+
+    if 'questions' not in data or not isinstance(data['questions'], list) or not data['questions']:
+        raise RuntimeError("AI response missing 'questions'")
+
+    return data
+
+
+async def generate_game_questions(subject: str, grade: int, topic: str, language: str,
+                                   count: int = 10) -> dict:
+    """Generate game-optimized multiple-choice questions for Quiz Race."""
+    if not GEMINI_API_KEY:
+        raise RuntimeError("GEMINI_API_KEY is not set in environment")
+
+    age = grade + 6
+    lang_label = LANGUAGE_NAMES.get(language, LANGUAGE_NAMES['uz'])
+
+    user_prompt = (
+        f"Generate {count} quiz game questions {lang_label}.\n\n"
+        f"Subject: {subject}\n"
+        f"Grade: {grade} (students aged ~{age})\n"
+        f"Topic: {topic}\n\n"
+        f"Generate exactly {count} short, clear quiz questions suitable for a fast-paced game."
+    )
+
+    client = genai.Client(api_key=GEMINI_API_KEY)
+
+    def _call_sync():
+        return client.models.generate_content(
+            model=MODEL_NAME,
+            contents=user_prompt,
+            config=types.GenerateContentConfig(
+                system_instruction=_GAME_QUESTION_SYSTEM_PROMPT,
                 response_mime_type="application/json",
                 temperature=0.7,
                 max_output_tokens=9000,

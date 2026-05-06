@@ -1,0 +1,116 @@
+{% extends "base.html" %}
+{% block title %}{{ _('games') }}{% endblock %}
+
+{% block extra_css %}
+<style>
+.gh-header {
+    display: flex; justify-content: space-between; align-items: center;
+    gap: 1rem; flex-wrap: wrap; margin-bottom: 1.5rem;
+}
+.gh-grid {
+    display: grid; gap: 1rem;
+    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+}
+.gh-card {
+    display: flex; flex-direction: column; padding: 1.3rem;
+    border-radius: var(--r-md);
+    background: var(--glass-bg); border: 1px solid var(--glass-border-strong);
+    transition: transform .2s var(--ease), box-shadow .2s, border-color .2s;
+    position: relative; overflow: hidden;
+}
+.gh-card.available { cursor: default; }
+.gh-card.available:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 0 0 1px var(--c-cyan), 0 8px 24px rgba(0,0,0,.3);
+    border-color: var(--c-cyan);
+}
+.gh-card::before {
+    content: ""; position: absolute; left: 0; top: 0; bottom: 0; width: 4px;
+    background: var(--c-cyan); opacity: .9;
+}
+.gh-card.disabled { opacity: .45; pointer-events: none; }
+.gh-card.disabled::before { background: var(--text-muted); opacity: .4; }
+
+.gh-status {
+    display: inline-flex; align-items: center; gap: .3rem;
+    padding: .2rem .65rem; border-radius: var(--r-pill);
+    font-size: .74rem; font-weight: 700; margin-bottom: .75rem;
+    border: 1px solid;
+}
+.gh-status.active {
+    background: rgba(100,200,255,.1); color: var(--c-cyan);
+    border-color: rgba(100,200,255,.3);
+}
+.gh-status.soon {
+    background: rgba(255,255,255,.05); color: var(--text-muted);
+    border-color: var(--glass-border);
+}
+
+.gh-title { font-weight: 800; font-size: 1.1rem; margin: 0 0 .45rem; }
+.gh-desc { color: var(--text-muted); font-size: .87rem; line-height: 1.6; margin-bottom: .85rem; }
+
+.gh-chips { display: flex; flex-wrap: wrap; gap: .35rem; margin-bottom: .85rem; }
+.gh-chip {
+    padding: .22rem .6rem; border-radius: var(--r-pill);
+    background: rgba(255,255,255,.07); border: 1px solid var(--glass-border-strong);
+    font-size: .76rem; color: var(--text);
+}
+
+.gh-stat { font-size: .82rem; color: var(--text-muted); margin-bottom: 1rem; }
+.gh-stat strong { color: var(--text); }
+
+.gh-spacer { flex: 1; }
+.gh-actions { display: flex; gap: .6rem; flex-wrap: wrap; padding-top: .85rem; border-top: 1px solid var(--glass-border-strong); }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="card">
+    <div class="gh-header">
+        <div>
+            <h2 style="margin:0">{{ _('games') }}</h2>
+            <p style="margin:.35rem 0 0; color:var(--text-muted); font-size:.9rem">{{ _('choose_game_type') }}</p>
+        </div>
+    </div>
+
+    <div class="gh-grid">
+
+        <!-- Quiz Race -->
+        <div class="gh-card available">
+            <span class="gh-status active">{{ _('available') }}</span>
+            <h3 class="gh-title">Quiz Race</h3>
+            <p class="gh-desc">{{ _('quiz_race_desc') }}</p>
+            <div class="gh-chips">
+                <span class="gh-chip">{{ _('quiz_feature_timer') }}</span>
+                <span class="gh-chip">{{ _('quiz_feature_mobile') }}</span>
+                <span class="gh-chip">{{ _('quiz_feature_score') }}</span>
+                <span class="gh-chip">{{ _('quiz_feature_stats') }}</span>
+            </div>
+            <div class="gh-stat">
+                {{ _('total_sessions_played') }}: <strong>{{ total_sessions }}</strong>
+            </div>
+            <div class="gh-spacer"></div>
+            <div class="gh-actions">
+                <a href="/teacher/games/sessions" class="btn btn-primary">{{ _('my_sessions') }}</a>
+                {% if teacher.games_enabled %}
+                <a href="/teacher/games/create" class="btn btn-success">+ {{ _('new_game') }}</a>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- Word Puzzle — coming soon -->
+        <div class="gh-card disabled">
+            <span class="gh-status soon">{{ _('coming_soon') }}</span>
+            <h3 class="gh-title">Word Puzzle</h3>
+            <p class="gh-desc">{{ _('word_puzzle_desc') }}</p>
+            <div class="gh-chips">
+                <span class="gh-chip">{{ _('word_feature_vocab') }}</span>
+                <span class="gh-chip">{{ _('word_feature_think') }}</span>
+            </div>
+            <div class="gh-stat">{{ _('in_development') }}</div>
+            <div class="gh-spacer"></div>
+        </div>
+
+    </div>
+</div>
+{% endblock %}

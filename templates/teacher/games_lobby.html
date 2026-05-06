@@ -1,0 +1,242 @@
+{% extends "base.html" %}
+{% block title %}{{ gs.title }} — {{ _('game_lobby') }}{% endblock %}
+
+{% block extra_css %}
+<style>
+.lobby-grid { display:grid; grid-template-columns:1fr 300px; gap:1.25rem; align-items:start; margin-top:1.25rem; }
+@media(max-width:820px){ .lobby-grid { grid-template-columns:1fr; } }
+
+.game-code { font-size:2.6rem; font-weight:800; letter-spacing:.22em; color:var(--c-cyan); text-align:center; padding:.5rem 0; }
+.qr-wrap { text-align:center; padding:.25rem 0 .5rem; }
+.qr-wrap img { border-radius:var(--r-sm); max-width:150px; }
+.join-url { word-break:break-all; font-size:.76rem; color:var(--text-muted); text-align:center; margin-top:.25rem; }
+
+.player-list { max-height:280px; overflow-y:auto; display:flex; flex-direction:column; gap:.3rem; }
+.player-chip { display:flex; align-items:center; gap:.6rem; padding:.4rem .7rem; background:var(--glass-bg); border:1px solid var(--glass-border); border-radius:var(--r-sm); font-size:.88rem; }
+.player-chip .avatar { width:26px; height:26px; border-radius:50%; background:linear-gradient(135deg, var(--c-cyan), var(--c-violet)); display:flex; align-items:center; justify-content:center; color:#fff; font-weight:700; font-size:.74rem; flex-shrink:0; }
+
+.player-count { font-size:.9rem; font-weight:600; color:var(--text-muted); margin-bottom:.6rem; }
+.ctrl-btns { display:flex; flex-direction:column; gap:.6rem; margin-top:1rem; }
+
+.scoreboard-row { display:flex; justify-content:space-between; align-items:center; padding:.4rem .5rem; border-radius:var(--r-xs); font-size:.9rem; }
+.scoreboard-row:nth-child(odd) { background:var(--glass-bg); }
+
+.q-progress { font-size:.84rem; color:var(--text-muted); margin-bottom:.35rem; }
+.answer-bar { height:5px; background:var(--glass-border); border-radius:3px; margin:.4rem 0; overflow:hidden; }
+.answer-bar-fill { height:100%; background:var(--c-cyan); border-radius:3px; transition:width .3s; }
+
+.status-badge { display:inline-block; padding:.22rem .75rem; border-radius:var(--r-pill); font-size:.78rem; font-weight:600; }
+.sb-lobby    { background:oklch(65% 0.18 220 / 0.18); color:oklch(80% 0.14 220); border:1px solid oklch(65% 0.18 220 / 0.35); }
+.sb-question { background:oklch(78% 0.16 155 / 0.18); color:oklch(85% 0.14 155); border:1px solid oklch(78% 0.16 155 / 0.35); }
+.sb-reveal   { background:oklch(82% 0.15 75 / 0.18);  color:oklch(86% 0.13 75);  border:1px solid oklch(82% 0.15 75 / 0.35); }
+.sb-finished { background:oklch(60% 0.02 250 / 0.18); color:var(--text-muted);   border:1px solid var(--glass-border); }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="card">
+    <!-- Page header -->
+    <div style="display:flex;justify-content:space-between;align-items:center;gap:.75rem;flex-wrap:wrap">
+        <div style="display:flex;align-items:center;gap:.75rem;flex-wrap:wrap">
+            <h2 style="margin:0">{{ gs.title }}</h2>
+            <span class="status-badge sb-lobby" id="statusBadge">{{ _('game_status_lobby') }}</span>
+        </div>
+        <a href="/teacher/games/sessions" class="btn btn-secondary btn-sm">{{ _('lobby_back') }}</a>
+    </div>
+
+    <div class="lobby-grid">
+        <!-- Left column: players + question progress + controls -->
+        <div style="display:flex;flex-direction:column;gap:1rem">
+
+            <!-- Players card -->
+            <div class="card">
+                <p class="player-count">{{ _('participants') }}: <strong id="playerCount">0</strong></p>
+                <div class="player-list" id="playerList"></div>
+            </div>
+
+            <!-- Active question card (hidden until game starts) -->
+            <div class="card" id="questionCard" style="display:none">
+                <p class="q-progress" id="qProgress"></p>
+                <p id="qText" style="font-weight:600;margin-bottom:.35rem"></p>
+                <div class="answer-bar"><div class="answer-bar-fill" id="answerFill" style="width:0%"></div></div>
+                <p id="answerCount" style="font-size:.82rem;color:var(--text-muted)"></p>
+            </div>
+
+            <!-- Scoreboard card (hidden until first reveal) -->
+            <div class="card" id="scoreCard" style="display:none">
+                <h4 style="margin-bottom:.6rem;font-size:.88rem;color:var(--text-muted)">{{ _('scoreboard') }}</h4>
+                <div id="scoreboard"></div>
+            </div>
+
+            <!-- Control buttons -->
+            <div class="ctrl-btns">
+                <button id="btnStart"  class="btn btn-success"  style="font-size:1rem">{{ _('game_start') }}</button>
+                <button id="btnReveal" class="btn btn-warning"  style="display:none">{{ _('game_reveal') }}</button>
+                <button id="btnNext"   class="btn btn-primary"  style="display:none">{{ _('game_next') }}</button>
+                <button id="btnEnd"    class="btn btn-danger"   style="display:none">{{ _('game_end') }}</button>
+            </div>
+        </div>
+
+        <!-- Right column: join code + game info -->
+        <div style="display:flex;flex-direction:column;gap:1rem">
+
+            <!-- Join code card -->
+            <div class="card" style="text-align:center">
+                <p style="font-size:.8rem;color:var(--text-muted);margin-bottom:.15rem">{{ _('game_code') }}</p>
+                <div class="game-code">{{ gs.code }}</div>
+                {% if qr_b64 %}
+                <div class="qr-wrap">
+                    <img src="data:image/png;base64,{{ qr_b64 }}" alt="QR">
+                </div>
+                {% endif %}
+                <p class="join-url">{{ join_url }}</p>
+                <button onclick="navigator.clipboard.writeText('{{ join_url }}')"
+                        class="btn btn-secondary btn-sm" style="margin-top:.5rem">
+                    {{ _('copy_link') }}
+                </button>
+            </div>
+
+            <!-- Game info card -->
+            <div class="card">
+                <p style="font-size:.8rem;color:var(--text-muted);margin-bottom:.15rem">{{ _('questions_count') }}</p>
+                <p style="font-size:1.15rem;font-weight:700;margin-bottom:.75rem">{{ gs.questions|length }}</p>
+                <p style="font-size:.8rem;color:var(--text-muted);margin-bottom:.15rem">{{ _('time_per_question') }}</p>
+                <p style="font-size:1rem;font-weight:600">{{ gs.time_per_question }} {{ _('seconds') }}</p>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+const WS_URL = (location.protocol === 'https:' ? 'wss' : 'ws') + '://' + location.host + '/teacher/games/{{ gs.id }}/ws';
+let ws, currentIdx = -1;
+
+const el = id => document.getElementById(id);
+const LABELS = {
+    lobby:    {{ _("game_status_lobby")   | tojson }},
+    question: {{ _("game_status_playing") | tojson }},
+    reveal:   {{ _("game_reveal")         | tojson }},
+    finished: {{ _("game_status_finished")| tojson }},
+};
+
+function connect() {
+    ws = new WebSocket(WS_URL);
+    ws.onopen    = () => {};
+    ws.onmessage = e => handle(JSON.parse(e.data));
+    ws.onclose   = () => setTimeout(connect, 3000);
+    ws.onerror   = () => {};
+}
+
+function send(action) { ws && ws.readyState === 1 && ws.send(JSON.stringify({action})); }
+
+function handle(msg) {
+    switch (msg.type) {
+        case 'room_state':
+            el('playerCount').textContent = msg.players.length;
+            msg.players.forEach(p => addPlayer(p.nickname));
+            break;
+        case 'player_joined':
+            el('playerCount').textContent = msg.count;
+            addPlayer(msg.nickname);
+            break;
+        case 'player_left':
+            el('playerCount').textContent = msg.count;
+            break;
+        case 'question_start':
+            currentIdx = msg.index;
+            showQuestion(msg);
+            break;
+        case 'answer_update':
+            updateAnswers(msg.answered, msg.total);
+            break;
+        case 'question_end':
+            showReveal(msg);
+            break;
+        case 'game_finished':
+            showFinal(msg.scoreboard);
+            break;
+    }
+}
+
+function addPlayer(nick) {
+    const cid = 'pl_' + nick.replace(/\W/g,'_');
+    if (document.getElementById(cid)) return;
+    const chip = document.createElement('div');
+    chip.className = 'player-chip';
+    chip.id = cid;
+    chip.innerHTML = `<div class="avatar">${nick.slice(0,2).toUpperCase()}</div><span>${nick}</span>`;
+    el('playerList').prepend(chip);
+}
+
+function showQuestion(msg) {
+    setStatus('question');
+    el('questionCard').style.display = '';
+    el('qProgress').textContent = {{ _("question_of") | tojson }} + ' ' + (msg.index+1) + ' / ' + msg.total;
+    el('qText').textContent = msg.question;
+    el('answerFill').style.width = '0%';
+    el('answerCount').textContent = '0 / ' + msg.total;
+    el('btnStart').style.display  = 'none';
+    el('btnReveal').style.display = '';
+    el('btnNext').style.display   = 'none';
+    el('btnEnd').style.display    = '';
+    el('scoreCard').style.display = 'none';
+}
+
+function updateAnswers(answered, total) {
+    const pct = total > 0 ? (answered / total * 100) : 0;
+    el('answerFill').style.width = pct + '%';
+    el('answerCount').textContent = answered + ' / ' + total;
+}
+
+function showReveal(msg) {
+    setStatus('reveal');
+    el('btnReveal').style.display = 'none';
+    el('btnNext').style.display   = msg.is_last ? 'none' : '';
+    el('btnEnd').style.display    = msg.is_last ? 'none' : '';
+    updateAnswers(msg.answered_count, msg.total_count);
+    el('scoreCard').style.display = '';
+    renderScoreboard(msg.scoreboard);
+}
+
+function showFinal(scoreboard) {
+    setStatus('finished');
+    el('btnReveal').style.display = 'none';
+    el('btnNext').style.display   = 'none';
+    el('btnEnd').style.display    = 'none';
+    el('scoreCard').style.display = '';
+    const h = document.createElement('h4');
+    h.style.cssText = 'margin-bottom:.6rem;font-size:.88rem;color:var(--text-muted)';
+    h.textContent = {{ _("game_results_title") | tojson }};
+    el('scoreboard').innerHTML = '';
+    el('scoreboard').appendChild(h);
+    renderScoreboard(scoreboard);
+    setTimeout(() => location.href = '/teacher/games/{{ gs.id }}/results', 3000);
+}
+
+function renderScoreboard(list) {
+    const sb = el('scoreboard');
+    sb.querySelectorAll('.scoreboard-row').forEach(r => r.remove());
+    list.forEach((e, i) => {
+        const row = document.createElement('div');
+        row.className = 'scoreboard-row';
+        row.innerHTML = `<span>${i+1}. ${e.nickname}</span><strong>${e.score}</strong>`;
+        sb.appendChild(row);
+    });
+}
+
+function setStatus(cls) {
+    const badge = el('statusBadge');
+    badge.className = 'status-badge sb-' + cls;
+    badge.textContent = LABELS[cls] || cls;
+}
+
+el('btnStart').onclick  = () => { send('start'); el('btnStart').style.display='none'; };
+el('btnReveal').onclick = () => send('reveal');
+el('btnNext').onclick   = () => send('next');
+el('btnEnd').onclick    = () => { if(confirm({{ _("confirm_end_game") | tojson }})) send('end'); };
+
+connect();
+</script>
+{% endblock %}

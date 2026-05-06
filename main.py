@@ -11,7 +11,10 @@ from models import (
     init_db, AsyncSessionLocal,
     Employee, Quarter, ExamName, ExamType, QuestionType, StaffTitle
 )
-from routers import auth, admin, teacher, language, ai_presentation, ai_questions
+from routers import auth, language
+from routers.admin import router as admin_router
+from routers.teacher import router as teacher_router
+from routers.game import router as game_router
 from dependencies import get_flashed_messages
 
 
@@ -68,10 +71,10 @@ async def lifespan(app: FastAPI):
     yield
     print("Application shutdown")
 
+
 # ROOT_PATH lets url_for() generate correct links when behind an /prefix/ nginx proxy
 ROOT_PATH = os.environ.get('ROOT_PATH', '')
 
-# Create FastAPI application
 app = FastAPI(
     title="TeacherPro",
     description="School Grading Management System",
@@ -84,21 +87,17 @@ app = FastAPI(
 async def health():
     return {"status": "ok"}
 
-# Add session middleware for authentication
 SECRET_KEY = os.environ.get('SECRET_KEY', 'your-secret-key-here-change-in-production')
 app.add_middleware(SessionMiddleware, secret_key=SECRET_KEY)
 
-# Mount static files
 app.mount("/static", StaticFiles(directory="static"), name="static")
 
-# Configure Jinja2 templates
 templates = Jinja2Templates(directory="templates")
 
-# Add custom template context processor
+
 @app.middleware("http")
 async def add_template_context(request: Request, call_next):
-    """Add common context to all templates"""
-    # Create custom url_for for this request
+    """Inject a custom url_for into every request so templates resolve named routes."""
     def url_for(name: str, **path_params):
         """Custom url_for — respects ROOT_PATH so links work behind an nginx prefix."""
         if name == 'static':
@@ -106,39 +105,79 @@ async def add_template_context(request: Request, call_next):
             return f"{ROOT_PATH}/static/{filename}"
 
         route_map = {
+            # ── Auth ────────────────────────────────────────────────────────
             'login': '/login', 'logout': '/logout', 'index': '/',
+
+            # ── Admin: core ─────────────────────────────────────────────────
             'admin_dashboard': '/admin/dashboard',
-            'schools_list': '/admin/schools', 'add_school': '/admin/schools/add',
-            'employees_list': '/admin/employees', 'add_employee': '/admin/employees/add',
-            'classes_list': '/admin/classes', 'add_class': '/admin/classes/add',
-            'students_list': '/admin/students', 'add_student': '/admin/students/add',
-            'subjects_list': '/admin/subjects', 'quarters_list': '/admin/quarters',
-            'exam_names_list': '/admin/exam-names', 'exam_types_list': '/admin/exam-types',
-            'question_types_list': '/admin/question-types', 'staff_titles_list': '/admin/staff-titles',
-            'edit_school': '/admin/schools/edit/{id}', 'delete_school': '/admin/schools/delete/{id}',
-            'edit_employee': '/admin/employees/edit/{id}', 'delete_employee': '/admin/employees/delete/{id}',
+            'schools_list': '/admin/schools',        'add_school': '/admin/schools/add',
+            'edit_school': '/admin/schools/edit/{id}',
+            'delete_school': '/admin/schools/delete/{id}',
+            'employees_list': '/admin/employees',    'add_employee': '/admin/employees/add',
+            'edit_employee': '/admin/employees/edit/{id}',
+            'delete_employee': '/admin/employees/delete/{id}',
             'toggle_employee_status': '/admin/employees/toggle-status/{id}',
-            'edit_class': '/admin/classes/edit/{id}', 'delete_class': '/admin/classes/delete/{id}',
-            'edit_student': '/admin/students/edit/{id}', 'delete_student': '/admin/students/delete/{id}',
-            'add_subject': '/admin/subjects/add', 'delete_subject': '/admin/subjects/delete/{id}',
-            'add_quarter': '/admin/quarters/add', 'delete_quarter': '/admin/quarters/delete/{id}',
-            'add_exam_name': '/admin/exam-names/add', 'delete_exam_name': '/admin/exam-names/delete/{id}',
-            'add_exam_type': '/admin/exam-types/add', 'delete_exam_type': '/admin/exam-types/delete/{id}',
-            'add_question_type': '/admin/question-types/add', 'delete_question_type': '/admin/question-types/delete/{id}',
-            'add_staff_title': '/admin/staff-titles/add', 'delete_staff_title': '/admin/staff-titles/delete/{id}',
-            'teacher_dashboard': '/teacher/dashboard', 'create_exam': '/teacher/create-exam',
-            'enter_scores': '/teacher/enter-scores/{exam_id}', 'view_results': '/teacher/results/{exam_id}',
-            'download_results': '/teacher/download/{exam_id}/{format}',
+            'classes_list': '/admin/classes',        'add_class': '/admin/classes/add',
+            'edit_class': '/admin/classes/edit/{id}',
+            'delete_class': '/admin/classes/delete/{id}',
+            'students_list': '/admin/students',      'add_student': '/admin/students/add',
+            'edit_student': '/admin/students/edit/{id}',
+            'delete_student': '/admin/students/delete/{id}',
+
+            # ── Admin: settings ─────────────────────────────────────────────
+            'subjects_list': '/admin/subjects',
+            'add_subject': '/admin/subjects/add',    'delete_subject': '/admin/subjects/delete/{id}',
+            'quarters_list': '/admin/quarters',
+            'add_quarter': '/admin/quarters/add',    'delete_quarter': '/admin/quarters/delete/{id}',
+            'exam_names_list': '/admin/exam-names',
+            'add_exam_name': '/admin/exam-names/add',
+            'delete_exam_name': '/admin/exam-names/delete/{id}',
+            'exam_types_list': '/admin/exam-types',
+            'add_exam_type': '/admin/exam-types/add',
+            'delete_exam_type': '/admin/exam-types/delete/{id}',
+            'question_types_list': '/admin/question-types',
+            'add_question_type': '/admin/question-types/add',
+            'delete_question_type': '/admin/question-types/delete/{id}',
+            'staff_titles_list': '/admin/staff-titles',
+            'add_staff_title': '/admin/staff-titles/add',
+            'delete_staff_title': '/admin/staff-titles/delete/{id}',
             'manage_languages': '/admin/languages',
             'save_translation': '/admin/languages/save',
             'delete_translation': '/admin/languages/delete/{key}',
-            'teacher_ai_list': '/teacher/ai',
-            'teacher_ai_create': '/teacher/ai/create',
+
+            # ── Admin: AI ───────────────────────────────────────────────────
             'admin_ai_list': '/admin/ai',
             'admin_ai_settings': '/admin/ai/settings',
+            'admin_ai_questions': '/admin/ai-questions',
+
+            # ── Admin: games ────────────────────────────────────────────────
+            'admin_games_settings': '/admin/games/settings',
+            'admin_games_list': '/admin/games',
+            'admin_game_results': '/admin/games/{sid}/results',
+
+            # ── Teacher: core ───────────────────────────────────────────────
+            'teacher_dashboard': '/teacher/dashboard',
+            'create_exam': '/teacher/create-exam',
+            'enter_scores': '/teacher/enter-scores/{exam_id}',
+            'view_results': '/teacher/results/{exam_id}',
+            'download_results': '/teacher/download/{exam_id}/{format}',
+
+            # ── Teacher: AI ─────────────────────────────────────────────────
+            'teacher_ai_list': '/teacher/ai',
+            'teacher_ai_create': '/teacher/ai/create',
             'teacher_ai_questions_list': '/teacher/ai-questions',
             'teacher_ai_questions_create': '/teacher/ai-questions/create',
-            'admin_ai_questions': '/admin/ai-questions',
+
+            # ── Teacher: games ──────────────────────────────────────────────
+            'teacher_games_list': '/teacher/games',          # hub (game type selector)
+            'teacher_games_sessions': '/teacher/games/sessions',  # sessions list
+            'teacher_games_create': '/teacher/games/create',
+            'teacher_games_lobby': '/teacher/games/{sid}/lobby',
+            'teacher_game_results': '/teacher/games/{sid}/results',
+
+            # ── Public game (students) ───────────────────────────────────────
+            'join_landing': '/play',
+            'join_game': '/play/{code}',
         }
 
         base_path = route_map.get(name, f'/{name}')
@@ -155,28 +194,20 @@ async def add_template_context(request: Request, call_next):
             result = f"{ROOT_PATH}{base_path}"
 
         return result
-    
-    # Store url_for in request state so templates can access it
+
     request.state.url_for_custom = url_for
     response = await call_next(request)
     return response
 
+
 # Include routers
 app.include_router(auth.router, tags=["Authentication"])
-app.include_router(admin.router, tags=["Admin"])
-app.include_router(teacher.router, tags=["Teacher"])
+app.include_router(admin_router, tags=["Admin"])
+app.include_router(teacher_router, tags=["Teacher"])
+app.include_router(game_router, tags=["Game"])
 app.include_router(language.router, tags=["Language"])
-app.include_router(ai_presentation.router, tags=["AI"])
-app.include_router(ai_questions.router, tags=["AI Questions"])
 
-# Root redirect (handled by auth router)
-# Additional routes can be added here if needed
 
 if __name__ == "__main__":
     import uvicorn
-    uvicorn.run(
-        "main:app",
-        host="0.0.0.0",
-        port=8000,
-        reload=True
-    )
+    uvicorn.run("main:app", host="0.0.0.0", port=8000, reload=True)

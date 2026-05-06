@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html lang="uz">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>O'yinga qo'shilish — TeacherPro</title>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{--accent:#64c8ff;--bg:#0d1117;--card:#161b22;--border:#30363d;--text:#e6edf3;--text-2:#8b949e}
+body{background:var(--bg);color:var(--text);font-family:'Manrope',system-ui,sans-serif;min-height:100vh;display:flex;align-items:center;justify-content:center;padding:1rem}
+.wrap{width:100%;max-width:400px;text-align:center}
+.logo{font-size:2.5rem;margin-bottom:.5rem}
+h1{font-size:1.6rem;font-weight:800;margin-bottom:.25rem}
+.sub{color:var(--text-2);font-size:.9rem;margin-bottom:2rem}
+.card{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:2rem}
+.input{width:100%;padding:.85rem 1rem;background:var(--bg);border:1px solid var(--border);border-radius:8px;color:var(--text);font-size:1.5rem;font-weight:800;letter-spacing:.25em;text-align:center;text-transform:uppercase;outline:none;transition:.15s}
+.input:focus{border-color:var(--accent)}
+.btn{width:100%;margin-top:1rem;padding:.9rem;background:var(--accent);color:#0d1117;border:none;border-radius:8px;font-size:1.05rem;font-weight:700;cursor:pointer;transition:.15s}
+.btn:hover{opacity:.9}
+.error{margin-top:.75rem;color:#f87171;font-size:.9rem;background:rgba(248,113,113,.1);padding:.5rem .75rem;border-radius:6px}
+</style>
+</head>
+<body>
+<div class="wrap">
+    <div class="logo">Game</div>
+    <h1>Quiz Race</h1>
+    <p class="sub">TeacherPro — interaktiv o'yin</p>
+    <div class="card">
+        <form method="get" action="" id="codeForm">
+            <input type="text" class="input" name="_code" id="codeInput"
+                   placeholder="KODINGIZ" maxlength="8" autocomplete="off" autocapitalize="characters"
+                   value="{{ request.query_params.get('_code', '') }}">
+            {% if error %}<div class="error">{{ error }}</div>{% endif %}
+            <button type="submit" class="btn">Qo'shilish →</button>
+        </form>
+    </div>
+</div>
+<script>
+document.getElementById('codeForm').addEventListener('submit', function(e) {
+    e.preventDefault();
+    const code = document.getElementById('codeInput').value.trim().toUpperCase();
+    if (code) location.href = '/play/' + code;
+});
+document.getElementById('codeInput').addEventListener('input', function() {
+    this.value = this.value.toUpperCase();
+});
+</script>
+</body>
+</html>

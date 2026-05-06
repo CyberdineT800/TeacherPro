@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html lang="uz">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Ism kiriting — {{ game_title }}</title>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{--accent:#64c8ff;--bg:#0d1117;--card:#161b22;--border:#30363d;--text:#e6edf3;--text-2:#8b949e}
+body{background:var(--bg);color:var(--text);font-family:'Manrope',system-ui,sans-serif;min-height:100vh;display:flex;align-items:center;justify-content:center;padding:1rem}
+.wrap{width:100%;max-width:400px;text-align:center}
+.game-title{font-size:1.2rem;font-weight:700;color:var(--accent);margin-bottom:.25rem}
+.code-chip{display:inline-block;background:rgba(100,200,255,.1);border:1px solid var(--accent);color:var(--accent);padding:.25rem .75rem;border-radius:20px;font-size:.85rem;letter-spacing:.1em;font-weight:700;margin-bottom:1.5rem}
+.card{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:2rem}
+h2{font-size:1.3rem;font-weight:700;margin-bottom.1.25rem}
+.label{color:var(--text-2);font-size:.85rem;margin-bottom:.5rem;display:block;text-align:left}
+.input{width:100%;padding:.85rem 1rem;background:var(--bg);border:1px solid var(--border);border-radius:8px;color:var(--text);font-size:1.15rem;font-weight:600;outline:none;transition:.15s}
+.input:focus{border-color:var(--accent)}
+.btn{width:100%;margin-top:1rem;padding:.9rem;background:var(--accent);color:#0d1117;border:none;border-radius:8px;font-size:1.05rem;font-weight:700;cursor:pointer;transition:.15s}
+.btn:hover{opacity:.9}
+.error{margin-top:.75rem;color:#f87171;font-size:.9rem;background:rgba(248,113,113,.1);padding:.5rem .75rem;border-radius:6px}
+</style>
+</head>
+<body>
+<div class="wrap">
+    <div class="game-title">{{ game_title }}</div>
+    <div class="code-chip">{{ code }}</div>
+    <div class="card">
+        <h2 style="margin-bottom:1.25rem">Ismingizni kiriting</h2>
+        <form method="post" action="/play/{{ code }}/join">
+            <label class="label">Ism</label>
+            <input type="text" name="nickname" class="input" required maxlength="50"
+                   autofocus placeholder="Masalan: Jasur5A" autocomplete="off">
+            {% if error %}<div class="error">{{ error }}</div>{% endif %}
+            <button type="submit" class="btn">Kirish →</button>
+        </form>
+    </div>
+</div>
+</body>
+</html>

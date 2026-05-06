@@ -68,6 +68,10 @@ async def init_db():
                 "ADD COLUMN IF NOT EXISTS ai_questions_used_today INTEGER NOT NULL DEFAULT 0, "
                 "ADD COLUMN IF NOT EXISTS ai_questions_last_reset DATE"
             ))
+            await conn.execute(text(
+                "ALTER TABLE employees "
+                "ADD COLUMN IF NOT EXISTS games_enabled BOOLEAN NOT NULL DEFAULT FALSE"
+            ))
 
 class School(Base):
     __tablename__ = 'schools'
@@ -111,6 +115,8 @@ class Employee(Base):
     ai_questions_daily_limit = Column(Integer, default=5, nullable=False)
     ai_questions_used_today = Column(Integer, default=0, nullable=False)
     ai_questions_last_reset = Column(Date, nullable=True)
+
+    games_enabled = Column(Boolean, default=False, nullable=False)
 
     school = relationship('School', back_populates='employees')
     staff_title = relationship('StaffTitle', back_populates='employees')
@@ -293,3 +299,71 @@ Index('ix_exam_results_exam_student', ExamResult.exam_id, ExamResult.student_id)
 Index('ix_students_class_group', Student.class_id, Student.group_number)
 Index('ix_ai_presentations_teacher_created', AIPresentation.teacher_id, AIPresentation.created_at)
 Index('ix_ai_question_sets_teacher_created', AIQuestionSet.teacher_id, AIQuestionSet.created_at)
+
+
+# ============================================================================
+# GAME MODELS
+# ============================================================================
+
+class GameSession(Base):
+    """A single Quiz Race game created by a teacher."""
+    __tablename__ = 'game_sessions'
+    id = Column(Integer, primary_key=True)
+    code = Column(String(8), unique=True, nullable=False, index=True)
+    teacher_id = Column(Integer, ForeignKey('employees.id'), nullable=False, index=True)
+    title = Column(String(200), nullable=False)
+    subject_name = Column(String(100), nullable=True)
+    grade = Column(Integer, nullable=True)
+    time_per_question = Column(Integer, default=20, nullable=False)   # seconds
+    # pending → lobby → playing → finished
+    status = Column(String(20), default='pending', nullable=False)
+    created_at = Column(DateTime, default=datetime.utcnow, index=True)
+    started_at = Column(DateTime, nullable=True)
+    finished_at = Column(DateTime, nullable=True)
+
+    teacher = relationship('Employee')
+    questions = relationship(
+        'GameQuestion', back_populates='session',
+        cascade='all, delete-orphan',
+        order_by='GameQuestion.order',
+    )
+    participants = relationship(
+        'GameParticipant', back_populates='session',
+        cascade='all, delete-orphan',
+    )
+
+
+class GameQuestion(Base):
+    """One multiple-choice question belonging to a GameSession."""
+    __tablename__ = 'game_questions'
+    id = Column(Integer, primary_key=True)
+    session_id = Column(Integer, ForeignKey('game_sessions.id'), nullable=False, index=True)
+    order = Column(Integer, nullable=False)
+    question_text = Column(Text, nullable=False)
+    option_a = Column(String(500), nullable=False)
+    option_b = Column(String(500), nullable=False)
+    option_c = Column(String(500), nullable=False)
+    option_d = Column(String(500), nullable=False)
+    correct_option = Column(Integer, nullable=False)   # 0=A 1=B 2=C 3=D
+    points = Column(Integer, default=100, nullable=False)
+
+    session = relationship('GameSession', back_populates='questions')
+
+
+class GameParticipant(Base):
+    """Final result record for one student in a completed GameSession."""
+    __tablename__ = 'game_participants'
+    id = Column(Integer, primary_key=True)
+    session_id = Column(Integer, ForeignKey('game_sessions.id'), nullable=False, index=True)
+    nickname = Column(String(100), nullable=False)
+    total_score = Column(Integer, default=0)
+    correct_answers = Column(Integer, default=0)
+    wrong_answers = Column(Integer, default=0)
+    rank = Column(Integer, nullable=True)
+    joined_at = Column(DateTime, default=datetime.utcnow)
+
+    session = relationship('GameSession', back_populates='participants')
+
+
+Index('ix_game_sessions_teacher_created', GameSession.teacher_id, GameSession.created_at)
+Index('ix_game_questions_session_order', GameQuestion.session_id, GameQuestion.order)

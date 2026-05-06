@@ -69,12 +69,17 @@
                     class="nav-link {% if request.endpoint == 'admin_ai_questions' %}active{% endif %}">
                     {{ _('ai_questions') }}
                 </a>
+                <a href="{{ url_for('admin_games_list') }}"
+                    class="nav-link {% if '/admin/games' in request.url.path %}active{% endif %}">
+                    {{ _('games') }}
+                </a>
                 <div class="nav-dropdown" id="settingsDropdown">
                     <a href="#" class="nav-link" tabindex="0">
                         {{ _('settings') }}
                         <span class="dropdown-arrow">▼</span>
                     </a>
                     <div class="dropdown-menu">
+                        <a href="{{ url_for('admin_games_settings') }}" class="dropdown-link">{{ _('game_settings') }}</a>
                         <a href="{{ url_for('admin_ai_settings') }}" class="dropdown-link">{{ _('ai_settings_title') }}</a>
                         <a href="{{ url_for('subjects_list') }}" class="dropdown-link">{{ _('subjects') }}</a>
                         <a href="{{ url_for('quarters_list') }}" class="dropdown-link">{{ _('quarters') }}</a>
@@ -96,12 +101,18 @@
                 </a>
                 {% if session.ai_enabled %}
                 <a href="{{ url_for('teacher_ai_list') }}"
-                    class="nav-link {% if request.endpoint == 'teacher_ai_list' %}active{% endif %}">
+                    class="nav-link {% if '/teacher/ai' in request.url.path and 'games' not in request.url.path and 'quest' not in request.url.path %}active{% endif %}">
                     {{ _('ai_presentations') }}
                 </a>
-                <a href="{{ request.app.root_path }}/teacher/ai-questions"
-                    class="nav-link {% if request.endpoint == 'teacher_ai_list' %}active{% endif %}">
+                <a href="{{ url_for('teacher_ai_questions_list') }}"
+                    class="nav-link {% if '/teacher/ai-questions' in request.url.path %}active{% endif %}">
                     {{ _('ai_questions') }}
+                </a>
+                {% endif %}
+                {% if session.games_enabled %}
+                <a href="{{ url_for('teacher_games_list') }}"
+                    class="nav-link {% if '/teacher/games' in request.url.path %}active{% endif %}">
+                    {{ _('games') }}
                 </a>
                 {% endif %}
                 {% endif %}

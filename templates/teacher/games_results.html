@@ -1,0 +1,44 @@
+{% extends "base.html" %}
+{% block title %}{{ gs.title }} — {{ _('game_results_title') }}{% endblock %}
+
+{% block content %}
+<div class="card" style="max-width:680px;margin:0 auto">
+    <div style="display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:.75rem;margin-bottom:1.25rem">
+        <div>
+            <h2 style="margin:0 0 .3rem">{{ gs.title }}</h2>
+            <p style="margin:0;color:var(--text-muted);font-size:.87rem">
+                {{ gs.subject_name or '' }}{% if gs.grade %} &middot; {{ gs.grade }}-{{ _('grade_label') }}{% endif %}
+                {% if gs.finished_at %} &middot; {{ gs.finished_at.strftime('%d.%m.%Y %H:%M') }}{% endif %}
+            </p>
+        </div>
+        <a href="/teacher/games/sessions" class="btn btn-secondary btn-sm">{{ _('back') }}</a>
+    </div>
+
+    <div class="table-wrapper">
+        <table class="data-table">
+            <thead>
+                <tr>
+                    <th style="width:52px;text-align:center">{{ _('rank') }}</th>
+                    <th>{{ _('student') }}</th>
+                    <th>{{ _('score') }}</th>
+                    <th>{{ _('correct_answers') }}</th>
+                    <th>{{ _('wrong_answers') }}</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for p in participants %}
+                <tr {% if p.rank == 1 %}style="background:oklch(82% 0.15 80 / 0.08)"{% endif %}>
+                    <td style="font-weight:700;text-align:center">{{ p.rank }}</td>
+                    <td>{{ p.nickname }}</td>
+                    <td><strong>{{ p.total_score }}</strong></td>
+                    <td style="color:var(--ok)">{{ p.correct_answers }}</td>
+                    <td style="color:var(--err)">{{ p.wrong_answers }}</td>
+                </tr>
+                {% else %}
+                <tr><td colspan="5" class="text-center" style="color:var(--text-muted)">{{ _('no_data') }}</td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}

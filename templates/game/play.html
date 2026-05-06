@@ -1,0 +1,215 @@
+<!DOCTYPE html>
+<html lang="uz">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Quiz Race — {{ code }}</title>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{--accent:#64c8ff;--bg:#0d1117;--card:#161b22;--border:#30363d;--text:#e6edf3;--text-2:#8b949e;
+--opt-a:#c0392b;--opt-b:#d35400;--opt-c:#1f618d;--opt-d:#1e8449}
+body{background:var(--bg);color:var(--text);font-family:'Manrope',system-ui,sans-serif;min-height:100vh;display:flex;flex-direction:column;align-items:center;padding:1rem}
+.top-bar{width:100%;max-width:700px;display:flex;justify-content:space-between;align-items:center;padding:.6rem 0;font-size:.85rem;color:var(--text-2);margin-bottom:1rem}
+.score-pill{background:rgba(100,200,255,.1);border:1px solid var(--accent);color:var(--accent);padding:.3rem .8rem;border-radius:20px;font-weight:700;font-size:.95rem}
+.screen{width:100%;max-width:700px;display:none}
+.screen.active{display:block}
+
+.waiting-wrap{text-align:center;padding:3rem 1rem}
+.waiting-code{font-size:2.5rem;font-weight:800;letter-spacing:.2em;color:var(--accent);margin:1rem 0}
+.pulse{animation:pulse 1.8s ease-in-out infinite}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.4}}
+
+.timer-wrap{display:flex;justify-content:center;margin-bottom:1rem}
+.timer{width:60px;height:60px;border-radius:50%;background:rgba(100,200,255,.1);border:3px solid var(--accent);display:flex;align-items:center;justify-content:center;font-size:1.5rem;font-weight:800;color:var(--accent);transition:border-color .3s}
+.timer.urgent{border-color:#e74c3c;color:#e74c3c}
+
+.question-text{font-size:1.2rem;font-weight:700;text-align:center;padding:1rem;margin-bottom:1.25rem;line-height:1.5}
+.options{display:grid;grid-template-columns:1fr 1fr;gap:.7rem}
+@media(max-width:480px){.options{grid-template-columns:1fr}}
+.opt-btn{padding:.9rem 1rem;border-radius:10px;border:none;color:#fff;font-size:.98rem;font-weight:600;cursor:pointer;transition:.12s;text-align:left;line-height:1.4;display:flex;align-items:flex-start;gap:.6rem}
+.opt-btn:hover{opacity:.9;transform:translateY(-1px)}
+.opt-btn:disabled{cursor:not-allowed;opacity:.7}
+.opt-btn .letter{width:26px;height:26px;border-radius:5px;background:rgba(0,0,0,.25);display:flex;align-items:center;justify-content:center;font-weight:800;flex-shrink:0;font-size:.85rem}
+.opt-a{background:var(--opt-a)} .opt-b{background:var(--opt-b)} .opt-c{background:var(--opt-c)} .opt-d{background:var(--opt-d)}
+.opt-btn.correct-ans{box-shadow:0 0 0 3px #2ecc71,0 0 16px rgba(46,204,113,.4)}
+.opt-btn.wrong-ans{opacity:.35}
+.opt-btn.my-wrong{box-shadow:0 0 0 3px #e74c3c,0 0 12px rgba(231,76,60,.4)}
+
+.result-banner{text-align:center;padding:1.5rem;border-radius:12px;margin-bottom:1rem}
+.result-banner.correct{background:rgba(46,204,113,.12);border:1px solid #2ecc71}
+.result-banner.wrong{background:rgba(231,76,60,.12);border:1px solid #e74c3c}
+.result-banner.timeout{background:rgba(139,148,158,.1);border:1px solid var(--border)}
+.result-label{display:inline-block;padding:.2rem .75rem;border-radius:20px;font-size:.8rem;font-weight:700;letter-spacing:.05em;text-transform:uppercase;margin-bottom:.5rem}
+.result-label.correct{background:rgba(46,204,113,.2);color:#2ecc71}
+.result-label.wrong{background:rgba(231,76,60,.2);color:#e74c3c}
+.result-label.timeout{background:rgba(139,148,158,.15);color:var(--text-2)}
+.result-score{font-size:1.8rem;font-weight:800;color:var(--accent)}
+.total-score{font-size:.88rem;color:var(--text-2);margin-top:.2rem}
+
+.final-wrap{text-align:center;padding:2rem 1rem}
+.final-rank-badge{display:inline-block;padding:.3rem 1.2rem;border-radius:20px;background:rgba(100,200,255,.12);border:1px solid var(--accent);color:var(--accent);font-size:1rem;font-weight:700;margin-bottom:.75rem}
+.final-name{font-size:1.3rem;font-weight:700}
+.final-score{font-size:2.5rem;font-weight:800;color:var(--accent);margin:.4rem 0}
+</style>
+</head>
+<body>
+
+<div class="top-bar">
+    <span><strong>{{ nick }}</strong></span>
+    <span class="score-pill" id="scorePill">0 ball</span>
+</div>
+
+<!-- Waiting screen -->
+<div class="screen active" id="screenWait">
+    <div class="waiting-wrap">
+        <div class="pulse" style="font-size:2rem;font-weight:700;color:var(--accent);margin-bottom:1rem">[ ]</div>
+        <p style="font-size:1.1rem;font-weight:600;margin-bottom:.5rem">Xush kelibsiz, <strong>{{ nick }}</strong>!</p>
+        <p style="color:var(--text-2);margin-bottom:1.5rem">O'qituvchi o'yinni boshlaguncha kuting...</p>
+        <div class="waiting-code">{{ code }}</div>
+    </div>
+</div>
+
+<!-- Question screen -->
+<div class="screen" id="screenQuestion">
+    <div class="timer-wrap"><div class="timer" id="timer">20</div></div>
+    <div class="question-text" id="questionText"></div>
+    <div class="options" id="options"></div>
+</div>
+
+<!-- Result screen -->
+<div class="screen" id="screenResult">
+    <div class="result-banner" id="resultBanner">
+        <div class="result-label" id="resultLabel"></div>
+        <div class="result-score" id="resultScore"></div>
+        <div class="total-score" id="resultTotal"></div>
+    </div>
+</div>
+
+<!-- Final screen -->
+<div class="screen" id="screenFinal">
+    <div class="final-wrap">
+        <div class="final-rank-badge" id="finalRank"></div>
+        <div class="final-name">{{ nick }}</div>
+        <div class="final-score" id="finalScore"></div>
+        <p id="finalStats" style="color:var(--text-2);font-size:.88rem;margin-top:.2rem"></p>
+        <p style="color:var(--text-2);font-size:.82rem;margin-top:2rem">Natijalarni o'qituvchi ekranida ko'ring</p>
+    </div>
+</div>
+
+<script>
+const WS_URL = (location.protocol==='https:'?'wss':'ws') + '://' + location.host
+    + '/play/{{ code }}/ws?pid={{ pid }}';
+
+let myScore = 0, timerInterval, timeLeft = 20, myAnswer = null;
+const LETTERS = ['A','B','C','D'];
+const COLORS = ['opt-a','opt-b','opt-c','opt-d'];
+
+function show(id) {
+    ['screenWait','screenQuestion','screenResult','screenFinal'].forEach(s => {
+        document.getElementById(s).classList.remove('active');
+    });
+    document.getElementById(id).classList.add('active');
+}
+
+let ws;
+function connect() {
+    ws = new WebSocket(WS_URL);
+    ws.onmessage = e => handle(JSON.parse(e.data));
+    ws.onclose = () => setTimeout(connect, 3000);
+}
+
+function handle(msg) {
+    switch (msg.type) {
+        case 'joined': break;
+        case 'question_start': showQuestion(msg); break;
+        case 'question_result': showResult(msg); break;
+        case 'game_finished': showFinal(msg); break;
+    }
+}
+
+function showQuestion(msg) {
+    myAnswer = null;
+    clearInterval(timerInterval);
+    timeLeft = msg.time_limit || 20;
+
+    show('screenQuestion');
+    document.getElementById('questionText').textContent = msg.question;
+
+    const opts = document.getElementById('options');
+    opts.innerHTML = '';
+    msg.options.forEach((opt, i) => {
+        const btn = document.createElement('button');
+        btn.className = `opt-btn ${COLORS[i]}`;
+        btn.innerHTML = `<span class="letter">${LETTERS[i]}</span><span>${opt}</span>`;
+        btn.onclick = () => sendAnswer(i, btn);
+        opts.appendChild(btn);
+    });
+
+    const timerEl = document.getElementById('timer');
+    timerEl.textContent = timeLeft;
+    timerEl.className = 'timer';
+
+    timerInterval = setInterval(() => {
+        timeLeft--;
+        timerEl.textContent = timeLeft;
+        if (timeLeft <= 5) timerEl.className = 'timer urgent';
+        if (timeLeft <= 0) clearInterval(timerInterval);
+    }, 1000);
+}
+
+function sendAnswer(idx, clickedBtn) {
+    if (myAnswer !== null) return;
+    myAnswer = idx;
+    clearInterval(timerInterval);
+    document.querySelectorAll('.opt-btn').forEach(b => b.disabled = true);
+    clickedBtn.style.opacity = '1';
+    ws.send(JSON.stringify({type:'answer', option: idx}));
+}
+
+function showResult(msg) {
+    clearInterval(timerInterval);
+    myScore = msg.total_score;
+    document.getElementById('scorePill').textContent = myScore + ' ball';
+
+    document.querySelectorAll('.opt-btn').forEach((btn, i) => {
+        if (i === msg.correct_option) btn.classList.add('correct-ans');
+        else if (i === myAnswer && i !== msg.correct_option) btn.classList.add('my-wrong');
+        else btn.classList.add('wrong-ans');
+    });
+
+    setTimeout(() => {
+        const banner = document.getElementById('resultBanner');
+        const label = document.getElementById('resultLabel');
+        if (msg.was_correct === true) {
+            banner.className = 'result-banner correct';
+            label.className = 'result-label correct';
+            label.textContent = "To'g'ri";
+            document.getElementById('resultScore').textContent = '+' + msg.score_gained + ' ball';
+        } else if (msg.was_correct === false) {
+            banner.className = 'result-banner wrong';
+            label.className = 'result-label wrong';
+            label.textContent = "Noto'g'ri";
+            document.getElementById('resultScore').textContent = '+0 ball';
+        } else {
+            banner.className = 'result-banner timeout';
+            label.className = 'result-label timeout';
+            label.textContent = 'Vaqt tugadi';
+            document.getElementById('resultScore').textContent = '+0 ball';
+        }
+        document.getElementById('resultTotal').textContent = 'Jami: ' + msg.total_score + ' ball';
+        show('screenResult');
+    }, 1200);
+}
+
+function showFinal(msg) {
+    document.getElementById('finalRank').textContent = msg.rank + "-o'rin";
+    document.getElementById('finalScore').textContent = msg.score + ' ball';
+    document.getElementById('finalStats').textContent =
+        msg.correct + " to'g'ri · " + msg.wrong + " noto'g'ri · " + msg.total_players + ' ishtirokchi';
+    show('screenFinal');
+}
+
+connect();
+</script>
+</body>
+</html>

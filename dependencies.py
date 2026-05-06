@@ -2,6 +2,7 @@ from math import ceil
 from typing import Optional, Dict, Any, List
 from fastapi import Depends, HTTPException, Request, status
 from fastapi.responses import RedirectResponse
+from starlette.requests import HTTPConnection
 from sqlalchemy.ext.asyncio import AsyncSession
 from models import get_db, Employee
 from sqlalchemy import select
@@ -148,5 +149,6 @@ async def get_template_context(request: Request, db: AsyncSession = None) -> Dic
         if employee:
             context['user'] = employee
             request.session['ai_enabled'] = bool(employee.ai_enabled)
+            request.session['games_enabled'] = bool(employee.games_enabled)
 
     return context
