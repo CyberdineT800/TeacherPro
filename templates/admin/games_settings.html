@@ -1,51 +1,122 @@
 {% extends "base.html" %}
 {% block title %}{{ _('game_settings') }}{% endblock %}
 
-{% block content %}
-<div class="page-header">
-    <h2>{{ _('game_settings') }}</h2>
-    <p class="page-subtitle">{{ _('game_settings_subtitle') }}</p>
-</div>
+{% block extra_css %}
+<style>
+    .settings-table { width: 100%; border-collapse: collapse; }
+    .settings-table th, .settings-table td {
+        padding: .85rem 1rem; text-align: left;
+        border-bottom: 1px solid var(--glass-border);
+    }
+    .settings-table th {
+        color: var(--text-muted); font-weight: 600;
+        font-size: .8rem; text-transform: uppercase; letter-spacing: .04em;
+    }
+    .settings-table tr:last-child td { border-bottom: none; }
+    .settings-table tr:hover { background: rgba(255,255,255,.03); }
+    .toggle-switch {
+        position: relative; display: inline-block;
+        width: 50px; height: 26px;
+    }
+    .toggle-switch input { opacity: 0; width: 0; height: 0; }
+    .toggle-slider {
+        position: absolute; cursor: pointer; inset: 0;
+        background: rgba(255,255,255,.1); border: 1px solid var(--glass-border);
+        transition: .25s; border-radius: var(--r-pill);
+    }
+    .toggle-slider:before {
+        position: absolute; content: "";
+        height: 18px; width: 18px; left: 3px; top: 3px;
+        background: white; transition: .25s; border-radius: 50%;
+    }
+    input:checked + .toggle-slider { background: var(--c-cyan); border-color: var(--c-cyan); }
+    input:checked + .toggle-slider:before { transform: translateX(24px); }
+    .count-badge {
+        display: inline-block;
+        padding: .25rem .65rem; border-radius: var(--r-pill);
+        background: rgba(100,200,255,.12); color: var(--c-cyan);
+        font-weight: 700; font-size: .82rem;
+    }
+    .count-badge.zero { background: rgba(255,255,255,.05); color: var(--text-faint); }
+    .school-tag { font-size: .78rem; color: var(--text-faint); display: block; margin-top: .1rem; }
+    .gs-save-btn {
+        padding: .4rem .9rem; border-radius: var(--r-sm);
+        background: var(--c-cyan); color: #0a0e1c; border: none;
+        font-weight: 700; cursor: pointer; font-size: .82rem;
+        white-space: nowrap;
+    }
+    .gs-save-btn:hover { opacity: .9; }
+    .gs-save-btn.danger {
+        background: rgba(255,80,80,.15); color: #ff6b6b;
+        border: 1px solid rgba(255,80,80,.25);
+    }
+    .gs-save-btn.danger:hover { background: rgba(255,80,80,.25); }
+</style>
+{% endblock %}
 
+{% block content %}
 <div class="card">
-    <div class="table-wrapper">
-        <table class="data-table">
-            <thead>
-                <tr>
-                    <th>{{ _('teacher') }}</th>
-                    <th>{{ _('school') }}</th>
-                    <th>{{ _('games_count') }}</th>
-                    <th>{{ _('status') }}</th>
-                    <th>{{ _('actions') }}</th>
-                </tr>
-            </thead>
-            <tbody>
-                {% for teacher in teachers %}
-                <tr>
-                    <td>{{ teacher.first_name }} {{ teacher.last_name }}</td>
-                    <td>{{ teacher.school.name if teacher.school else '—' }}</td>
-                    <td>{{ session_counts.get(teacher.id, 0) }}</td>
-                    <td>
-                        {% if teacher.games_enabled %}
-                        <span class="status-active">{{ _('game_enabled') }}</span>
-                        {% else %}
-                        <span class="status-inactive">{{ _('game_disabled') }}</span>
-                        {% endif %}
-                    </td>
-                    <td>
-                        <form method="post" action="{{ root_path }}/admin/games/settings/{{ teacher.id }}" style="display:inline">
-                            <input type="hidden" name="games_enabled" value="{% if teacher.games_enabled %}{% else %}on{% endif %}">
-                            <button type="submit" class="btn btn-sm {% if teacher.games_enabled %}btn-danger{% else %}btn-success{% endif %}">
-                                {% if teacher.games_enabled %}{{ _('game_disable') }}{% else %}{{ _('game_enable') }}{% endif %}
-                            </button>
-                        </form>
-                    </td>
-                </tr>
-                {% else %}
-                <tr><td colspan="5" class="text-center" style="color:var(--text-muted)">{{ _('no_data') }}</td></tr>
-                {% endfor %}
-            </tbody>
-        </table>
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1.5rem;flex-wrap:wrap;gap:.5rem">
+        <div>
+            <h2 style="margin:0">{{ _('game_settings') }}</h2>
+            <p style="margin:.4rem 0 0;color:var(--text-muted)">{{ _('game_settings_subtitle') }}</p>
+        </div>
+        <div style="display:flex;gap:.5rem;flex-wrap:wrap">
+            <a href="{{ root_path }}/admin/games" class="btn btn-secondary btn-sm">
+                {{ _('finished_games') }} →
+            </a>
+        </div>
     </div>
+
+    {% if teachers %}
+    <div style="overflow-x:auto">
+    <table class="settings-table">
+        <thead>
+            <tr>
+                <th>{{ _('teacher') }}</th>
+                <th>{{ _('school') }}</th>
+                <th style="text-align:center">{{ _('games_count') }}</th>
+                <th style="text-align:center">{{ _('status') }}</th>
+                <th style="text-align:right">{{ _('actions') }}</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for teacher in teachers %}
+            <tr>
+                <td>
+                    <strong>{{ teacher.first_name }} {{ teacher.last_name }}</strong>
+                    {% if teacher.school %}<span class="school-tag">{{ teacher.school.name }}</span>{% endif %}
+                </td>
+                <td style="color:var(--text-muted);font-size:.88rem">
+                    {{ teacher.school.name if teacher.school else '—' }}
+                </td>
+                <td style="text-align:center">
+                    <span class="count-badge {% if not session_counts.get(teacher.id, 0) %}zero{% endif %}">
+                        {{ session_counts.get(teacher.id, 0) }}
+                    </span>
+                </td>
+                <td style="text-align:center">
+                    {% if teacher.games_enabled %}
+                    <span class="status-active">{{ _('game_enabled') }}</span>
+                    {% else %}
+                    <span class="status-inactive">{{ _('game_disabled') }}</span>
+                    {% endif %}
+                </td>
+                <td style="text-align:right">
+                    <form method="post" action="{{ root_path }}/admin/games/settings/{{ teacher.id }}" style="display:inline">
+                        <input type="hidden" name="games_enabled" value="{% if teacher.games_enabled %}{% else %}on{% endif %}">
+                        <button type="submit" class="gs-save-btn {% if teacher.games_enabled %}danger{% endif %}">
+                            {% if teacher.games_enabled %}{{ _('game_disable') }}{% else %}{{ _('game_enable') }}{% endif %}
+                        </button>
+                    </form>
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    </div>
+    {% else %}
+    <p style="text-align:center;color:var(--text-muted);padding:2rem">{{ _('no_data') }}</p>
+    {% endif %}
 </div>
 {% endblock %}
