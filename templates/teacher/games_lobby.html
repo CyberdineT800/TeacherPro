@@ -110,7 +110,9 @@
 
 {% block extra_js %}
 <script>
-const WS_URL = (location.protocol === 'https:' ? 'wss' : 'ws') + '://' + location.host + '{{ root_path }}/teacher/games/{{ gs.id }}/ws';
+// Build WS URL from current page path: /…/games/{id}/lobby → /…/games/{id}/ws
+const WS_URL = (location.protocol === 'https:' ? 'wss' : 'ws') + '://' + location.host
+    + location.pathname.replace(/\/lobby$/, '/ws');
 let ws, currentIdx = -1;
 
 const el = id => document.getElementById(id);
@@ -212,7 +214,7 @@ function showFinal(scoreboard) {
     el('scoreboard').innerHTML = '';
     el('scoreboard').appendChild(h);
     renderScoreboard(scoreboard);
-    setTimeout(() => location.href = '{{ root_path }}/teacher/games/{{ gs.id }}/results', 3000);
+    setTimeout(() => location.href = location.pathname.replace(/\/lobby$/, '/results'), 3000);
 }
 
 function renderScoreboard(list) {
