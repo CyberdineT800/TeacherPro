@@ -203,7 +203,7 @@ async def teacher_games_create(
                     option_c=q.get('options', ['', '', '', ''])[2],
                     option_d=q.get('options', ['', '', '', ''])[3],
                     correct_option=q.get('correct', 0),
-                    points=100,
+                    points=10,
                 ))
 
     elif question_source == 'ai' and ai_topic:
@@ -221,7 +221,7 @@ async def teacher_games_create(
                     option_c=q.get('option_c', ''),
                     option_d=q.get('option_d', ''),
                     correct_option=q.get('correct', 0),
-                    points=100,
+                    points=10,
                 ))
         except Exception as e:
             log.error("AI game question generation failed: %s\n%s", e, traceback.format_exc())

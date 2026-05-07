@@ -191,7 +191,7 @@ async def start_question(room: RoomState, save_cb=None) -> None:
         'question': q['question_text'],
         'options': [q['option_a'], q['option_b'], q['option_c'], q['option_d']],
         'time_limit': room.time_per_question,
-        'points': q.get('points', 100),
+        'points': q.get('points', 10),
     }
     await broadcast_to_all(room, msg)
 
@@ -272,7 +272,7 @@ async def reveal_question(room: RoomState, save_cb) -> None:
     room.status = 'reveal'
     q = room.questions[room.current_question_index]
     correct_option: int = q['correct_option']
-    base_points: int = q.get('points', 100)
+    base_points: int = q.get('points', 10)
 
     for player in room.players.values():
         if player.last_answer is None:

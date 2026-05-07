@@ -399,7 +399,7 @@
     "in_development": "In development...",
     "seconds": "sec",
     "game_score_how": "How is the score calculated?",
-    "game_score_explanation": "Each correct answer earns 50–100 points. The faster you answer, the more points you get. Wrong or unanswered questions score 0.",
+    "game_score_explanation": "Each correct answer earns 5–10 points. The faster you answer, the more points you get. Wrong or unanswered questions score 0.",
     "game_score_formula_label": "Formula",
     "game_score_formula": "Score = max.pts × (0.5 + 0.5 × (time remaining / total time))"
 }

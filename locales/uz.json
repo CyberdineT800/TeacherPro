@@ -398,7 +398,7 @@
     "in_development": "Ishlab chiqilmoqda...",
     "seconds": "soniya",
     "game_score_how": "Ball qanday hisoblanadi?",
-    "game_score_explanation": "Har bir to'g'ri javob uchun 50–100 ball olinadi. Qanchalik tez javob bersangiz, shunchalik ko'p ball olasiz. Noto'g'ri yoki javob berilmagan savollar uchun 0 ball.",
+    "game_score_explanation": "Har bir to'g'ri javob uchun 5–10 ball olinadi. Qanchalik tez javob bersangiz, shunchalik ko'p ball olasiz. Noto'g'ri yoki javob berilmagan savollar uchun 0 ball.",
     "game_score_formula_label": "Formula",
     "game_score_formula": "Ball = maks.ball × (0.5 + 0.5 × (qolgan vaqt / umumiy vaqt))"
 }

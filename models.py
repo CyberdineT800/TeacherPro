@@ -345,7 +345,7 @@ class GameQuestion(Base):
     option_c = Column(String(500), nullable=False)
     option_d = Column(String(500), nullable=False)
     correct_option = Column(Integer, nullable=False)   # 0=A 1=B 2=C 3=D
-    points = Column(Integer, default=100, nullable=False)
+    points = Column(Integer, default=10, nullable=False)
 
     session = relationship('GameSession', back_populates='questions')
 
