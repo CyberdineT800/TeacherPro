@@ -50,23 +50,23 @@
             <div class="nav-menu" id="navMenu">
                 {% if session.is_admin %}
                 <a href="{{ url_for('admin_dashboard') }}"
-                    class="nav-link {% if request.endpoint == 'admin_dashboard' %}active{% endif %}">
+                    class="nav-link {% if 'admin/dashboard' in request.url.path %}active{% endif %}">
                     {{ _('dashboard') }}
                 </a>
                 <a href="{{ url_for('schools_list') }}"
-                    class="nav-link {% if request.endpoint == 'schools_list' %}active{% endif %}">
+                    class="nav-link {% if 'admin/schools' in request.url.path %}active{% endif %}">
                     {{ _('schools') }}
                 </a>
                 <a href="{{ url_for('employees_list') }}"
-                    class="nav-link {% if request.endpoint == 'employees_list' %}active{% endif %}">
+                    class="nav-link {% if 'admin/employees' in request.url.path %}active{% endif %}">
                     {{ _('employees') }}
                 </a>
                 <a href="{{ url_for('admin_ai_list') }}"
-                    class="nav-link {% if request.endpoint == 'admin_ai_list' %}active{% endif %}">
+                    class="nav-link {% if 'admin/ai' in request.url.path and 'questions' not in request.url.path %}active{% endif %}">
                     {{ _('ai_presentation') }}
                 </a>
                 <a href="{{ url_for('admin_ai_questions') }}"
-                    class="nav-link {% if request.endpoint == 'admin_ai_questions' %}active{% endif %}">
+                    class="nav-link {% if 'admin/ai-questions' in request.url.path %}active{% endif %}">
                     {{ _('ai_questions') }}
                 </a>
                 <a href="{{ url_for('admin_games_list') }}"
@@ -92,11 +92,11 @@
                 </div>
                 {% else %}
                 <a href="{{ url_for('teacher_dashboard') }}"
-                    class="nav-link {% if request.endpoint == 'teacher_dashboard' %}active{% endif %}">
+                    class="nav-link {% if 'teacher/dashboard' in request.url.path %}active{% endif %}">
                     {{ _('dashboard') }}
                 </a>
                 <a href="{{ url_for('create_exam') }}"
-                    class="nav-link {% if request.endpoint == 'create_exam' %}active{% endif %}">
+                    class="nav-link {% if 'create-exam' in request.url.path %}active{% endif %}">
                     {{ _('create_exam') }}
                 </a>
                 {% if session.ai_enabled %}
@@ -218,7 +218,7 @@
         </div>
 
         <div class="footer-bottom">
-            <p>&copy; 2025 {{ _('app_name') }}. {{ _('all_rights_reserved') }}</p>
+            <p>&copy; 2026 {{ _('app_name') }}. {{ _('all_rights_reserved') }}</p>
         </div>
     </footer>
 
