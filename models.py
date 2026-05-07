@@ -366,4 +366,5 @@ class GameParticipant(Base):
 
 
 Index('ix_game_sessions_teacher_created', GameSession.teacher_id, GameSession.created_at)
+Index('ix_game_sessions_status', GameSession.status)
 Index('ix_game_questions_session_order', GameQuestion.session_id, GameQuestion.order)

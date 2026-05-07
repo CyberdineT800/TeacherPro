@@ -12,7 +12,7 @@
                 {% if gs.finished_at %}&middot; {{ gs.finished_at.strftime('%d.%m.%Y %H:%M') }}{% endif %}
             </p>
         </div>
-        <a href="/admin/games" class="btn btn-secondary btn-sm">{{ _('back') }}</a>
+        <a href="{{ root_path }}/admin/games" class="btn btn-secondary btn-sm">{{ _('back') }}</a>
     </div>
 
     <div class="table-wrapper">

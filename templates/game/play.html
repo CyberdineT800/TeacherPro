@@ -98,7 +98,7 @@ body{background:var(--bg);color:var(--text);font-family:'Manrope',system-ui,sans
 
 <script>
 const WS_URL = (location.protocol==='https:'?'wss':'ws') + '://' + location.host
-    + '/play/{{ code }}/ws?pid={{ pid }}';
+    + '{{ root_path }}/play/{{ code }}/ws?pid={{ pid }}';
 
 let myScore = 0, timerInterval, timeLeft = 20, myAnswer = null;
 const LETTERS = ['A','B','C','D'];

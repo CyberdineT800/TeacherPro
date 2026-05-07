@@ -9,7 +9,8 @@ from io import BytesIO
 from typing import Optional
 
 from fastapi import APIRouter, Request, Depends, Form, HTTPException, WebSocket, WebSocketDisconnect
-from fastapi.responses import HTMLResponse, RedirectResponse, JSONResponse
+from fastapi.responses import HTMLResponse, JSONResponse
+from config import RedirectResponse, ROOT_PATH
 from fastapi.templating import Jinja2Templates
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -265,7 +266,7 @@ async def teacher_games_lobby(sid: int, request: Request, db: AsyncSession = Dep
         import qrcode
         from io import BytesIO
         import base64
-        join_url = str(request.base_url).rstrip('/') + f"/play/{gs.code}"
+        join_url = str(request.base_url).rstrip('/') + ROOT_PATH + f"/play/{gs.code}"
         qr = qrcode.QRCode(box_size=6, border=2)
         qr.add_data(join_url)
         qr.make(fit=True)
@@ -275,7 +276,7 @@ async def teacher_games_lobby(sid: int, request: Request, db: AsyncSession = Dep
         qr_b64 = base64.b64encode(buf.getvalue()).decode()
     except Exception:
         qr_b64 = ''
-        join_url = f"/play/{gs.code}"
+        join_url = f"{ROOT_PATH}/play/{gs.code}"
 
     context = await get_template_context(request, db)
     context.update({'gs': gs, 'qr_b64': qr_b64, 'join_url': join_url})

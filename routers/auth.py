@@ -1,12 +1,18 @@
 from fastapi import APIRouter, Request, Depends, Form
-from fastapi.responses import HTMLResponse, RedirectResponse
+from fastapi.concurrency import run_in_threadpool
+from fastapi.responses import HTMLResponse
+from config import RedirectResponse
 from fastapi.templating import Jinja2Templates
+from slowapi import Limiter
+from slowapi.util import get_remote_address
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
 from datetime import datetime
 
 from models import get_db, Employee
 from dependencies import flash, get_template_context
+
+limiter = Limiter(key_func=get_remote_address)
 
 router = APIRouter()
 templates = Jinja2Templates(directory="templates")
@@ -27,6 +33,7 @@ async def login_page(request: Request):
     return templates.TemplateResponse("login.html", context)
 
 @router.post("/login")
+@limiter.limit("15/minute")
 async def login(
     request: Request,
     username: str = Form(...),
@@ -36,8 +43,9 @@ async def login(
     """Process login form"""
     result = await db.execute(select(Employee).where(Employee.username == username))
     employee = result.scalar_one_or_none()
-    
-    if employee and employee.check_password(password):
+
+    password_valid = employee and await run_in_threadpool(employee.check_password, password)
+    if password_valid:
         if not employee.is_active:
             flash(request, "Hisobingiz bloklangan. Administrator bilan bog'laning.", 'danger')
             return RedirectResponse(url="/login", status_code=303)

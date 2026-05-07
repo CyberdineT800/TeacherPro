@@ -1,21 +1,32 @@
 from contextlib import asynccontextmanager
+import logging
+import os
+
 from fastapi import FastAPI, Request
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 from fastapi.responses import RedirectResponse
 from starlette.middleware.sessions import SessionMiddleware
-import os
+
+log = logging.getLogger("main")
 
 from sqlalchemy import select
 from models import (
     init_db, AsyncSessionLocal,
     Employee, Quarter, ExamName, ExamType, QuestionType, StaffTitle
 )
+from slowapi import Limiter, _rate_limit_exceeded_handler
+from slowapi.util import get_remote_address
+from slowapi.errors import RateLimitExceeded
+
 from routers import auth, language
 from routers.admin import router as admin_router
 from routers.teacher import router as teacher_router
 from routers.game import router as game_router
 from dependencies import get_flashed_messages
+
+# Rate limiter — keyed by client IP
+limiter = Limiter(key_func=get_remote_address)
 
 
 async def seed_defaults():
@@ -83,11 +94,22 @@ app = FastAPI(
     lifespan=lifespan
 )
 
+# Attach rate limiter state and exception handler
+app.state.limiter = limiter
+app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
+
 @app.get("/health")
 async def health():
     return {"status": "ok"}
 
-SECRET_KEY = os.environ.get('SECRET_KEY', 'your-secret-key-here-change-in-production')
+SECRET_KEY = os.environ.get('SECRET_KEY', '')
+if not SECRET_KEY:
+    log.warning(
+        "SECRET_KEY environment variable is not set! "
+        "Using an insecure default. Set SECRET_KEY in your .env file for production."
+    )
+    SECRET_KEY = 'dev-insecure-key-please-set-SECRET_KEY-env-var'
+
 app.add_middleware(SessionMiddleware, secret_key=SECRET_KEY)
 
 app.mount("/static", StaticFiles(directory="static"), name="static")

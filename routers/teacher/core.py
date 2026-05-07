@@ -5,7 +5,9 @@ from typing import Optional
 import json
 
 from fastapi import APIRouter, Request, Depends, Form
-from fastapi.responses import HTMLResponse, RedirectResponse, StreamingResponse
+from fastapi.concurrency import run_in_threadpool
+from fastapi.responses import HTMLResponse, StreamingResponse
+from config import RedirectResponse
 from fastapi.templating import Jinja2Templates
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
@@ -39,25 +41,29 @@ async def teacher_dashboard(request: Request, page: int = 1, db: AsyncSession = 
     pg = page_info(total_exams, page, per_page, request)
 
     exams = (await db.execute(
-        select(Exam).where(Exam.teacher_id == teacher_id)
+        select(Exam)
+        .options(
+            selectinload(Exam.school_class),
+            selectinload(Exam.subject),
+            selectinload(Exam.quarter),
+            selectinload(Exam.exam_name),
+        )
+        .where(Exam.teacher_id == teacher_id)
         .order_by(Exam.created_at.desc())
         .offset(pg['row_offset']).limit(per_page)
     )).scalars().all()
 
-    exams_data = []
-    for exam in exams:
-        class_obj = (await db.execute(select(SchoolClass).where(SchoolClass.id == exam.class_id))).scalar_one_or_none()
-        subject = (await db.execute(select(Subject).where(Subject.id == exam.subject_id))).scalar_one_or_none()
-        quarter = (await db.execute(select(Quarter).where(Quarter.id == exam.quarter_id))).scalar_one_or_none() if exam.quarter_id else None
-        exam_name = (await db.execute(select(ExamName).where(ExamName.id == exam.exam_name_id))).scalar_one_or_none()
-        exams_data.append({
+    exams_data = [
+        {
             'id': exam.id,
-            'class_name': class_obj.name if class_obj else '',
-            'subject_name': subject.name if subject else '',
-            'quarter_name': quarter.name if quarter else '',
-            'exam_name': exam_name.name if exam_name else '',
+            'class_name': exam.school_class.name if exam.school_class else '',
+            'subject_name': exam.subject.name if exam.subject else '',
+            'quarter_name': exam.quarter.name if exam.quarter else '',
+            'exam_name': exam.exam_name.name if exam.exam_name else '',
             'created_at': exam.created_at,
-        })
+        }
+        for exam in exams
+    ]
 
     school = None
     if employee and employee.school_id:
@@ -229,11 +235,18 @@ async def enter_scores_page(request: Request, exam_id: int, db: AsyncSession = D
 
     question_types_summary = []
     if exam.is_chsb_exam:
+        # Load all QuestionTypes in one query instead of per-question queries
+        all_qt_ids = list({q.question_type_id for q in questions})
+        qt_map = {
+            qt.id: qt for qt in (await db.execute(
+                select(QuestionType).where(QuestionType.id.in_(all_qt_ids))
+            )).scalars().all()
+        }
         type_groups: dict = {}
         for q in questions:
             tid = q.question_type_id
             if tid not in type_groups:
-                qt = (await db.execute(select(QuestionType).where(QuestionType.id == tid))).scalar_one_or_none()
+                qt = qt_map.get(tid)
                 type_groups[tid] = {'name': qt.name if qt else '', 'questions': [], 'total_max_score': 0.0}
             type_groups[tid]['questions'].append(q.question_number)
             type_groups[tid]['total_max_score'] += q.max_score
@@ -369,11 +382,17 @@ async def view_results(request: Request, exam_id: int, db: AsyncSession = Depend
 
     question_types_summary = []
     if exam.is_chsb_exam:
+        all_qt_ids = list({q.question_type_id for q in questions})
+        qt_map = {
+            qt.id: qt for qt in (await db.execute(
+                select(QuestionType).where(QuestionType.id.in_(all_qt_ids))
+            )).scalars().all()
+        }
         type_groups: dict = {}
         for q in questions:
             tid = q.question_type_id
             if tid not in type_groups:
-                qt = (await db.execute(select(QuestionType).where(QuestionType.id == tid))).scalar_one_or_none()
+                qt = qt_map.get(tid)
                 type_groups[tid] = {'name': qt.name if qt else '', 'questions': [], 'total_max_score': 0.0}
             type_groups[tid]['questions'].append(q.question_number)
             type_groups[tid]['total_max_score'] += q.max_score
@@ -386,11 +405,17 @@ async def view_results(request: Request, exam_id: int, db: AsyncSession = Depend
                 'score_per_question': grp['total_max_score'] / cnt if cnt else 0,
             })
 
+    # Load all results for this exam at once — eliminates N+1 per student
+    all_exam_results = (await db.execute(
+        select(ExamResult).where(ExamResult.exam_id == exam_id)
+    )).scalars().all()
+    results_by_student: dict = {}
+    for er in all_exam_results:
+        results_by_student.setdefault(er.student_id, []).append(er)
+
     results = []
     for student in students:
-        student_results = (await db.execute(
-            select(ExamResult).where(ExamResult.exam_id == exam_id, ExamResult.student_id == student.id)
-        )).scalars().all()
+        student_results = results_by_student.get(student.id, [])
 
         if exam.is_chsb_exam:
             question_scores, total_score = [], 0.0
@@ -481,11 +506,17 @@ async def download_results(
 
     question_types_summary = []
     if exam.is_chsb_exam:
+        all_qt_ids = list({q.question_type_id for q in questions})
+        qt_map = {
+            qt.id: qt for qt in (await db.execute(
+                select(QuestionType).where(QuestionType.id.in_(all_qt_ids))
+            )).scalars().all()
+        }
         type_groups: dict = {}
         for q in questions:
             tid = q.question_type_id
             if tid not in type_groups:
-                qt = (await db.execute(select(QuestionType).where(QuestionType.id == tid))).scalar_one_or_none()
+                qt = qt_map.get(tid)
                 type_groups[tid] = {'name': qt.name if qt else '', 'questions': [], 'total_max_score': 0.0}
             type_groups[tid]['questions'].append(q.question_number)
             type_groups[tid]['total_max_score'] += q.max_score
@@ -498,12 +529,18 @@ async def download_results(
                 'score_per_question': round(tms / cnt, 4) if cnt else 0,
             })
 
+    # Load all results once — eliminates per-student queries
+    all_exam_results = (await db.execute(
+        select(ExamResult).where(ExamResult.exam_id == exam_id)
+    )).scalars().all()
+    results_by_student: dict = {}
+    for er in all_exam_results:
+        results_by_student.setdefault(er.student_id, []).append(er)
+
     students_data = []
     for grp_num in sorted(students_by_group.keys()):
         for student in students_by_group[grp_num]:
-            student_results = (await db.execute(
-                select(ExamResult).where(ExamResult.exam_id == exam_id, ExamResult.student_id == student.id)
-            )).scalars().all()
+            student_results = results_by_student.get(student.id, [])
 
             scores, total_score = [], 0.0
             if exam.is_chsb_exam:
@@ -548,17 +585,17 @@ async def download_results(
                         for s in [quarter_name, class_name, exam_nm_str])
 
         if format == 'excel':
-            output = await generate_excel_report(exam_data)
+            output = await run_in_threadpool(generate_excel_report, exam_data)
             return StreamingResponse(BytesIO(output.getvalue()),
                 media_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
                 headers={'Content-Disposition': f'attachment; filename={base}.xlsx'})
         elif format == 'pdf':
-            output = await generate_pdf_report(exam_data)
+            output = await run_in_threadpool(generate_pdf_report, exam_data)
             return StreamingResponse(BytesIO(output.getvalue()),
                 media_type='application/pdf',
                 headers={'Content-Disposition': f'attachment; filename={base}.pdf'})
         elif format == 'word':
-            output = await generate_word_report(exam_data)
+            output = await run_in_threadpool(generate_word_report, exam_data)
             return StreamingResponse(BytesIO(output.getvalue()),
                 media_type='application/vnd.openxmlformats-officedocument.wordprocessingml.document',
                 headers={'Content-Disposition': f'attachment; filename={base}.docx'})

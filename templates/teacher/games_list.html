@@ -23,12 +23,12 @@
         </div>
         <div style="display:flex;gap:.5rem;align-items:center;flex-shrink:0;flex-wrap:wrap;justify-content:flex-end">
             {% if teacher.games_enabled %}
-            <a href="/teacher/games/create" class="btn btn-primary btn-sm">
+            <a href="{{ root_path }}/teacher/games/create" class="btn btn-primary btn-sm">
                 <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" style="margin-right:.25rem"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
                 {{ _('new_game') }}
             </a>
             {% endif %}
-            <a href="/teacher/games" class="btn btn-secondary btn-sm">{{ _('back') }}</a>
+            <a href="{{ root_path }}/teacher/games" class="btn btn-secondary btn-sm">{{ _('back') }}</a>
         </div>
     </div>
 
@@ -70,9 +70,9 @@
                     </td>
                     <td>
                         {% if gs.status == 'finished' %}
-                            <a href="/teacher/games/{{ gs.id }}/results" class="btn btn-primary btn-sm">{{ _('view_results') }}</a>
+                            <a href="{{ root_path }}/teacher/games/{{ gs.id }}/results" class="btn btn-primary btn-sm">{{ _('view_results') }}</a>
                         {% else %}
-                            <a href="/teacher/games/{{ gs.id }}/lobby" class="btn btn-success btn-sm">{{ _('game_lobby') }}</a>
+                            <a href="{{ root_path }}/teacher/games/{{ gs.id }}/lobby" class="btn btn-success btn-sm">{{ _('game_lobby') }}</a>
                         {% endif %}
                     </td>
                 </tr>

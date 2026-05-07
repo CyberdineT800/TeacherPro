@@ -1,12 +1,12 @@
 from math import ceil
 from typing import Optional, Dict, Any, List
 from fastapi import Depends, HTTPException, Request, status
-from fastapi.responses import RedirectResponse
 from starlette.requests import HTTPConnection
 from sqlalchemy.ext.asyncio import AsyncSession
 from models import get_db, Employee
 from sqlalchemy import select
 from language import language_manager
+from config import ROOT_PATH
 
 
 def page_info(total: int, page: int, per_page: int, request: Request) -> dict:
@@ -81,7 +81,7 @@ async def require_login(
         flash(request, 'Iltimos, tizimga kiring', 'warning')
         raise HTTPException(
             status_code=status.HTTP_303_SEE_OTHER,
-            headers={"Location": "/login"}
+            headers={"Location": f"{ROOT_PATH}/login"}
         )
     return current_user
 
@@ -94,7 +94,7 @@ async def require_admin(
         flash(request, 'Admin huquqi talab qilinadi', 'danger')
         raise HTTPException(
             status_code=status.HTTP_303_SEE_OTHER,
-            headers={"Location": "/login"}
+            headers={"Location": f"{ROOT_PATH}/login"}
         )
     return current_user
 
@@ -138,7 +138,8 @@ async def get_template_context(request: Request, db: AsyncSession = None) -> Dic
         'url_for': url_for,
         'current_language': lang_code,
         'languages': language_manager.get_available_languages(),
-        '_': lambda key: language_manager.get(key, lang_code)
+        '_': lambda key: language_manager.get(key, lang_code),
+        'root_path': ROOT_PATH,
     }
     
     # Add user if available

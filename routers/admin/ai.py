@@ -11,11 +11,12 @@ from urllib.parse import quote
 
 import httpx
 from fastapi import APIRouter, Request, Depends, Form, HTTPException
-from fastapi.responses import HTMLResponse, RedirectResponse, StreamingResponse
+from fastapi.responses import HTMLResponse, StreamingResponse
+from config import RedirectResponse
 from fastapi.templating import Jinja2Templates
 from sqlalchemy import select, func
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy.orm import selectinload
+from sqlalchemy.orm import selectinload, defer
 
 from models import get_db, Employee, School, SchoolClass, Student, Subject, AIPresentation, AIQuestionSet
 from dependencies import require_admin, flash, get_template_context, page_info
@@ -67,13 +68,19 @@ def _t(request: Request, key: str) -> str:
 
 @router.get("/dashboard", response_class=HTMLResponse)
 async def admin_dashboard(request: Request, db: AsyncSession = Depends(get_db)):
-    schools_count = len((await db.execute(select(Employee))).scalars().all())
+    import asyncio as _asyncio
+    schools_count, employees_count, classes_count, students_count = await _asyncio.gather(
+        db.scalar(select(func.count(School.id))),
+        db.scalar(select(func.count(Employee.id))),
+        db.scalar(select(func.count(SchoolClass.id))),
+        db.scalar(select(func.count(Student.id))),
+    )
     context = await get_template_context(request)
     context.update({
-        'schools_count': len((await db.execute(select(School))).scalars().all()),
-        'employees_count': len((await db.execute(select(Employee))).scalars().all()),
-        'classes_count': len((await db.execute(select(SchoolClass))).scalars().all()),
-        'students_count': len((await db.execute(select(Student))).scalars().all()),
+        'schools_count': schools_count,
+        'employees_count': employees_count,
+        'classes_count': classes_count,
+        'students_count': students_count,
     })
     return templates.TemplateResponse('admin_dashboard.html', context)
 
@@ -91,6 +98,7 @@ async def admin_ai_list(
     count_q = select(func.count(AIPresentation.id))
     data_q = (
         select(AIPresentation, Employee)
+        .options(defer(AIPresentation.content))
         .join(Employee, Employee.id == AIPresentation.teacher_id)
         .order_by(AIPresentation.created_at.desc())
     )

@@ -27,7 +27,7 @@ h2{font-size:1.3rem;font-weight:700;margin-bottom.1.25rem}
     <div class="code-chip">{{ code }}</div>
     <div class="card">
         <h2 style="margin-bottom:1.25rem">Ismingizni kiriting</h2>
-        <form method="post" action="/play/{{ code }}/join">
+        <form method="post" action="{{ root_path }}/play/{{ code }}/join">
             <label class="label">Ism</label>
             <input type="text" name="nickname" class="input" required maxlength="50"
                    autofocus placeholder="Masalan: Jasur5A" autocomplete="off">

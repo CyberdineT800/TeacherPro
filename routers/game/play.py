@@ -3,7 +3,8 @@ import logging
 from datetime import datetime
 
 from fastapi import APIRouter, Request, WebSocket, WebSocketDisconnect, Depends
-from fastapi.responses import HTMLResponse, RedirectResponse
+from fastapi.responses import HTMLResponse
+from config import RedirectResponse
 from fastapi.templating import Jinja2Templates
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -14,6 +15,7 @@ from services.game_engine import (
     broadcast_to_students, send_to_teacher,
     record_answer, _safe_send,
 )
+from config import ROOT_PATH
 
 log = logging.getLogger("game.play")
 router = APIRouter()
@@ -25,7 +27,7 @@ templates = Jinja2Templates(directory="templates")
 @router.get("/play", response_class=HTMLResponse)
 async def join_landing(request: Request):
     """Public landing — enter a game code."""
-    return templates.TemplateResponse('game/join.html', {'request': request})
+    return templates.TemplateResponse('game/join.html', {'request': request, 'root_path': ROOT_PATH})
 
 
 @router.get("/play/{code}", response_class=HTMLResponse)
@@ -38,21 +40,21 @@ async def join_game(code: str, request: Request, db: AsyncSession = Depends(get_
 
     if not gs:
         return templates.TemplateResponse('game/join.html', {
-            'request': request, 'error': "Bu kod bo'yicha o'yin topilmadi."
+            'request': request, 'error': "Bu kod bo'yicha o'yin topilmadi.", 'root_path': ROOT_PATH
         })
 
     if gs.status == 'finished':
         return templates.TemplateResponse('game/join.html', {
-            'request': request, 'error': "Bu o'yin allaqachon tugagan."
+            'request': request, 'error': "Bu o'yin allaqachon tugagan.", 'root_path': ROOT_PATH
         })
 
     if gs.status == 'playing':
         return templates.TemplateResponse('game/join.html', {
-            'request': request, 'error': "O'yin allaqachon boshlangan. Keyingi o'yinni kuting."
+            'request': request, 'error': "O'yin allaqachon boshlangan. Keyingi o'yinni kuting.", 'root_path': ROOT_PATH
         })
 
     return templates.TemplateResponse('game/nickname.html', {
-        'request': request, 'code': code, 'game_title': gs.title
+        'request': request, 'code': code, 'game_title': gs.title, 'root_path': ROOT_PATH
     })
 
 
@@ -70,7 +72,7 @@ async def join_game_post(code: str, request: Request, db: AsyncSession = Depends
         return templates.TemplateResponse('game/nickname.html', {
             'request': request, 'code': code,
             'game_title': gs.title if gs else '',
-            'error': "Ism kiriting."
+            'error': "Ism kiriting.", 'root_path': ROOT_PATH
         })
 
     gs = (await db.execute(
@@ -79,7 +81,7 @@ async def join_game_post(code: str, request: Request, db: AsyncSession = Depends
 
     if not gs or gs.status not in ('lobby', 'pending'):
         return templates.TemplateResponse('game/join.html', {
-            'request': request, 'error': "O'yinga qo'shilish mumkin emas."
+            'request': request, 'error': "O'yinga qo'shilish mumkin emas.", 'root_path': ROOT_PATH
         })
 
     # Create DB participant row now so we have a stable id
@@ -101,7 +103,7 @@ async def student_wait(code: str, request: Request):
     pid = request.query_params.get('pid', '')
     nick = request.query_params.get('nick', '')
     return templates.TemplateResponse('game/play.html', {
-        'request': request, 'code': code.upper(), 'pid': pid, 'nick': nick
+        'request': request, 'code': code.upper(), 'pid': pid, 'nick': nick, 'root_path': ROOT_PATH
     })
 
 

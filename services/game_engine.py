@@ -100,14 +100,15 @@ async def _safe_send(ws: WebSocket, msg: dict) -> bool:
 
 
 async def broadcast_to_students(room: RoomState, message: dict) -> None:
-    dead: List[int] = []
-    for pid, player in list(room.players.items()):
-        if player.ws:
-            ok = await _safe_send(player.ws, message)
-            if not ok:
-                dead.append(pid)
-    for pid in dead:
-        if pid in room.players:
+    players = [(pid, p) for pid, p in list(room.players.items()) if p.ws]
+    if not players:
+        return
+    results = await asyncio.gather(
+        *(_safe_send(p.ws, message) for _, p in players),
+        return_exceptions=True,
+    )
+    for (pid, _), ok in zip(players, results):
+        if ok is not True and pid in room.players:
             room.players[pid].ws = None
 
 

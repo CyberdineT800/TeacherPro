@@ -1,5 +1,6 @@
 from fastapi import APIRouter, Request, Depends
-from fastapi.responses import RedirectResponse, JSONResponse
+from fastapi.responses import JSONResponse
+from config import RedirectResponse
 from dependencies import require_login, get_template_context
 
 router = APIRouter()

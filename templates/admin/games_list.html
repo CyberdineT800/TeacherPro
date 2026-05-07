@@ -8,7 +8,7 @@
             <h2 style="margin:0">{{ _('finished_games') }}</h2>
             <p style="margin:.25rem 0 0;color:var(--text-muted);font-size:.88rem">Quiz Race</p>
         </div>
-        <form method="get" action="/admin/games" style="margin:0">
+        <form method="get" action="{{ root_path }}/admin/games" style="margin:0">
             <select name="teacher_id" class="form-control" style="min-width:180px" onchange="this.form.submit()">
                 <option value="">{{ _('all_teachers') }}</option>
                 {% for t in teachers %}
@@ -43,7 +43,7 @@
                         {{ item.gs.finished_at.strftime('%d.%m.%Y %H:%M') if item.gs.finished_at else '—' }}
                     </td>
                     <td>
-                        <a href="/admin/games/{{ item.gs.id }}/results" class="btn btn-primary btn-sm">{{ _('view_results') }}</a>
+                        <a href="{{ root_path }}/admin/games/{{ item.gs.id }}/results" class="btn btn-primary btn-sm">{{ _('view_results') }}</a>
                     </td>
                 </tr>
                 {% else %}

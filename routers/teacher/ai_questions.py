@@ -8,10 +8,12 @@ from typing import Optional
 from urllib.parse import quote
 
 from fastapi import APIRouter, Request, Depends, Form, HTTPException
-from fastapi.responses import HTMLResponse, RedirectResponse, StreamingResponse, JSONResponse
+from fastapi.responses import HTMLResponse, StreamingResponse, JSONResponse
+from config import RedirectResponse
 from fastapi.templating import Jinja2Templates
 from sqlalchemy import select, func
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.orm import defer
 
 from models import get_db, Employee, Subject, AIQuestionSet
 from dependencies import require_login, flash, get_template_context, page_info
@@ -57,6 +59,7 @@ async def teacher_questions_list(request: Request, page: int = 1, db: AsyncSessi
     pg = page_info(total, page, per_page, request)
     question_sets = (await db.execute(
         select(AIQuestionSet)
+        .options(defer(AIQuestionSet.content))
         .where(AIQuestionSet.teacher_id == teacher_id)
         .order_by(AIQuestionSet.created_at.desc())
         .offset(pg['row_offset']).limit(per_page)

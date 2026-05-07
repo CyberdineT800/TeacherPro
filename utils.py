@@ -133,7 +133,7 @@ async def process_student_excel(file: UploadFile):
         print(f"Excel faylni o'qishda xatolik: {e}")
         return []
 
-async def generate_excel_report(exam_data):
+def generate_excel_report(exam_data):
     """Excel hisobot yaratish - yangilangan format PDF ga o'xshash ko'rinishda"""
     output = BytesIO()
     wb = openpyxl.Workbook()
@@ -489,7 +489,7 @@ async def generate_excel_report(exam_data):
     output.seek(0)
     return output
 
-async def generate_pdf_report(exam_data):
+def generate_pdf_report(exam_data):
     """PDF hisobot yaratish - yangilangan format"""
     output = BytesIO()
     doc = SimpleDocTemplate(output, pagesize=A4, topMargin=0.5*inch, bottomMargin=0.5*inch)
@@ -683,7 +683,7 @@ def set_cell_border(cell, **kwargs):
             tcBorders.append(edge_el)
     tcPr.append(tcBorders)
 
-async def generate_word_report(exam_data):
+def generate_word_report(exam_data):
     """Word hisobot yaratish - yangilangan format"""
     output = BytesIO()
     doc = Document()

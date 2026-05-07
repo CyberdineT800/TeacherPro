@@ -33,7 +33,7 @@
                         {% endif %}
                     </td>
                     <td>
-                        <form method="post" action="/admin/games/settings/{{ teacher.id }}" style="display:inline">
+                        <form method="post" action="{{ root_path }}/admin/games/settings/{{ teacher.id }}" style="display:inline">
                             <input type="hidden" name="games_enabled" value="{% if teacher.games_enabled %}{% else %}on{% endif %}">
                             <button type="submit" class="btn btn-sm {% if teacher.games_enabled %}btn-danger{% else %}btn-success{% endif %}">
                                 {% if teacher.games_enabled %}{{ _('game_disable') }}{% else %}{{ _('game_enable') }}{% endif %}
