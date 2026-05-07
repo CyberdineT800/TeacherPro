@@ -161,7 +161,7 @@ function showQuestion(msg) {
 function sendAnswer(idx, clickedBtn) {
     if (myAnswer !== null) return;
     myAnswer = idx;
-    clearInterval(timerInterval);
+    // Do NOT stop the timer — it keeps counting so student sees time remaining.
     document.querySelectorAll('.opt-btn').forEach(b => b.disabled = true);
     clickedBtn.style.opacity = '1';
     ws.send(JSON.stringify({type:'answer', option: idx}));

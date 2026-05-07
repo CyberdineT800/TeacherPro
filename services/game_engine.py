@@ -206,6 +206,9 @@ async def _question_timer(room: RoomState, save_cb) -> None:
     try:
         await asyncio.sleep(room.time_per_question)
         if room.status == 'question':
+            # Clear reference BEFORE calling reveal_question so _cancel_timer()
+            # inside it does NOT cancel this running task (self-cancellation bug).
+            room.timer_task = None
             await reveal_question(room, save_cb)
     except asyncio.CancelledError:
         pass
@@ -218,6 +221,9 @@ async def _auto_advance(room: RoomState, save_cb) -> None:
     try:
         await asyncio.sleep(_AUTO_ADVANCE_SECS)
         if room.status == 'reveal':
+            # Clear reference BEFORE calling start_question so _cancel_timer()
+            # inside it does NOT cancel this running task (self-cancellation bug).
+            room.timer_task = None
             await start_question(room, save_cb)
     except asyncio.CancelledError:
         pass
