@@ -17,22 +17,37 @@ from docx.oxml.ns import qn
 from docx.oxml import OxmlElement
 from fastapi import UploadFile
 
-# Register Arial for PDF if available (supports Unicode incl. № and Uzbek chars)
+# Register a Unicode-capable font for PDF (supports Cyrillic, Latin, Uzbek chars).
+# Priority: Arial (Windows) → DejaVu Sans (Linux/cross-platform) → Helvetica (no Cyrillic fallback)
 _PDF_FONT = 'Helvetica'
 _PDF_FONT_BOLD = 'Helvetica-Bold'
-_arial_reg = r'C:\Windows\Fonts\arial.ttf'
-_arial_bold = r'C:\Windows\Fonts\arialbd.ttf'
-if os.path.exists(_arial_reg):
-    try:
-        pdfmetrics.registerFont(TTFont('Arial', _arial_reg))
-        _PDF_FONT = 'Arial'
-        if os.path.exists(_arial_bold):
-            pdfmetrics.registerFont(TTFont('Arial-Bold', _arial_bold))
-            _PDF_FONT_BOLD = 'Arial-Bold'
-        else:
-            _PDF_FONT_BOLD = 'Arial'
-    except Exception:
-        pass
+
+_font_candidates = [
+    # Windows
+    (r'C:\Windows\Fonts\arial.ttf',   r'C:\Windows\Fonts\arialbd.ttf',   'Arial',   'Arial-Bold'),
+    (r'C:\Windows\Fonts\calibri.ttf', r'C:\Windows\Fonts\calibrib.ttf', 'Calibri', 'Calibri-Bold'),
+    # Linux (DejaVu is pre-installed on most distros and supports Cyrillic)
+    ('/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf',
+     '/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf',
+     'DejaVuSans', 'DejaVuSans-Bold'),
+    ('/usr/share/fonts/dejavu/DejaVuSans.ttf',
+     '/usr/share/fonts/dejavu/DejaVuSans-Bold.ttf',
+     'DejaVuSans', 'DejaVuSans-Bold'),
+]
+
+for _reg, _bold, _reg_name, _bold_name in _font_candidates:
+    if os.path.exists(_reg):
+        try:
+            pdfmetrics.registerFont(TTFont(_reg_name, _reg))
+            _PDF_FONT = _reg_name
+            if os.path.exists(_bold):
+                pdfmetrics.registerFont(TTFont(_bold_name, _bold))
+                _PDF_FONT_BOLD = _bold_name
+            else:
+                _PDF_FONT_BOLD = _reg_name
+            break
+        except Exception:
+            continue
 
 async def process_student_excel(file: UploadFile):
     """

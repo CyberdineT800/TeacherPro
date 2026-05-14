@@ -195,12 +195,18 @@ async def teacher_ai_view(pid: int, request: Request, db: AsyncSession = Depends
     data = json.loads(presentation.content)
     tpl_key = presentation.template if presentation.template in TEMPLATES else 'cosmos'
 
+    # _p translates using the PRESENTATION's language (not the UI language),
+    # so interactive slide labels (True/False buttons, Check, Reset, …) always
+    # match the language of the presentation content.
+    pres_lang = presentation.language if presentation.language in ('uz', 'ru', 'en') else 'uz'
+
     context = await get_template_context(request, db)
     context.update({
         'presentation': presentation, 'data': data,
         'language_display': LANGUAGE_DISPLAY,
         'allow_download': is_admin,
         'template_info': TEMPLATES[tpl_key], 'template_key': tpl_key,
+        '_p': lambda key: language_manager.get(key, pres_lang),
     })
     return templates.TemplateResponse('teacher/ai_view.html', context)
 

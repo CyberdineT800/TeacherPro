@@ -321,8 +321,8 @@
             {% elif slide.type == 'true_false' %}
                 <div class="tf-statement">{{ slide.statement }}</div>
                 <div class="tf-btns">
-                    <button class="tf-btn" onclick="answerTF(this, true, {{ 'true' if slide.is_true else 'false' }})">✓ {{ _('ai_correct_label') }}</button>
-                    <button class="tf-btn" onclick="answerTF(this, false, {{ 'true' if slide.is_true else 'false' }})">✗ {{ _('ai_incorrect_label') }}</button>
+                    <button class="tf-btn" onclick="answerTF(this, true, {{ 'true' if slide.is_true else 'false' }})">✓ {{ _p('ai_correct_label') }}</button>
+                    <button class="tf-btn" onclick="answerTF(this, false, {{ 'true' if slide.is_true else 'false' }})">✗ {{ _p('ai_incorrect_label') }}</button>
                 </div>
                 <div class="tf-explain">💡 {{ slide.explanation }}</div>
 
@@ -331,10 +331,10 @@
                 <div class="fb-sentence">
                     {{ slide.sentence | replace('___', '<span class="fb-blank">_____</span>') | safe }}
                 </div>
-                <input type="text" class="fb-input" placeholder="{{ _('ai_your_answer_placeholder') }}" data-answer="{{ slide.answer }}">
+                <input type="text" class="fb-input" placeholder="{{ _p('ai_your_answer_placeholder') }}" data-answer="{{ slide.answer }}">
                 <div class="fb-actions">
-                    <button class="btn btn-success btn-sm" onclick="checkFill(this)">{{ _('ai_check') }}</button>
-                    <button class="btn btn-secondary btn-sm" onclick="revealFill(this)">{{ _('ai_show_answer') }}</button>
+                    <button class="btn btn-success btn-sm" onclick="checkFill(this)">{{ _p('ai_check') }}</button>
+                    <button class="btn btn-secondary btn-sm" onclick="revealFill(this)">{{ _p('ai_show_answer') }}</button>
                 </div>
                 {% if slide.hint %}<div class="fb-hint">💡 {{ slide.hint }}</div>{% endif %}
                 <div class="fb-feedback"></div>
@@ -364,8 +364,8 @@
                     {% endfor %}
                 </div>
                 <div class="seq-actions">
-                    <button class="btn btn-secondary btn-sm" onclick="resetSeq(this)">{{ _('ai_reset') }}</button>
-                    <button class="btn btn-success btn-sm" onclick="checkSeq(this)">{{ _('ai_check') }}</button>
+                    <button class="btn btn-secondary btn-sm" onclick="resetSeq(this)">{{ _p('ai_reset') }}</button>
+                    <button class="btn btn-success btn-sm" onclick="checkSeq(this)">{{ _p('ai_check') }}</button>
                 </div>
                 <div class="seq-reveal">
                     {% if slide.explanation %}
@@ -423,9 +423,9 @@
 
 <script>
 const T = {
-    correctShort: {{ _('ai_correct_short') | tojson }},
-    wrongTryAgain: {{ _('ai_wrong_try_again') | tojson }},
-    answerIs: {{ _('ai_answer_is') | tojson }}
+    correctShort: {{ _p('ai_correct_short') | tojson }},
+    wrongTryAgain: {{ _p('ai_wrong_try_again') | tojson }},
+    answerIs: {{ _p('ai_answer_is') | tojson }}
 };
 const total = {{ data.slides|length }};
 let cur = 0;
