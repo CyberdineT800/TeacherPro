@@ -62,7 +62,7 @@
             <p style="margin:.4rem 0 0;color:var(--text-muted)">{{ _('game_settings_subtitle') }}</p>
         </div>
         <div style="display:flex;gap:.5rem;flex-wrap:wrap">
-            <a href="{{ root_path }}/admin/games" class="btn btn-secondary btn-sm">
+            <a href="{{ root_path }}/admin/games/quiz-race" class="btn btn-secondary btn-sm">
                 {{ _('finished_games') }} →
             </a>
         </div>
@@ -103,7 +103,7 @@
                     {% endif %}
                 </td>
                 <td style="text-align:right">
-                    <form method="post" action="{{ root_path }}/admin/games/settings/{{ teacher.id }}" style="display:inline">
+                    <form method="post" action="{{ root_path }}/admin/games/quiz-race/settings/{{ teacher.id }}" style="display:inline">
                         <input type="hidden" name="games_enabled" value="{% if teacher.games_enabled %}{% else %}on{% endif %}">
                         <button type="submit" class="gs-save-btn {% if teacher.games_enabled %}danger{% endif %}">
                             {% if teacher.games_enabled %}{{ _('game_disable') }}{% else %}{{ _('game_enable') }}{% endif %}

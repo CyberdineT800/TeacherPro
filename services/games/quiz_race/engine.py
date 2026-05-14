@@ -48,6 +48,7 @@ class RoomState:
     question_start_time: float = 0.0
     timer_task: Optional[asyncio.Task] = None
     status: str = 'lobby'            # lobby | question | reveal | finished
+    save_cb: Optional[Any] = None    # persisted here so record_answer can use it
 
     @property
     def question_count(self) -> int:
@@ -168,6 +169,8 @@ def assign_badges(scoreboard: List[dict]) -> List[dict]:
 async def start_question(room: RoomState, save_cb=None) -> None:
     """Cancel any running timer and display the next question."""
     _cancel_timer(room)
+    if save_cb is not None:
+        room.save_cb = save_cb  # store so record_answer can reach it later
 
     room.current_question_index += 1
     if room.current_question_index >= room.question_count:
@@ -260,7 +263,7 @@ async def record_answer(room: RoomState, participant_id: int, option: int) -> No
     # If everyone has answered, reveal early
     if answered == len(room.players):
         _cancel_timer(room)
-        await reveal_question(room, None)
+        await reveal_question(room, room.save_cb)
 
 
 async def reveal_question(room: RoomState, save_cb) -> None:

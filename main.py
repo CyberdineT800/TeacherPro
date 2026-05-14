@@ -172,10 +172,10 @@ async def add_template_context(request: Request, call_next):
             'admin_ai_settings': '/admin/ai/settings',
             'admin_ai_questions': '/admin/ai-questions',
 
-            # ── Admin: games ────────────────────────────────────────────────
-            'admin_games_settings': '/admin/games/settings',
-            'admin_games_list': '/admin/games',
-            'admin_game_results': '/admin/games/{sid}/results',
+            # ── Admin: Quiz Race ─────────────────────────────────────────────
+            'admin_quiz_race_settings': '/admin/games/quiz-race/settings',
+            'admin_quiz_race_list': '/admin/games/quiz-race',
+            'admin_quiz_race_session_results': '/admin/games/quiz-race/{sid}/results',
 
             # ── Teacher: core ───────────────────────────────────────────────
             'teacher_dashboard': '/teacher/dashboard',
@@ -190,16 +190,18 @@ async def add_template_context(request: Request, call_next):
             'teacher_ai_questions_list': '/teacher/ai-questions',
             'teacher_ai_questions_create': '/teacher/ai-questions/create',
 
-            # ── Teacher: games ──────────────────────────────────────────────
-            'teacher_games_list': '/teacher/games',          # hub (game type selector)
-            'teacher_games_sessions': '/teacher/games/sessions',  # sessions list
-            'teacher_games_create': '/teacher/games/create',
-            'teacher_games_lobby': '/teacher/games/{sid}/lobby',
-            'teacher_game_results': '/teacher/games/{sid}/results',
+            # ── Teacher: games hub (game-agnostic) ──────────────────────────
+            'teacher_games_hub': '/teacher/games',
 
-            # ── Public game (students) ───────────────────────────────────────
-            'join_landing': '/play',
-            'join_game': '/play/{code}',
+            # ── Teacher: Quiz Race ───────────────────────────────────────────
+            'teacher_quiz_race_sessions': '/teacher/games/quiz-race/sessions',
+            'teacher_quiz_race_create': '/teacher/games/quiz-race/create',
+            'teacher_quiz_race_lobby': '/teacher/games/quiz-race/{sid}/lobby',
+            'teacher_quiz_race_results': '/teacher/games/quiz-race/{sid}/results',
+
+            # ── Public: Quiz Race (students) ─────────────────────────────────
+            'quiz_race_join_landing': '/play/quiz-race',
+            'quiz_race_join_game': '/play/quiz-race/{code}',
         }
 
         base_path = route_map.get(name, f'/{name}')
