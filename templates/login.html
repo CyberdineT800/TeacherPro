@@ -45,7 +45,7 @@
         .login-container {
             padding: 44px 38px 38px;
             border-radius: var(--r-xl);
-            background: rgba(255, 255, 255, 0.055);
+            background: var(--glass-bg);
             border: 1px solid var(--glass-border);
             backdrop-filter: blur(30px) saturate(180%);
             -webkit-backdrop-filter: blur(30px) saturate(180%);
@@ -60,7 +60,7 @@
             inset: 0;
             border-radius: inherit;
             padding: 1px;
-            background: linear-gradient(140deg, rgba(255,255,255,.30) 0%, rgba(255,255,255,.04) 35%, transparent 65%, rgba(255,255,255,.10) 100%);
+            background: linear-gradient(140deg, var(--glass-highlight) 0%, rgba(255,255,255,.04) 35%, transparent 65%, rgba(255,255,255,.10) 100%);
             -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
             -webkit-mask-composite: xor;
                     mask-composite: exclude;
@@ -114,7 +114,7 @@
             display: flex;
             gap: 8px;
             padding: 6px;
-            background: rgba(0, 0, 0, 0.25);
+            background: var(--glass-bg);
             border: 1px solid var(--glass-border);
             border-radius: var(--r-pill);
             backdrop-filter: blur(18px) saturate(160%);
@@ -140,7 +140,7 @@
         }
         .login-lang-btn:hover {
             color: var(--text);
-            background: rgba(255,255,255,.06);
+            background: var(--glass-bg-hover);
         }
         .login-lang-btn.active {
             color: var(--text);
@@ -176,7 +176,7 @@
             height: 40px;
             border-radius: 50%;
             border: 1px solid var(--glass-border);
-            background: rgba(0,0,0,.25);
+            background: var(--glass-bg);
             backdrop-filter: blur(18px) saturate(160%);
             -webkit-backdrop-filter: blur(18px) saturate(160%);
             color: var(--text-muted);
@@ -186,13 +186,20 @@
         }
         .theme-toggle-btn:hover {
             color: var(--text);
-            background: rgba(255,255,255,.08);
-            border-color: rgba(255,255,255,.25);
+            background: var(--glass-bg-hover);
+            border-color: var(--glass-border-strong);
         }
         .theme-toggle-btn svg { pointer-events: none; }
         /* Hide the icon that is NOT active */
         html[data-theme="dark"]  .theme-toggle-btn .icon-sun  { display: none; }
         html[data-theme="light"] .theme-toggle-btn .icon-moon { display: none; }
+
+        /* ── Light mode overrides ── */
+        [data-theme="light"] .login-container {
+            box-shadow: 0 20px 60px rgba(10, 40, 140, .14), var(--glass-inner);
+        }
+        [data-theme="light"] .login-footer-strip { color: var(--text-dim); }
+        [data-theme="light"] .login-footer-strip a { color: var(--text-muted); }
     </style>
 </head>
 
