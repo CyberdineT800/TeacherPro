@@ -32,6 +32,12 @@ from services.games.quiz_race.engine import (
     start_question, reveal_question, finish_game, get_scoreboard,
 )
 from services.ai_service import generate_game_questions
+from services.cache import (
+    cache_get_game_questions, cache_set_game_questions, cache_del_game_questions,
+    cache_del_game_session, cache_update_gs_status,
+    cache_get_teacher_sessions, cache_set_teacher_sessions, cache_del_teacher_sessions,
+    cache_del_user,
+)
 
 log = logging.getLogger("teacher.games.quiz_race")
 router = APIRouter(prefix="/teacher")
@@ -243,6 +249,8 @@ async def teacher_quiz_race_create(
 
     gs.status = 'lobby'
     await db.commit()
+    # Invalidate teacher sessions list cache so new game appears immediately
+    await cache_del_teacher_sessions(teacher_id)
     flash(request, f"O'yin yaratildi! Kod: {code}", 'success')
     return RedirectResponse(url=f"/teacher/games/quiz-race/{gs.id}/lobby", status_code=303)
 
@@ -328,10 +336,9 @@ async def teacher_quiz_race_ws(sid: int, websocket: WebSocket):
         return
 
     async with AsyncSessionLocal() as db:
+        # Fetch session (without questions first — may use cache)
         gs = (await db.execute(
-            select(GameSession)
-            .options(selectinload(GameSession.questions))
-            .where(GameSession.id == sid)
+            select(GameSession).where(GameSession.id == sid)
         )).scalar_one_or_none()
 
         if not gs:
@@ -342,15 +349,16 @@ async def teacher_quiz_race_ws(sid: int, websocket: WebSocket):
         code = gs.code.upper()
         room = get_room(code)
         if not room:
-            questions = [
-                {
-                    'question_text': q.question_text,
-                    'option_a': q.option_a, 'option_b': q.option_b,
-                    'option_c': q.option_c, 'option_d': q.option_d,
-                    'correct_option': q.correct_option, 'points': q.points,
-                }
-                for q in sorted(gs.questions, key=lambda x: x.order)
-            ]
+            # Try questions cache first
+            questions = await cache_get_game_questions(gs.id)
+            if questions is None:
+                # Cache miss: fetch from DB + cache result
+                gs_full = (await db.execute(
+                    select(GameSession)
+                    .options(selectinload(GameSession.questions))
+                    .where(GameSession.id == sid)
+                )).scalar_one_or_none()
+                questions = await cache_set_game_questions(gs.id, gs_full.questions)
             room = create_room(gs.id, code, gs.teacher_id, gs.time_per_question, questions)
 
     room.teacher_ws = websocket
@@ -384,6 +392,9 @@ async def teacher_quiz_race_ws(sid: int, websocket: WebSocket):
                         part.wrong_answers = player.wrong
                         part.rank = entry['rank']
             await db.commit()
+        # Invalidate caches: status changed, sessions list stale
+        await cache_update_gs_status(room.code, 'finished')
+        await cache_del_teacher_sessions(room.teacher_id)
 
     try:
         async for data in websocket.iter_json():
@@ -399,6 +410,8 @@ async def teacher_quiz_race_ws(sid: int, websocket: WebSocket):
                             gs_obj.status = 'playing'
                             gs_obj.started_at = datetime.utcnow()
                             await db.commit()
+                    # Update cached status so new students see 'playing'
+                    await cache_update_gs_status(room.code, 'playing')
                     await start_question(room, _save_cb)
             elif action == 'next':
                 if room.status == 'reveal':

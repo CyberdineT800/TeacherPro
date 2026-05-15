@@ -7,6 +7,7 @@ from models import get_db, Employee
 from sqlalchemy import select
 from language import language_manager
 from config import ROOT_PATH
+from services.cache import cache_get_user, cache_set_user, cache_del_user
 
 
 def page_info(total: int, page: int, per_page: int, request: Request) -> dict:
@@ -63,13 +64,21 @@ async def get_current_user(
     request: Request,
     db: AsyncSession = Depends(get_db)
 ) -> Optional[Employee]:
-    """Get the current logged-in user from session"""
+    """Get the current logged-in user — Redis cache first, DB fallback."""
     user_id = request.session.get('user_id')
     if not user_id:
         return None
-    
+
+    # Try cache first
+    cached = await cache_get_user(user_id)
+    if cached is not None:
+        return cached
+
+    # Cache miss → hit DB
     result = await db.execute(select(Employee).where(Employee.id == user_id))
     user = result.scalar_one_or_none()
+    if user:
+        await cache_set_user(user)
     return user
 
 async def require_login(
@@ -142,11 +151,15 @@ async def get_template_context(request: Request, db: AsyncSession = None) -> Dic
         'root_path': ROOT_PATH,
     }
     
-    # Add user if available
+    # Add user if available — cache first
     user_id = request.session.get('user_id')
     if user_id and db:
-        result = await db.execute(select(Employee).where(Employee.id == user_id))
-        employee = result.scalar_one_or_none()
+        employee = await cache_get_user(user_id)
+        if employee is None:
+            result = await db.execute(select(Employee).where(Employee.id == user_id))
+            employee = result.scalar_one_or_none()
+            if employee:
+                await cache_set_user(employee)
         if employee:
             context['user'] = employee
             request.session['ai_enabled'] = bool(employee.ai_enabled)

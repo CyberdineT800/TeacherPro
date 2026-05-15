@@ -19,9 +19,29 @@ from models import (
 )
 from dependencies import require_login, flash, get_template_context, page_info
 from utils import generate_excel_report, generate_pdf_report, generate_word_report
+from services.cache import cache_get_ref, cache_set_ref
 
 router = APIRouter(prefix="/teacher", dependencies=[Depends(require_login)])
 templates = Jinja2Templates(directory="templates")
+
+
+# ── Reference-data helpers (cached) ──────────────────────────────────────────
+
+async def _ref_list(name: str, db: AsyncSession, model, order=None):
+    """Return a cached list of SimpleNamespace rows for reference tables."""
+    import types
+    cached = await cache_get_ref(name)
+    if cached is not None:
+        return [types.SimpleNamespace(**row) for row in cached]
+    q = select(model)
+    if order is not None:
+        q = q.order_by(order)
+    rows = (await db.execute(q)).scalars().all()
+    await cache_set_ref(name, [
+        {c.key: getattr(r, c.key) for c in model.__table__.columns}
+        for r in rows
+    ])
+    return rows
 
 
 # ============================================================================
@@ -89,9 +109,9 @@ async def create_exam_page(request: Request, db: AsyncSession = Depends(get_db))
 
     classes = teacher.assigned_classes if teacher else []
     subjects = teacher.assigned_subjects if teacher else []
-    quarters = (await db.execute(select(Quarter).order_by(Quarter.order_num))).scalars().all()
-    question_types = (await db.execute(select(QuestionType))).scalars().all()
-    exam_types = (await db.execute(select(ExamType))).scalars().all()
+    quarters       = await _ref_list('quarters',       db, Quarter,      Quarter.order_num)
+    question_types = await _ref_list('question_types', db, QuestionType)
+    exam_types     = await _ref_list('exam_types',     db, ExamType)
 
     bsb_exam_name = (await db.execute(
         select(ExamName).where(ExamName.name.ilike('bsb%')).limit(1)

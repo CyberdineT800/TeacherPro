@@ -18,6 +18,9 @@ from services.games.quiz_race.engine import (
     broadcast_to_students, send_to_teacher,
     record_answer, _safe_send,
 )
+from services.cache import (
+    cache_get_game_session, cache_set_game_session, cache_del_game_session,
+)
 from config import ROOT_PATH
 
 log = logging.getLogger("game.quiz_race")
@@ -38,13 +41,24 @@ async def join_landing(request: Request):
     )
 
 
+async def _get_gs_by_code(code: str, db: AsyncSession):
+    """Return GameSession (cached or from DB); caches on first DB hit."""
+    gs = await cache_get_game_session(code)
+    if gs is not None:
+        return gs
+    gs = (await db.execute(
+        select(GameSession).where(GameSession.code == code)
+    )).scalar_one_or_none()
+    if gs:
+        await cache_set_game_session(gs)
+    return gs
+
+
 @router.get("/play/quiz-race/{code}", response_class=HTMLResponse)
 async def join_game(code: str, request: Request, db: AsyncSession = Depends(get_db)):
     """Show the nickname entry form for a specific game code."""
     code = code.upper()
-    gs = (await db.execute(
-        select(GameSession).where(GameSession.code == code)
-    )).scalar_one_or_none()
+    gs = await _get_gs_by_code(code, db)
 
     if not gs:
         return templates.TemplateResponse('game/quiz_race/join.html', {
@@ -78,18 +92,14 @@ async def join_game_post(code: str, request: Request, db: AsyncSession = Depends
     nickname = (form.get('nickname') or '').strip()[:50]
 
     if not nickname:
-        gs = (await db.execute(
-            select(GameSession).where(GameSession.code == code)
-        )).scalar_one_or_none()
+        gs = await _get_gs_by_code(code, db)
         return templates.TemplateResponse('game/quiz_race/nickname.html', {
             'request': request, 'code': code,
             'game_title': gs.title if gs else '',
             'error': "Ism kiriting.", 'root_path': ROOT_PATH,
         })
 
-    gs = (await db.execute(
-        select(GameSession).where(GameSession.code == code)
-    )).scalar_one_or_none()
+    gs = await _get_gs_by_code(code, db)
 
     if not gs or gs.status not in ('lobby', 'pending'):
         return templates.TemplateResponse('game/quiz_race/join.html', {

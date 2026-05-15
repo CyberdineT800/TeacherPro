@@ -11,6 +11,7 @@ from datetime import datetime
 
 from models import get_db, Employee
 from dependencies import flash, get_template_context
+from services.cache import cache_del_user
 
 limiter = Limiter(key_func=get_remote_address)
 
@@ -63,6 +64,9 @@ async def login(
 @router.get("/logout")
 async def logout(request: Request):
     """Logout user"""
+    user_id = request.session.get('user_id')
+    if user_id:
+        await cache_del_user(user_id)
     request.session.clear()
     flash(request, 'Tizimdan muvaffaqiyatli chiqdingiz', 'success')
     return RedirectResponse(url="/", status_code=303)

@@ -19,6 +19,8 @@ from slowapi import Limiter, _rate_limit_exceeded_handler
 from slowapi.util import get_remote_address
 from slowapi.errors import RateLimitExceeded
 
+from services.cache import init_redis, close_redis
+
 from routers import auth, language
 from routers.home import router as home_router
 from routers.admin import router as admin_router
@@ -84,7 +86,10 @@ async def lifespan(app: FastAPI):
     await init_db()
     await seed_defaults()
     print("Database ready")
+    await init_redis()
+    print("Redis ready")
     yield
+    await close_redis()
     print("Application shutdown")
 
 
