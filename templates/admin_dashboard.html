@@ -104,6 +104,14 @@
 
     <h3>{{ _('quick_actions') }}</h3>
     <div class="actions-grid">
+        <a href="{{ url_for('admin_announcements') }}" class="action-btn">
+            <span class="action-icon">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" width="22" height="22">
+                    <path d="M3 11v2a1 1 0 001 1h2l5 4V6L6 10H4a1 1 0 00-1 1zM14 10v4M17 8v8M20 6v12"/>
+                </svg>
+            </span>
+            <span class="action-text">{{ _('announcements') }}</span>
+        </a>
         <a href="{{ url_for('schools_list') }}" class="action-btn">
             <span class="action-icon">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" width="22" height="22">

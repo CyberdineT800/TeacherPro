@@ -20,10 +20,15 @@ from slowapi.util import get_remote_address
 from slowapi.errors import RateLimitExceeded
 
 from routers import auth, language
+from routers.home import router as home_router
 from routers.admin import router as admin_router
 from routers.teacher import router as teacher_router
 from routers.game import router as game_router
 from dependencies import get_flashed_messages
+from fastapi import HTTPException
+from fastapi.responses import HTMLResponse
+from fastapi.templating import Jinja2Templates as _Jinja2Templates
+_err_templates = _Jinja2Templates(directory="templates")
 
 # Rate limiter — keyed by client IP
 limiter = Limiter(key_func=get_remote_address)
@@ -202,6 +207,10 @@ async def add_template_context(request: Request, call_next):
             # ── Public: Quiz Race (students) ─────────────────────────────────
             'quiz_race_join_landing': '/play/quiz-race',
             'quiz_race_join_game': '/play/quiz-race/{code}',
+
+            # ── Public: Home & Announcements ─────────────────────────────────
+            'home': '/',
+            'admin_announcements': '/admin/announcements',
         }
 
         base_path = route_map.get(name, f'/{name}')
@@ -224,7 +233,14 @@ async def add_template_context(request: Request, call_next):
     return response
 
 
+# ── 404 handler ──────────────────────────────────────────────────────────────
+@app.exception_handler(404)
+async def not_found_handler(request: Request, exc: HTTPException):
+    context = {"request": request, "root_path": ROOT_PATH}
+    return _err_templates.TemplateResponse("404.html", context, status_code=404)
+
 # Include routers
+app.include_router(home_router, tags=["Home"])
 app.include_router(auth.router, tags=["Authentication"])
 app.include_router(admin_router, tags=["Admin"])
 app.include_router(teacher_router, tags=["Teacher"])

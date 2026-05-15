@@ -17,14 +17,6 @@ limiter = Limiter(key_func=get_remote_address)
 router = APIRouter()
 templates = Jinja2Templates(directory="templates")
 
-@router.get("/", response_class=HTMLResponse)
-async def index(request: Request):
-    """Redirect to appropriate dashboard or login"""
-    if 'user_id' in request.session:
-        if request.session.get('is_admin'):
-            return RedirectResponse(url="/admin/dashboard", status_code=303)
-        return RedirectResponse(url="/teacher/dashboard", status_code=303)
-    return RedirectResponse(url="/login", status_code=303)
 
 @router.get("/login", response_class=HTMLResponse)
 async def login_page(request: Request):
@@ -73,4 +65,4 @@ async def logout(request: Request):
     """Logout user"""
     request.session.clear()
     flash(request, 'Tizimdan muvaffaqiyatli chiqdingiz', 'success')
-    return RedirectResponse(url="/login", status_code=303)
+    return RedirectResponse(url="/", status_code=303)

@@ -1,0 +1,198 @@
+<!DOCTYPE html>
+<html lang="uz" data-theme="dark">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>404 — Sahifa topilmadi · TeacherPro</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;600;700;900&display=swap" rel="stylesheet">
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#0d1117;--cyan:oklch(74% 0.17 212);--violet:oklch(70% 0.18 275);
+  --text:oklch(97% 0.008 230);--muted:oklch(72% 0.07 228);--dim:oklch(44% 0.05 228);
+  --border:rgba(100,180,255,0.14);--glass:rgba(70,145,255,0.07);
+  --ease:cubic-bezier(.22,1,.36,1);
+}
+html,body{height:100%;overflow:hidden}
+body{
+  background:var(--bg);color:var(--text);
+  font-family:'Manrope',system-ui,sans-serif;
+  display:flex;flex-direction:column;align-items:center;justify-content:center;
+  text-align:center;position:relative;
+}
+#err-canvas{position:fixed;inset:0;z-index:0;pointer-events:none}
+
+.err-shell{position:relative;z-index:1;padding:2rem 1.5rem;max-width:520px;width:100%}
+
+/* 3-D "404" with CSS perspective */
+.err-num{
+  font-size:clamp(7rem,22vw,14rem);font-weight:900;line-height:1;
+  letter-spacing:-.04em;margin-bottom:1.5rem;
+  perspective:600px;display:inline-block;
+  transform-style:preserve-3d;
+  background:linear-gradient(135deg,var(--cyan) 0%,var(--violet) 55%,#00d4aa 100%);
+  -webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;
+  filter:drop-shadow(0 0 40px rgba(100,200,255,.3));
+  animation:float3d 5s ease-in-out infinite;
+}
+@keyframes float3d{
+  0%,100%{transform:rotateX(0deg) rotateY(-8deg) translateY(0)}
+  25%{transform:rotateX(4deg) rotateY(8deg) translateY(-10px)}
+  75%{transform:rotateX(-4deg) rotateY(-4deg) translateY(8px)}
+}
+
+.err-title{font-size:1.45rem;font-weight:700;margin-bottom:.65rem}
+.err-sub{color:var(--muted);font-size:.97rem;line-height:1.6;margin-bottom:2.5rem;max-width:380px;margin-left:auto;margin-right:auto}
+
+.err-btns{display:flex;gap:.85rem;justify-content:center;flex-wrap:wrap}
+.btn-err{
+  padding:.75rem 1.6rem;border-radius:999px;font-size:.92rem;font-weight:700;
+  text-decoration:none;border:none;cursor:pointer;transition:.18s var(--ease);
+  font-family:inherit;display:inline-flex;align-items:center;gap:.45rem;
+}
+.btn-err-primary{background:var(--cyan);color:#0d1117;box-shadow:0 6px 24px rgba(100,200,255,.28)}
+.btn-err-primary:hover{opacity:.88;transform:translateY(-2px);box-shadow:0 10px 32px rgba(100,200,255,.4)}
+.btn-err-ghost{background:var(--glass);color:var(--text);border:1px solid var(--border)}
+.btn-err-ghost:hover{border-color:rgba(100,200,255,.35);transform:translateY(-2px)}
+
+.err-orbit{
+  margin:2.5rem auto 0;width:60px;height:60px;position:relative;
+  animation:spin-ring 8s linear infinite;
+}
+.err-orbit svg{width:100%;height:100%;opacity:.2}
+@keyframes spin-ring{from{transform:rotate(0)}to{transform:rotate(360deg)}}
+
+.err-hint{margin-top:.75rem;color:var(--dim);font-size:.78rem}
+
+@media(max-width:480px){
+  .err-num{font-size:clamp(5rem,28vw,8rem)}
+  .err-title{font-size:1.15rem}
+}
+</style>
+</head>
+<body>
+<canvas id="err-canvas"></canvas>
+
+<div class="err-shell">
+  <div class="err-num" id="errNum">404</div>
+  <h1 class="err-title">Sahifa topilmadi</h1>
+  <p class="err-sub">Siz qidirayotgan sahifa o'chirilgan, ko'chirilgan yoki hech qachon mavjud bo'lmagan.</p>
+  <div class="err-btns">
+    <a href="{{ root_path }}/" class="btn-err btn-err-primary">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"/></svg>
+      Bosh sahifaga
+    </a>
+    <a href="{{ root_path }}/login" class="btn-err btn-err-ghost">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M15 3h4a2 2 0 012 2v14a2 2 0 01-2 2h-4"/><polyline points="10 17 15 12 10 7"/><line x1="15" y1="12" x2="3" y2="12"/></svg>
+      Kirish
+    </a>
+  </div>
+  <div class="err-orbit">
+    <svg viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <circle cx="50" cy="50" r="45" stroke="var(--cyan)" stroke-width="2" stroke-dasharray="8 6"/>
+      <circle cx="50" cy="5" r="5" fill="var(--cyan)"/>
+    </svg>
+  </div>
+  <p class="err-hint">Agar muammo davom etsa, administratorga murojaat qiling</p>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script>
+(function(){
+  const canvas = document.getElementById('err-canvas');
+  const renderer = new THREE.WebGLRenderer({canvas, alpha:true, antialias:true});
+  renderer.setPixelRatio(Math.min(devicePixelRatio,2));
+
+  const scene = new THREE.Scene();
+  const camera = new THREE.PerspectiveCamera(55, 2, 0.1, 100);
+  camera.position.z = 8;
+
+  /* Particles drifting in void */
+  const geo = new THREE.BufferGeometry();
+  const N = 900;
+  const pos = new Float32Array(N*3);
+  const vel = new Float32Array(N*3);
+  for(let i=0;i<N;i++){
+    pos[i*3]   = (Math.random()-0.5)*30;
+    pos[i*3+1] = (Math.random()-0.5)*18;
+    pos[i*3+2] = (Math.random()-0.5)*15-4;
+    vel[i*3]   = (Math.random()-0.5)*0.002;
+    vel[i*3+1] = (Math.random()-0.5)*0.002;
+    vel[i*3+2] = 0;
+  }
+  geo.setAttribute('position', new THREE.BufferAttribute(pos,3));
+  const mat = new THREE.PointsMaterial({color:0x64c8ff, size:0.055, transparent:true, opacity:0.55});
+  const pts = new THREE.Points(geo, mat);
+  scene.add(pts);
+
+  /* Broken wireframe sphere */
+  const sphereGeo = new THREE.IcosahedronGeometry(2.8, 1);
+  const sphereMat = new THREE.MeshBasicMaterial({color:0xb478ff, wireframe:true, transparent:true, opacity:0.08});
+  const sphere = new THREE.Mesh(sphereGeo, sphereMat);
+  sphere.position.set(0,0,-4);
+  scene.add(sphere);
+
+  /* Floating fragments */
+  const frags = [];
+  for(let i=0;i<10;i++){
+    const g = new THREE.OctahedronGeometry(0.2+Math.random()*0.5,0);
+    const m = new THREE.MeshBasicMaterial({color:i%2===0?0x64c8ff:0xb478ff,wireframe:true,transparent:true,opacity:0.13+Math.random()*0.12});
+    const mesh = new THREE.Mesh(g,m);
+    mesh.position.set((Math.random()-0.5)*16,(Math.random()-0.5)*9,(Math.random()-0.5)*8-3);
+    frags.push({mesh, rx:(Math.random()-0.5)*0.01, ry:(Math.random()-0.5)*0.012, baseY:mesh.position.y, ph:Math.random()*6.28});
+    scene.add(mesh);
+  }
+
+  function resize(){
+    renderer.setSize(innerWidth,innerHeight,false);
+    camera.aspect = innerWidth/innerHeight;
+    camera.updateProjectionMatrix();
+  }
+  window.addEventListener('resize',resize);
+  resize();
+
+  let af;
+  function animate(){
+    af = requestAnimationFrame(animate);
+    const t = performance.now()*0.001;
+
+    /* Drift particles */
+    const p = geo.attributes.position.array;
+    for(let i=0;i<N;i++){
+      p[i*3]   += vel[i*3];
+      p[i*3+1] += vel[i*3+1];
+      if(Math.abs(p[i*3])>15)   vel[i*3]   *= -1;
+      if(Math.abs(p[i*3+1])>9)  vel[i*3+1] *= -1;
+    }
+    geo.attributes.position.needsUpdate = true;
+
+    sphere.rotation.y += 0.003;
+    sphere.rotation.x += 0.002;
+
+    frags.forEach(f=>{
+      f.mesh.rotation.x += f.rx;
+      f.mesh.rotation.y += f.ry;
+      f.mesh.position.y = f.baseY + Math.sin(t*0.7+f.ph)*0.35;
+    });
+
+    renderer.render(scene,camera);
+  }
+  animate();
+
+  document.addEventListener('visibilitychange',()=>{
+    if(document.hidden) cancelAnimationFrame(af); else animate();
+  });
+
+  /* Interactive: mouse parallax */
+  document.addEventListener('mousemove',e=>{
+    const x=(e.clientX/innerWidth-0.5)*0.3;
+    const y=(e.clientY/innerHeight-0.5)*0.3;
+    camera.position.x += (x-camera.position.x)*0.05;
+    camera.position.y += (-y-camera.position.y)*0.05;
+  },{passive:true});
+})();
+</script>
+</body>
+</html>

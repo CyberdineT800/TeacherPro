@@ -13,6 +13,14 @@
     <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 
     <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <script>
+    /* Apply saved theme before paint to avoid flash */
+    (function(){
+      var t = localStorage.getItem('theme');
+      if (!t) t = window.matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark';
+      document.documentElement.setAttribute('data-theme', t);
+    })();
+    </script>
     <style>
         /* Login-specific layout overrides (builds on the shared design system) */
         body {
@@ -152,6 +160,39 @@
             color: var(--text-muted);
             margin: 0 4px;
         }
+
+        /* ── Theme toggle ── */
+        .login-bottom-row {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+        }
+        .theme-toggle-btn {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            border: 1px solid var(--glass-border);
+            background: rgba(0,0,0,.25);
+            backdrop-filter: blur(18px) saturate(160%);
+            -webkit-backdrop-filter: blur(18px) saturate(160%);
+            color: var(--text-muted);
+            cursor: pointer;
+            transition: all .2s var(--ease);
+            flex-shrink: 0;
+        }
+        .theme-toggle-btn:hover {
+            color: var(--text);
+            background: rgba(255,255,255,.08);
+            border-color: rgba(255,255,255,.25);
+        }
+        .theme-toggle-btn svg { pointer-events: none; }
+        /* Hide the icon that is NOT active */
+        html[data-theme="dark"]  .theme-toggle-btn .icon-sun  { display: none; }
+        html[data-theme="light"] .theme-toggle-btn .icon-moon { display: none; }
     </style>
 </head>
 
@@ -193,21 +234,43 @@
             </form>
         </div>
 
-        <div class="login-languages" role="group" aria-label="{{ _('select_language') }}">
-            <button type="button" onclick="changeLanguage('uz')"
-                class="login-lang-btn {% if current_language == 'uz' %}active{% endif %}">
-                <span class="language-flag">🇺🇿</span>
-                <span>O'zbek</span>
-            </button>
-            <button type="button" onclick="changeLanguage('ru')"
-                class="login-lang-btn {% if current_language == 'ru' %}active{% endif %}">
-                <span class="language-flag">🇷🇺</span>
-                <span>Русский</span>
-            </button>
-            <button type="button" onclick="changeLanguage('en')"
-                class="login-lang-btn {% if current_language == 'en' %}active{% endif %}">
-                <span class="language-flag">🇬🇧</span>
-                <span>English</span>
+        <div class="login-bottom-row">
+            <div class="login-languages" role="group" aria-label="{{ _('select_language') }}">
+                <button type="button" onclick="changeLanguage('uz')"
+                    class="login-lang-btn {% if current_language == 'uz' %}active{% endif %}">
+                    <span class="language-flag">🇺🇿</span>
+                    <span>O'zbek</span>
+                </button>
+                <button type="button" onclick="changeLanguage('ru')"
+                    class="login-lang-btn {% if current_language == 'ru' %}active{% endif %}">
+                    <span class="language-flag">🇷🇺</span>
+                    <span>Русский</span>
+                </button>
+                <button type="button" onclick="changeLanguage('en')"
+                    class="login-lang-btn {% if current_language == 'en' %}active{% endif %}">
+                    <span class="language-flag">🇬🇧</span>
+                    <span>English</span>
+                </button>
+            </div>
+
+            <!-- Day / Night toggle -->
+            <button class="theme-toggle-btn" id="themeToggleLogin" aria-label="Toggle theme" title="Toggle theme">
+                <!-- Sun — shown in dark mode -->
+                <svg class="icon-sun" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <circle cx="12" cy="12" r="5"/>
+                    <line x1="12" y1="1" x2="12" y2="3"/>
+                    <line x1="12" y1="21" x2="12" y2="23"/>
+                    <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/>
+                    <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/>
+                    <line x1="1" y1="12" x2="3" y2="12"/>
+                    <line x1="21" y1="12" x2="23" y2="12"/>
+                    <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/>
+                    <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/>
+                </svg>
+                <!-- Moon — shown in light mode -->
+                <svg class="icon-moon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>
+                </svg>
             </button>
         </div>
 
@@ -220,6 +283,19 @@
 
     <script>window.ROOT_PATH = "{{ request.app.root_path }}";</script>
     <script src="{{ url_for('static', filename='script.js') }}"></script>
+    <script>
+    (function(){
+        var btn = document.getElementById('themeToggleLogin');
+        if(!btn) return;
+        btn.addEventListener('click', function(){
+            var html = document.documentElement;
+            var current = html.getAttribute('data-theme') || 'dark';
+            var next = current === 'dark' ? 'light' : 'dark';
+            html.setAttribute('data-theme', next);
+            localStorage.setItem('theme', next);
+        });
+    })();
+    </script>
 </body>
 
 </html>

@@ -1,0 +1,1689 @@
+<!DOCTYPE html>
+<html lang="{{ current_language }}">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>TeacherPro — O'qituvchilar platformasi</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><circle cx=%2250%22 cy=%2250%22 r=%2240%22 fill=%22none%22 stroke=%22%2366e0ff%22 stroke-width=%226%22/><text x=%2250%22 y=%2260%22 font-size=%2240%22 text-anchor=%22middle%22 fill=%22%23ffffff%22 font-family=%22Arial%22 font-weight=%22700%22>T</text></svg>">
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800;900&family=Instrument+Serif:ital@0;1&family=JetBrains+Mono:wght@500&display=swap" rel="stylesheet">
+
+<script>
+/* Theme before paint */
+(function(){
+  var t=localStorage.getItem('theme');
+  if(!t) t=window.matchMedia('(prefers-color-scheme: light)').matches?'light':'dark';
+  document.documentElement.setAttribute('data-theme',t);
+})();
+</script>
+
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+
+/* ─── TOKENS ─── */
+:root{
+  --bg-0:#06080f;
+  --bg-1:#0a0e1a;
+  --bg-s:rgba(255,255,255,.04);
+  --bg-sh:rgba(255,255,255,.075);
+  --cyan:#7cdaff;
+  --cyan-d:#5ec9ff;
+  --violet:#b8a0ff;
+  --teal:#3ee8c0;
+  --rose:#ff95c0;
+  --amber:#ffd278;
+  --text:#e8eef7;
+  --text-2:#c6d2e0;
+  --muted:#7e95ad;
+  --dim:#3f5468;
+  --faint:#27374a;
+  --hair:rgba(255,255,255,.07);
+  --hair-2:rgba(255,255,255,.13);
+  --glass:rgba(255,255,255,.045);
+  --glass-h:rgba(255,255,255,.075);
+  --ring:0 1px 0 0 rgba(255,255,255,.12) inset, 0 -1px 0 0 rgba(255,255,255,.04) inset;
+  --r-sm:10px;--r-md:16px;--r-lg:22px;--r-xl:30px;--r-pill:999px;
+  --ease:cubic-bezier(.22,1,.36,1);
+  --ease-sp:cubic-bezier(.34,1.56,.64,1);
+  --serif:'Instrument Serif',Georgia,serif;
+  --mono:'JetBrains Mono',ui-monospace,monospace;
+}
+[data-theme="light"]{
+  --bg-0:#eef2f9;
+  --bg-1:#f4f7fc;
+  --bg-s:rgba(0,30,80,.035);
+  --bg-sh:rgba(0,30,80,.07);
+  --cyan:#0b8fcc;
+  --cyan-d:#0a78b0;
+  --violet:#7d5cff;
+  --teal:#0bb88e;
+  --rose:#d4528c;
+  --amber:#c98a1c;
+  --text:#0a1424;
+  --text-2:#27384c;
+  --muted:#506478;
+  --dim:#8095a8;
+  --faint:#b9c4d2;
+  --hair:rgba(0,30,80,.09);
+  --hair-2:rgba(0,30,80,.18);
+  --glass:rgba(255,255,255,.55);
+  --glass-h:rgba(255,255,255,.75);
+  --ring:0 1px 0 0 rgba(255,255,255,.9) inset, 0 -1px 0 0 rgba(0,30,80,.05) inset;
+}
+
+html{scroll-behavior:smooth;-webkit-text-size-adjust:100%}
+body{
+  background:var(--bg-0);color:var(--text);
+  font-family:'Manrope',system-ui,sans-serif;
+  font-weight:400;line-height:1.55;
+  letter-spacing:-.005em;
+  overflow-x:hidden;
+  -webkit-font-smoothing:antialiased;
+  -moz-osx-font-smoothing:grayscale;
+}
+
+/* ─── ATMOSPHERIC BACKDROP ─── */
+.atmo{position:fixed;inset:0;z-index:0;pointer-events:none;overflow:hidden}
+.atmo::before,.atmo::after{
+  content:"";position:absolute;inset:-25%;filter:blur(110px) saturate(1.3);
+}
+.atmo::before{
+  background:
+    radial-gradient(38% 32% at 22% 18%, oklch(58% .25 280 / .65), transparent 70%),
+    radial-gradient(40% 32% at 82% 8%,  oklch(70% .22 205 / .55), transparent 72%),
+    radial-gradient(42% 36% at 78% 88%, oklch(58% .22 320 / .50), transparent 72%),
+    radial-gradient(32% 30% at 8% 78%,  oklch(62% .20 180 / .42), transparent 72%);
+  animation:atmo-a 32s ease-in-out infinite alternate;
+}
+.atmo::after{
+  background:
+    radial-gradient(26% 22% at 50% 50%, oklch(72% .25 230 / .38), transparent 70%),
+    radial-gradient(22% 22% at 30% 65%, oklch(68% .22 305 / .30), transparent 72%);
+  animation:atmo-b 40s ease-in-out infinite alternate;
+}
+[data-theme="light"] .atmo::before{
+  background:
+    radial-gradient(38% 32% at 22% 18%, oklch(72% .18 280 / .35), transparent 70%),
+    radial-gradient(40% 32% at 82% 8%,  oklch(76% .14 205 / .35), transparent 72%),
+    radial-gradient(42% 36% at 78% 88%, oklch(72% .15 320 / .30), transparent 72%);
+}
+[data-theme="light"] .atmo::after{
+  background:
+    radial-gradient(26% 22% at 50% 50%, oklch(78% .15 230 / .22), transparent 70%),
+    radial-gradient(22% 22% at 30% 65%, oklch(75% .15 305 / .20), transparent 72%);
+}
+@keyframes atmo-a{
+  0%{transform:translate3d(0,0,0) scale(1)}
+  50%{transform:translate3d(3%,-2%,0) scale(1.06)}
+  100%{transform:translate3d(-2%,3%,0) scale(1.03)}
+}
+@keyframes atmo-b{
+  0%{transform:translate3d(0,0,0) scale(1)}
+  50%{transform:translate3d(-4%,3%,0) scale(1.1)}
+  100%{transform:translate3d(2%,-3%,0) scale(1.04)}
+}
+
+/* SVG grain */
+.grain{position:fixed;inset:0;z-index:0;pointer-events:none;opacity:.4;mix-blend-mode:overlay;
+  background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='220' height='220'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='2' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 0 0 0 .09 0'/></filter><rect width='100%25' height='100%25' filter='url(%23n)'/></svg>");
+}
+[data-theme="light"] .grain{opacity:.25;mix-blend-mode:multiply}
+
+/* Subtle dot grid overlay */
+.grid-bg{position:fixed;inset:0;z-index:0;pointer-events:none;opacity:.5;
+  background-image:radial-gradient(rgba(255,255,255,.07) 1px,transparent 1.2px);
+  background-size:42px 42px;
+  mask-image:radial-gradient(ellipse 80% 60% at 50% 40%,#000 30%,transparent 75%);
+  -webkit-mask-image:radial-gradient(ellipse 80% 60% at 50% 40%,#000 30%,transparent 75%);
+}
+[data-theme="light"] .grid-bg{background-image:radial-gradient(rgba(0,30,80,.14) 1px,transparent 1.2px);opacity:.6}
+
+nav,section,footer,.mobile-drawer,.hero-stack{position:relative;z-index:5}
+
+/* ─── TYPE ─── */
+.serif{font-family:var(--serif);font-style:italic;font-weight:400;letter-spacing:-.015em}
+.mono{font-family:var(--mono);font-weight:500;letter-spacing:.02em;font-size:.78em}
+
+/* ─── NAV ─── */
+.nav-wrap{position:fixed;top:0;left:0;right:0;z-index:100;padding:18px 22px 0}
+.land-nav{
+  display:flex;align-items:center;gap:14px;
+  padding:8px 8px 8px 16px;
+  background:rgba(10,14,26,.32);
+  border:1px solid var(--hair-2);
+  backdrop-filter:blur(28px) saturate(180%);
+  -webkit-backdrop-filter:blur(28px) saturate(180%);
+  border-radius:var(--r-pill);
+  box-shadow:0 10px 30px rgba(0,0,0,.35),var(--ring);
+  transition:background .3s,border-color .3s;
+  max-width:1200px;margin:0 auto;
+}
+[data-theme="light"] .land-nav{background:rgba(244,247,252,.38)}
+.land-nav.scrolled{background:rgba(10,14,26,.5)}
+[data-theme="light"] .land-nav.scrolled{background:rgba(244,247,252,.6)}
+
+.nav-brand{display:flex;align-items:center;gap:9px;text-decoration:none;color:var(--text);padding:4px 8px 4px 4px;flex-shrink:0}
+.nav-brand-mark{
+  width:32px;height:32px;border-radius:50%;
+  background:conic-gradient(from 140deg,var(--cyan),var(--violet),var(--teal),var(--cyan));
+  box-shadow:0 4px 20px oklch(65% .2 260 / .5),var(--ring);
+  display:grid;place-items:center;color:#06080f;position:relative;
+}
+.nav-brand-mark::after{
+  content:"";position:absolute;inset:3px;border-radius:50%;
+  background:radial-gradient(120% 80% at 30% 15%,rgba(255,255,255,.85),rgba(255,255,255,.08) 50%,transparent 70%);
+  mix-blend-mode:overlay;
+}
+.nav-brand-mark svg{position:relative;z-index:1}
+.nav-brand-text{font-size:1rem;font-weight:800;letter-spacing:-.01em}
+
+.nav-pills{display:flex;align-items:center;gap:2px;padding:3px;margin-left:auto;
+  background:rgba(0,0,0,.22);border:1px solid var(--hair);border-radius:var(--r-pill)}
+[data-theme="light"] .nav-pills{background:rgba(0,0,0,.04)}
+.nav-pill{
+  display:inline-flex;align-items:center;gap:6px;
+  background:none;border:none;cursor:pointer;font-family:inherit;
+  color:var(--muted);padding:7px 14px;border-radius:var(--r-pill);
+  font-size:.82rem;font-weight:600;transition:all .2s var(--ease);
+  text-decoration:none;
+}
+.nav-pill:hover{color:var(--text);background:var(--glass-h)}
+.nav-pill.on{color:var(--text);background:var(--glass-h);box-shadow:var(--ring)}
+
+.nav-right{display:flex;align-items:center;gap:8px;flex-shrink:0}
+
+/* Lang */
+.lang-sw{display:flex;border:1px solid var(--hair-2);border-radius:var(--r-pill);overflow:hidden;background:rgba(0,0,0,.22)}
+[data-theme="light"] .lang-sw{background:rgba(255,255,255,.4)}
+.lang-btn{
+  background:transparent;border:none;cursor:pointer;font-family:inherit;
+  padding:6px 11px;font-size:.72rem;font-weight:700;color:var(--muted);transition:.15s;
+  letter-spacing:.05em;
+}
+.lang-btn.on{background:linear-gradient(135deg,var(--cyan),var(--violet));color:#06080f}
+[data-theme="light"] .lang-btn.on{color:#fff}
+.lang-btn:not(.on):hover{color:var(--text);background:var(--glass-h)}
+
+/* Theme */
+.theme-btn{
+  width:36px;height:36px;border-radius:50%;
+  background:var(--glass);border:1px solid var(--hair-2);
+  color:var(--muted);cursor:pointer;
+  display:grid;place-items:center;transition:.18s;flex-shrink:0;
+}
+.theme-btn:hover{border-color:var(--cyan);color:var(--cyan);background:var(--glass-h)}
+
+/* Login CTA */
+.btn-cta{
+  padding:9px 18px;border-radius:var(--r-pill);
+  background:linear-gradient(135deg,var(--cyan),var(--violet));
+  color:#06080f;font-size:.84rem;font-weight:700;
+  text-decoration:none;border:none;cursor:pointer;font-family:inherit;
+  transition:.2s var(--ease);white-space:nowrap;
+  box-shadow:0 8px 24px oklch(65% .2 250 / .35),var(--ring);
+  display:inline-flex;align-items:center;gap:6px;
+}
+.btn-cta:hover{transform:translateY(-1px);box-shadow:0 12px 32px oklch(65% .2 250 / .5),var(--ring)}
+[data-theme="light"] .btn-cta{color:#fff}
+
+/* Hamburger */
+.hamburger{
+  display:none;flex-direction:column;gap:5px;
+  background:var(--glass);border:1px solid var(--hair-2);border-radius:50%;
+  cursor:pointer;padding:10px;width:36px;height:36px;align-items:center;justify-content:center;
+}
+.hamburger span{display:block;width:16px;height:1.6px;background:var(--text-2);border-radius:2px;transition:.3s var(--ease)}
+.hamburger.open span:first-child{transform:translateY(6.6px) rotate(45deg)}
+.hamburger.open span:nth-child(2){opacity:0;transform:scaleX(0)}
+.hamburger.open span:last-child{transform:translateY(-6.6px) rotate(-45deg)}
+
+/* Mobile drawer */
+.mobile-drawer{
+  display:none;flex-direction:column;gap:14px;margin:8px auto 0;max-width:1200px;
+  padding:18px 22px 22px;
+  background:rgba(10,14,26,.92);backdrop-filter:blur(28px);
+  border:1px solid var(--hair-2);border-radius:var(--r-lg);
+}
+[data-theme="light"] .mobile-drawer{background:rgba(244,247,252,.95)}
+.mobile-drawer.open{display:flex}
+.mobile-drawer .nav-pill{justify-content:flex-start;padding:10px 14px;font-size:.95rem}
+
+/* ─── HERO ─── */
+.hero{
+  min-height:100vh;padding:140px 24px 80px;
+  display:grid;grid-template-columns:1.25fr 1fr;gap:48px;
+  max-width:1280px;margin:0 auto;align-items:center;
+  position:relative;
+}
+#hero-canvas{
+  position:fixed;inset:0;width:100vw;height:100vh;z-index:1;
+  pointer-events:none;
+}
+
+.hero-stack{display:flex;flex-direction:column;align-items:flex-start;gap:28px}
+
+.hero-eyebrow{
+  display:inline-flex;align-items:center;gap:10px;
+  padding:5px 14px 5px 6px;
+  background:rgba(124,218,255,.08);border:1px solid rgba(124,218,255,.22);
+  border-radius:var(--r-pill);
+  backdrop-filter:blur(12px);
+  color:var(--text);font-size:.78rem;font-weight:600;letter-spacing:.04em;
+}
+.hero-eyebrow-chip{
+  display:inline-flex;align-items:center;gap:5px;
+  padding:2px 9px;border-radius:var(--r-pill);
+  background:var(--cyan);color:#06080f;font-size:.66rem;font-weight:800;letter-spacing:.07em;
+}
+[data-theme="light"] .hero-eyebrow-chip{background:linear-gradient(135deg,var(--cyan),var(--violet));color:#fff}
+.hero-eyebrow-chip::before{content:"";width:5px;height:5px;border-radius:50%;background:currentColor;animation:blink 1.8s ease-in-out infinite}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:.3}}
+
+.hero-display{
+  font-size:clamp(2.6rem,7vw,5.6rem);
+  font-weight:800;line-height:.96;letter-spacing:-.045em;
+}
+.hero-display .ser{
+  font-family:var(--serif);font-style:italic;font-weight:400;
+  letter-spacing:-.015em;
+  background:linear-gradient(135deg,var(--cyan) 0%,var(--violet) 55%,var(--rose) 100%);
+  -webkit-background-clip:text;background-clip:text;
+  -webkit-text-fill-color:transparent;
+}
+.hero-display .ser sup{
+  font-family:var(--serif);font-style:normal;
+  font-size:.38em;vertical-align:super;
+  background:none;-webkit-text-fill-color:var(--cyan);
+  margin-left:.12em;letter-spacing:0;
+}
+
+.hero-sub{
+  font-size:clamp(1rem,1.4vw,1.16rem);
+  color:var(--text-2);max-width:520px;line-height:1.62;
+}
+
+.hero-cta-row{display:flex;gap:12px;flex-wrap:wrap}
+.btn-primary{
+  padding:14px 26px;border-radius:var(--r-pill);
+  background:linear-gradient(135deg,var(--cyan),var(--violet));
+  color:#06080f;font-size:.96rem;font-weight:700;
+  text-decoration:none;border:none;cursor:pointer;font-family:inherit;
+  transition:.22s var(--ease);
+  box-shadow:0 12px 36px oklch(65% .2 250 / .42),var(--ring);
+  display:inline-flex;align-items:center;gap:8px;
+}
+.btn-primary:hover{transform:translateY(-2px);box-shadow:0 18px 48px oklch(65% .2 250 / .55),var(--ring)}
+[data-theme="light"] .btn-primary{color:#fff}
+.btn-ghost{
+  padding:14px 24px;border-radius:var(--r-pill);
+  background:var(--glass);border:1px solid var(--hair-2);
+  color:var(--text);font-size:.96rem;font-weight:600;
+  text-decoration:none;cursor:pointer;font-family:inherit;
+  transition:.2s var(--ease);backdrop-filter:blur(14px);
+  display:inline-flex;align-items:center;gap:8px;
+}
+.btn-ghost:hover{background:var(--glass-h);border-color:var(--cyan);transform:translateY(-1px)}
+
+@keyframes fadeUp{from{opacity:0;transform:translateY(28px)}to{opacity:1;transform:none}}
+@keyframes fadeDown{from{opacity:0;transform:translateY(-16px)}to{opacity:1;transform:none}}
+
+/* Hero side panel — floating glass widget */
+.hero-side{
+  position:relative;z-index:3;
+  display:flex;flex-direction:column;gap:14px;
+}
+.glass-card{
+  position:relative;will-change:transform;transition:transform .5s var(--ease);
+  background:var(--glass);
+  border:1px solid var(--hair-2);
+  backdrop-filter:blur(22px) saturate(180%);
+  -webkit-backdrop-filter:blur(22px) saturate(180%);
+  border-radius:var(--r-lg);
+  box-shadow:0 20px 60px rgba(0,0,0,.4),var(--ring);
+  overflow:hidden;
+}
+.glass-card::before{
+  content:"";position:absolute;inset:0;border-radius:inherit;padding:1px;
+  background:linear-gradient(140deg,rgba(255,255,255,.32),rgba(255,255,255,.03) 38%,transparent 65%,rgba(255,255,255,.1));
+  -webkit-mask:linear-gradient(#000 0 0) content-box,linear-gradient(#000 0 0);
+          mask:linear-gradient(#000 0 0) content-box,linear-gradient(#000 0 0);
+  -webkit-mask-composite:xor;mask-composite:exclude;
+  pointer-events:none;
+}
+[data-theme="light"] .glass-card{box-shadow:0 20px 50px rgba(0,30,80,.12),var(--ring)}
+
+
+/* Mouse spotlight + child stacking */
+.glass-card > *,.stat-cell > *,.ann-card > .ann-body,.ann-card > .ann-img-wrap{position:relative;z-index:2}
+.glass-card::after,.stat-cell::after,.ann-card::after{
+  content:"";position:absolute;inset:0;border-radius:inherit;pointer-events:none;
+  background:radial-gradient(360px circle at var(--mx,50%) var(--my,50%),rgba(124,218,255,.16),transparent 55%);
+  opacity:0;transition:opacity .35s var(--ease);z-index:1;
+}
+.glass-card:hover::after,.stat-cell:hover::after,.ann-card:hover::after{opacity:1}
+[data-theme="light"] .glass-card::after,
+[data-theme="light"] .stat-cell::after,
+[data-theme="light"] .ann-card::after{
+  background:radial-gradient(360px circle at var(--mx,50%) var(--my,50%),rgba(11,143,204,.18),transparent 55%);
+}
+.stat-cell,.ann-card{transition:transform .5s var(--ease);will-change:transform}
+
+.hero-mini{padding:18px 20px;display:flex;align-items:center;gap:14px}
+.hero-mini-icon{
+  width:42px;height:42px;border-radius:12px;
+  background:linear-gradient(135deg,oklch(70% .18 200 / .35),oklch(60% .2 280 / .3));
+  border:1px solid rgba(255,255,255,.15);
+  display:grid;place-items:center;color:var(--cyan);
+  box-shadow:var(--ring);flex-shrink:0;
+}
+.hero-mini-text{flex:1;min-width:0}
+.hero-mini-title{font-size:.84rem;font-weight:700;color:var(--text);margin-bottom:2px}
+.hero-mini-sub{font-size:.74rem;color:var(--muted);line-height:1.4}
+
+.hero-live{padding:22px 24px;display:flex;flex-direction:column;gap:14px}
+.live-row{display:flex;justify-content:space-between;align-items:baseline}
+.live-label{font-size:.7rem;color:var(--muted);text-transform:uppercase;letter-spacing:.12em;font-weight:600}
+.live-num{
+  font-family:var(--serif);font-style:italic;font-weight:400;
+  font-size:1.9rem;color:var(--text);line-height:1;letter-spacing:-.01em;
+  background:linear-gradient(135deg,var(--cyan),var(--violet));
+  -webkit-background-clip:text;background-clip:text;
+  -webkit-text-fill-color:transparent;
+}
+.live-divider{height:1px;background:var(--hair);margin:-2px 0}
+
+.scroll-hint{
+  position:absolute;left:50%;bottom:24px;transform:translateX(-50%);
+  display:flex;flex-direction:column;align-items:center;gap:6px;
+  font-family:var(--mono);font-size:.66rem;
+  color:var(--dim);letter-spacing:.16em;text-transform:uppercase;
+  animation:bobble 2.4s ease-in-out infinite;
+}
+@keyframes bobble{0%,100%{transform:translateX(-50%) translateY(0);opacity:.7}50%{transform:translateX(-50%) translateY(8px);opacity:1}}
+
+/* ─── SECTION BASE ─── */
+section{padding:90px 24px}
+.wrap{max-width:1200px;margin:0 auto}
+.section-head{margin-bottom:48px;max-width:680px}
+.section-label{
+  display:inline-block;padding:3px 12px;border-radius:var(--r-pill);margin-bottom:14px;
+  background:var(--glass);border:1px solid var(--hair-2);
+  font-family:var(--mono);font-size:.7rem;font-weight:600;
+  color:var(--muted);letter-spacing:.14em;text-transform:uppercase;
+}
+.section-title{font-size:clamp(1.8rem,3.6vw,2.9rem);font-weight:800;letter-spacing:-.03em;line-height:1.05;margin-bottom:12px}
+.section-title .ser{font-family:var(--serif);font-style:italic;font-weight:400;letter-spacing:-.015em;color:var(--cyan)}
+.section-sub{color:var(--text-2);font-size:1rem;line-height:1.6;max-width:520px}
+
+/* ─── FEATURES — editorial numbered list ─── */
+#features{padding-top:60px}
+.feat-list{display:flex;flex-direction:column;border-top:1px solid var(--hair-2)}
+.feat-row{
+  display:grid;grid-template-columns:80px 1.1fr 1.4fr 56px;
+  gap:32px;padding:36px 12px;transform-style:preserve-3d;
+  border-bottom:1px solid var(--hair-2);
+  align-items:center;
+  position:relative;cursor:default;
+  transition:padding .55s var(--ease),background .55s,transform .18s ease-out;
+}
+.feat-row:hover{padding-left:24px;background:linear-gradient(90deg,var(--glass),transparent 70%)}
+.feat-num{
+  font-family:var(--serif);font-style:italic;font-weight:400;
+  font-size:2.2rem;color:var(--cyan);line-height:1;
+}
+.feat-row:hover .feat-num{transform:translateX(-3px);transition:transform .55s var(--ease)}
+.feat-head{
+  font-size:1.25rem;font-weight:700;letter-spacing:-.015em;line-height:1.2;
+}
+.feat-head .ser{font-family:var(--serif);font-style:italic;font-weight:400;color:var(--violet)}
+.feat-body{color:var(--text-2);font-size:.95rem;line-height:1.6;max-width:480px}
+.feat-arrow{
+  display:grid;place-items:center;
+  width:42px;height:42px;border-radius:50%;
+  background:var(--glass);border:1px solid var(--hair-2);color:var(--muted);
+  transition:all .5s var(--ease);
+}
+.feat-row:hover .feat-arrow{
+  background:linear-gradient(135deg,var(--cyan),var(--violet));
+  color:#06080f;border-color:transparent;transform:rotate(-45deg);
+}
+[data-theme="light"] .feat-row:hover .feat-arrow{color:#fff}
+
+@media(max-width:760px){
+  .feat-row{grid-template-columns:48px 1fr;grid-template-rows:auto auto;gap:14px 20px}
+  .feat-num{font-size:1.6rem}
+  .feat-arrow{display:none}
+  .feat-body{grid-column:2}
+}
+
+/* ─── SHOWCASE ─── */
+#showcase{padding-top:50px}
+.showcase-wrap{display:grid;grid-template-columns:240px 1fr;gap:36px;align-items:flex-start}
+@media(max-width:920px){.showcase-wrap{grid-template-columns:1fr}}
+
+.stabs{display:flex;flex-direction:column;gap:6px;position:sticky;top:120px}
+@media(max-width:920px){.stabs{flex-direction:row;flex-wrap:wrap;position:static}}
+.stab{
+  display:flex;align-items:center;gap:10px;
+  padding:12px 14px;background:transparent;border:1px solid transparent;
+  border-radius:var(--r-md);cursor:pointer;font-family:inherit;
+  color:var(--muted);font-size:.88rem;font-weight:600;text-align:left;
+  transition:.2s var(--ease);
+}
+.stab:hover{background:var(--glass);color:var(--text)}
+.stab.on{background:var(--glass);border-color:var(--hair-2);color:var(--text);box-shadow:var(--ring)}
+.stab-num{
+  font-family:var(--serif);font-style:italic;font-weight:400;
+  font-size:.95rem;color:var(--cyan);min-width:18px;
+}
+
+.browser-frame{
+  position:relative;padding:14px;
+  background:var(--glass);border:1px solid var(--hair-2);
+  backdrop-filter:blur(22px) saturate(170%);
+  border-radius:var(--r-xl);
+  box-shadow:0 30px 80px rgba(0,0,0,.5),var(--ring);
+  overflow:hidden;
+}
+.browser-frame::before{
+  content:"";position:absolute;inset:0;border-radius:inherit;padding:1px;
+  background:linear-gradient(140deg,rgba(255,255,255,.3),rgba(255,255,255,.03) 35%,transparent 65%,rgba(255,255,255,.1));
+  -webkit-mask:linear-gradient(#000 0 0) content-box,linear-gradient(#000 0 0);mask:linear-gradient(#000 0 0) content-box,linear-gradient(#000 0 0);
+  -webkit-mask-composite:xor;mask-composite:exclude;pointer-events:none;
+}
+.browser{background:rgba(6,10,18,.7);border:1px solid var(--hair);border-radius:var(--r-lg);overflow:hidden;backdrop-filter:blur(8px)}
+[data-theme="light"] .browser{background:rgba(255,255,255,.85)}
+.browser-bar{display:flex;align-items:center;gap:10px;padding:9px 14px;background:rgba(255,255,255,.025);border-bottom:1px solid var(--hair)}
+[data-theme="light"] .browser-bar{background:rgba(0,0,0,.04)}
+.bdots{display:flex;gap:5px}
+.bd{width:10px;height:10px;border-radius:50%}
+.bd-r{background:#ff5f56}.bd-y{background:#ffbd2e}.bd-g{background:#27c93f}
+.burl{
+  flex:1;background:rgba(255,255,255,.04);border:1px solid var(--hair);
+  border-radius:var(--r-pill);padding:4px 12px;
+  font-family:var(--mono);font-size:.72rem;color:var(--muted);
+  overflow:hidden;text-overflow:ellipsis;white-space:nowrap;
+}
+[data-theme="light"] .burl{background:rgba(0,0,0,.04)}
+.browser-body{min-height:400px;position:relative}
+
+.mpanel{display:none;animation:mIn .35s var(--ease)}
+.mpanel.on{display:block}
+@keyframes mIn{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
+
+.mn{background:rgba(255,255,255,.025);border-bottom:1px solid var(--hair);padding:8px 16px;display:flex;align-items:center;gap:10px}
+[data-theme="light"] .mn{background:rgba(0,0,0,.025)}
+.mn-brand{font-size:.74rem;font-weight:800;color:var(--cyan)}
+.mn-links{display:flex;gap:4px;margin-left:auto}
+.mn-link{font-size:.64rem;color:var(--muted);padding:3px 8px;border-radius:6px}
+.mn-link.a{background:rgba(124,218,255,.13);color:var(--cyan)}
+
+.mb{padding:16px 18px}
+.mp-title{font-size:.92rem;font-weight:700;margin-bottom:12px}
+
+.msteps{display:flex;gap:4px;margin-bottom:14px}
+.mstep{flex:1;height:3px;background:var(--hair);border-radius:2px}
+.mstep.done{background:var(--cyan)}
+.mstep.cur{background:linear-gradient(90deg,var(--cyan),var(--violet))}
+
+.mfg{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:12px}
+.mf label{display:block;font-size:.6rem;color:var(--muted);margin-bottom:3px;font-weight:600;letter-spacing:.06em;text-transform:uppercase}
+.msel{
+  width:100%;background:rgba(255,255,255,.04);border:1px solid var(--hair);border-radius:8px;
+  padding:6px 8px;font-size:.72rem;color:var(--text);font-family:inherit;appearance:none;
+}
+[data-theme="light"] .msel{background:rgba(0,0,0,.03)}
+
+.mbtn{
+  display:inline-flex;align-items:center;gap:4px;
+  padding:6px 14px;border-radius:var(--r-pill);
+  font:inherit;font-size:.72rem;font-weight:700;border:none;cursor:pointer;
+}
+.mbtn-p{background:linear-gradient(135deg,var(--cyan),var(--violet));color:#06080f}
+[data-theme="light"] .mbtn-p{color:#fff}
+.mbtn-g{background:transparent;border:1px solid var(--hair-2);color:var(--muted)}
+
+.mcards{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.mcard{background:rgba(255,255,255,.04);border:1px solid var(--hair);border-radius:var(--r-md);padding:10px}
+[data-theme="light"] .mcard{background:rgba(0,0,0,.03)}
+.mcard-title{font-size:.74rem;font-weight:700;margin-bottom:5px;color:var(--text)}
+.mbadge{display:inline-block;padding:1px 6px;border-radius:4px;font-size:.6rem;font-weight:700;background:rgba(124,218,255,.14);color:var(--cyan);margin-right:4px}
+.mbadge.v{background:rgba(184,160,255,.15);color:var(--violet)}
+.mcard-meta{font-size:.62rem;color:var(--muted);margin-top:5px}
+
+.mqlist{display:flex;flex-direction:column;gap:6px}
+.mqrow{display:flex;align-items:center;justify-content:space-between;background:rgba(255,255,255,.04);border:1px solid var(--hair);border-radius:var(--r-md);padding:8px 10px}
+[data-theme="light"] .mqrow{background:rgba(0,0,0,.03)}
+.mqrow-left{display:flex;align-items:center;gap:8px}
+.mqrow-icon{width:28px;height:28px;border-radius:8px;background:rgba(124,218,255,.13);display:grid;place-items:center;color:var(--cyan)}
+.mqrow-icon.v{background:rgba(184,160,255,.14);color:var(--violet)}
+.mqrow-name{font-size:.74rem;font-weight:600;color:var(--text)}
+.mqrow-sub{font-size:.6rem;color:var(--muted);margin-top:1px}
+.mqrow-count{font-size:.68rem;font-weight:700;color:var(--muted);font-variant-numeric:tabular-nums}
+
+.qr-box{width:96px;height:96px;background:#fff;border-radius:10px;margin:8px auto;display:grid;place-items:center;box-shadow:0 4px 18px rgba(0,0,0,.3)}
+.game-code{font-family:var(--serif);font-style:italic;font-weight:400;font-size:2rem;letter-spacing:.1em;
+  background:linear-gradient(135deg,var(--cyan),var(--violet));-webkit-background-clip:text;background-clip:text;
+  -webkit-text-fill-color:transparent;text-align:center;margin-bottom:5px;}
+.game-sub{font-size:.68rem;color:var(--muted);text-align:center;margin-bottom:10px}
+.players-row{display:flex;flex-wrap:wrap;gap:6px;justify-content:center}
+.player-chip{display:inline-flex;align-items:center;gap:5px;padding:3px 10px;background:rgba(62,232,192,.1);border:1px solid rgba(62,232,192,.25);border-radius:var(--r-pill);font-size:.68rem;
+  font-weight:600;color:var(--teal)}
+.player-chip::before{content:"";width:5px;height:5px;border-radius:50%;background:var(--teal);box-shadow:0 0 6px var(--teal)}
+
+.mtable{width:100%;border-collapse:collapse;font-size:.7rem}
+.mtable th{padding:6px 8px;text-align:left;color:var(--muted);font-weight:700;border-bottom:1px solid var(--hair);font-size:.62rem;text-transform:uppercase;letter-spacing:.06em}
+.mtable td{padding:7px 8px;border-bottom:1px solid rgba(255,255,255,.03);color:var(--text);font-variant-numeric:tabular-nums}
+[data-theme="light"] .mtable td{border-bottom-color:rgba(0,0,0,.04)}
+.sc{display:inline-block;padding:2px 7px;border-radius:6px;font-weight:700;font-size:.66rem}
+.sc-hi{background:rgba(62,232,192,.13);color:var(--teal)}
+.sc-md{background:rgba(255,210,120,.13);color:var(--amber)}
+.sc-lo{background:rgba(255,149,192,.13);color:var(--rose)}
+.sc-pct{font-family:var(--serif);font-style:italic;font-size:.86rem;color:var(--cyan)}
+
+/* ─── STATS ─── */
+#stats{padding-top:40px;padding-bottom:40px}
+.stats-bar{
+  display:grid;grid-template-columns:repeat(4,1fr);gap:0;
+  padding:32px;
+  background:var(--glass);border:1px solid var(--hair-2);
+  backdrop-filter:blur(22px) saturate(170%);
+  border-radius:var(--r-xl);
+  box-shadow:0 20px 60px rgba(0,0,0,.35),var(--ring);
+  position:relative;overflow:hidden;
+}
+.stats-bar::before{
+  content:"";position:absolute;inset:0;border-radius:inherit;padding:1px;
+  background:linear-gradient(140deg,rgba(255,255,255,.25),rgba(255,255,255,.03) 38%,transparent 65%,rgba(255,255,255,.1));
+  -webkit-mask:linear-gradient(#000 0 0) content-box,linear-gradient(#000 0 0);mask:linear-gradient(#000 0 0) content-box,linear-gradient(#000 0 0);
+  -webkit-mask-composite:xor;mask-composite:exclude;pointer-events:none;
+}
+.stat-cell{padding:8px 22px;border-right:1px solid var(--hair);position:relative;display:flex;flex-direction:column;gap:6px;align-items:flex-start}
+.stat-cell:last-child{border-right:none}
+.stat-num{
+  font-size:clamp(2.2rem,3.8vw,3.4rem);font-weight:800;line-height:1;letter-spacing:-.04em;color:var(--text);
+  font-variant-numeric:tabular-nums;
+}
+.stat-num .ser{font-family:var(--serif);font-style:italic;font-weight:400;color:var(--cyan)}
+.stat-label{font-size:.78rem;color:var(--muted);text-transform:uppercase;letter-spacing:.1em;font-weight:600}
+@media(max-width:740px){
+  .stats-bar{grid-template-columns:1fr 1fr;gap:0;padding:18px}
+  .stat-cell{padding:14px 12px;border-right:none;border-bottom:1px solid var(--hair)}
+  .stat-cell:nth-last-child(-n+2){border-bottom:none}
+  .stat-cell:nth-child(odd){border-right:1px solid var(--hair)}
+}
+
+/* ─── ANNOUNCEMENTS — overlapping editorial bento ─── */
+#announcements{padding-bottom:100px}
+.ann-bento{display:grid;grid-template-columns:1.65fr 1fr;grid-template-rows:auto auto;gap:18px}
+.ann-bento-extra{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:18px;margin-top:18px}
+
+.ann-card{
+  background:var(--glass);
+  border:1px solid var(--hair-2);
+  backdrop-filter:blur(18px) saturate(170%);
+  border-radius:var(--r-xl);overflow:hidden;
+  display:flex;flex-direction:column;
+  position:relative;
+  transition:transform .35s var(--ease),box-shadow .35s,border-color .35s;
+  box-shadow:0 14px 40px rgba(0,0,0,.28);
+}
+[data-theme="light"] .ann-card{box-shadow:0 14px 36px rgba(0,30,80,.08)}
+.ann-card::before{
+  content:"";position:absolute;inset:0;border-radius:inherit;padding:1px;
+  background:linear-gradient(140deg,rgba(124,218,255,.28),rgba(184,160,255,.16),rgba(62,232,192,.12));
+  -webkit-mask:linear-gradient(#000 0 0) content-box,linear-gradient(#000 0 0);mask:linear-gradient(#000 0 0) content-box,linear-gradient(#000 0 0);
+  -webkit-mask-composite:xor;mask-composite:exclude;pointer-events:none;transition:background .3s;
+}
+.ann-card:hover{transform:translateY(-6px);box-shadow:0 30px 70px rgba(0,0,0,.4)}
+.ann-card:hover::before{background:linear-gradient(140deg,rgba(124,218,255,.6),rgba(184,160,255,.4),rgba(62,232,192,.3))}
+
+.ann-card.ann-feat{grid-row:1/3}
+.ann-card.ann-feat .ann-img-wrap{height:300px}
+.ann-card.ann-feat .ann-body{padding:24px 28px}
+.ann-card.ann-feat .ann-title{font-size:1.45rem}
+.ann-card.ann-side .ann-img-wrap{height:160px}
+.ann-card.ann-side .ann-body{padding:18px 20px}
+.ann-card.ann-extra .ann-img-wrap{height:180px}
+.ann-card.ann-extra .ann-body{padding:18px 20px}
+
+.ann-img-wrap{
+  width:100%;overflow:hidden;flex-shrink:0;position:relative;
+  background:linear-gradient(135deg,rgba(124,218,255,.12),rgba(184,160,255,.1) 60%,rgba(62,232,192,.08));
+  display:grid;place-items:center;color:rgba(255,255,255,.25);
+}
+.ann-img-wrap img{width:100%;height:100%;object-fit:cover;display:block;transition:transform .5s var(--ease)}
+.ann-card:hover .ann-img-wrap img{transform:scale(1.06)}
+.ann-img-wrap::after{content:"";position:absolute;inset:0;background:linear-gradient(to bottom,transparent 50%,rgba(6,10,18,.4));pointer-events:none}
+[data-theme="light"] .ann-img-wrap::after{background:linear-gradient(to bottom,transparent 60%,rgba(238,242,249,.3))}
+
+.ann-body{flex:1;display:flex;flex-direction:column;gap:6px}
+.ann-badge{
+  display:inline-block;padding:3px 11px;border-radius:var(--r-pill);
+  background:linear-gradient(135deg,rgba(124,218,255,.18),rgba(184,160,255,.12));
+  border:1px solid rgba(124,218,255,.3);color:var(--cyan);
+  font-family:var(--mono);font-size:.66rem;font-weight:600;letter-spacing:.1em;text-transform:uppercase;
+  width:fit-content;margin-bottom:6px;
+}
+.ann-title{font-size:1.1rem;font-weight:700;line-height:1.28;color:var(--text);letter-spacing:-.015em}
+.ann-text{color:var(--text-2);font-size:.9rem;line-height:1.55;flex:1}
+.ann-link{
+  margin-top:12px;display:inline-flex;align-items:center;gap:4px;
+  font-size:.85rem;font-weight:700;color:var(--cyan);text-decoration:none;
+  transition:gap .2s,opacity .2s;width:fit-content;
+}
+.ann-link:hover{gap:8px;opacity:.85}
+
+@media(max-width:780px){
+  .ann-bento{grid-template-columns:1fr}
+  .ann-card.ann-feat{grid-row:auto}
+  .ann-card.ann-feat .ann-img-wrap{height:200px}
+}
+
+/* ─── CTA ─── */
+#cta{padding:80px 24px 100px}
+.cta-card{
+  max-width:780px;margin:0 auto;text-align:center;
+  padding:64px 36px;border-radius:var(--r-xl);
+  background:var(--glass);border:1px solid var(--hair-2);
+  backdrop-filter:blur(28px) saturate(180%);
+  position:relative;overflow:hidden;
+  box-shadow:0 30px 80px rgba(0,0,0,.4),var(--ring);
+}
+.cta-card::before{
+  content:"";position:absolute;inset:0;border-radius:inherit;padding:1px;
+  background:linear-gradient(140deg,rgba(124,218,255,.4),rgba(184,160,255,.2) 50%,transparent 80%,rgba(62,232,192,.15));
+  -webkit-mask:linear-gradient(#000 0 0) content-box,linear-gradient(#000 0 0);mask:linear-gradient(#000 0 0) content-box,linear-gradient(#000 0 0);
+  -webkit-mask-composite:xor;mask-composite:exclude;pointer-events:none;
+}
+.cta-card::after{
+  content:"";position:absolute;width:380px;height:380px;border-radius:50%;
+  background:radial-gradient(circle,rgba(124,218,255,.25),transparent 70%);
+  top:-140px;right:-100px;filter:blur(40px);pointer-events:none;
+  animation:ctaGlow 5s ease-in-out infinite;
+}
+@keyframes ctaGlow{0%,100%{opacity:.7;transform:scale(1)}50%{opacity:1;transform:scale(1.1)}}
+.cta-title{font-size:clamp(1.8rem,3.2vw,2.6rem);font-weight:800;margin-bottom:12px;letter-spacing:-.025em;position:relative;line-height:1.1}
+.cta-title .ser{font-family:var(--serif);font-style:italic;font-weight:400;color:var(--cyan);letter-spacing:-.01em}
+.cta-sub{color:var(--text-2);margin-bottom:28px;font-size:1.02rem;line-height:1.6;max-width:520px;margin-left:auto;margin-right:auto;position:relative}
+
+/* ─── FOOTER ─── */
+footer{
+  padding:40px 24px 32px;text-align:center;
+  border-top:1px solid var(--hair);
+  background:rgba(6,10,18,.4);backdrop-filter:blur(16px);
+}
+[data-theme="light"] footer{background:rgba(238,242,249,.5)}
+.footer-line{font-size:.85rem;color:var(--muted);line-height:1.8}
+.footer-line a{color:var(--text-2);text-decoration:none;transition:.15s}
+.footer-line a:hover{color:var(--cyan)}
+.footer-dot{margin:0 .55em;color:var(--faint)}
+
+/* ─── REVEAL ─── */
+.rv{opacity:0;transition:opacity .8s var(--ease),transform .8s var(--ease)}
+.rv.up{transform:translateY(34px)}
+.rv.zoom{transform:scale(.92)}
+.rv.vis{opacity:1;transform:none}
+.d1{transition-delay:.06s}.d2{transition-delay:.14s}.d3{transition-delay:.22s}.d4{transition-delay:.3s}.d5{transition-delay:.38s}
+
+/* ─── BREAKPOINTS ─── */
+@media(max-width:980px){
+  .hero{grid-template-columns:1fr;padding-top:120px;gap:32px}
+  .hero-side{flex-direction:row;gap:14px;flex-wrap:wrap}
+  .hero-side > *{flex:1;min-width:240px}
+}
+@media(max-width:720px){
+  .nav-right{display:none}
+  .hamburger{display:grid;margin-left:auto}
+  .nav-pills{display:none}
+  section{padding:64px 18px}
+  .hero{padding:120px 18px 64px}
+  .hero-side{flex-direction:column}
+  .cta-card{padding:42px 22px}
+  .browser-body{min-height:340px}
+  .mfg{grid-template-columns:1fr}
+  .mcards{grid-template-columns:1fr}
+}
+@media(max-width:440px){
+  .hero-display{font-size:2.4rem}
+  .hero-cta-row{flex-direction:column;align-items:stretch}
+  .btn-primary,.btn-ghost{justify-content:center}
+}
+
+/* ─── ANN IMAGE CAROUSEL ─── */
+.ann-slider{width:100%;height:100%;position:relative;overflow:hidden}
+.ann-slides{display:flex;height:100%;transition:transform .45s var(--ease);will-change:transform}
+.ann-slide{min-width:100%;height:100%;flex-shrink:0;overflow:hidden}
+.ann-slide img{width:100%;height:100%;object-fit:cover;display:block;transition:transform .5s var(--ease)}
+.ann-card:hover .ann-slide img{transform:scale(1.06)}
+.ann-dots{
+  position:absolute;bottom:10px;left:50%;transform:translateX(-50%);
+  display:flex;gap:5px;z-index:3;pointer-events:auto;
+}
+.ann-dot{
+  width:6px;height:6px;border-radius:var(--r-pill);border:none;padding:0;
+  background:rgba(255,255,255,.4);cursor:pointer;transition:all .25s var(--ease);flex-shrink:0;
+}
+.ann-dot.active{width:20px;background:rgba(255,255,255,.92)}
+.ann-arr{
+  position:absolute;top:50%;transform:translateY(-50%);z-index:3;
+  width:30px;height:30px;border-radius:50%;padding:0;
+  border:1px solid rgba(255,255,255,.22);background:rgba(0,0,0,.38);
+  backdrop-filter:blur(8px);color:#fff;cursor:pointer;
+  display:grid;place-items:center;
+  opacity:0;transition:opacity .25s,background .2s,transform .25s;
+}
+.ann-card:hover .ann-arr{opacity:1}
+.ann-arr:hover{background:rgba(0,0,0,.58);transform:translateY(-50%) scale(1.1)}
+.ann-arr-prev{left:8px}
+.ann-arr-next{right:8px}
+
+/* ─── SCROLL TO TOP ─── */
+#scrollTop{
+  position:fixed;bottom:32px;right:32px;z-index:990;
+  width:46px;height:46px;border-radius:50%;
+  border:1px solid rgba(255,255,255,.18);
+  background:rgba(6,8,15,.72);
+  backdrop-filter:blur(20px) saturate(180%);
+  color:var(--cyan);cursor:pointer;
+  display:grid;place-items:center;
+  box-shadow:0 8px 32px rgba(0,0,0,.4),inset 0 1px 0 rgba(255,255,255,.12);
+  opacity:0;transform:translateY(18px) scale(.82);
+  transition:opacity .35s var(--ease),transform .35s var(--ease),background .2s,border-color .2s;
+  pointer-events:none;
+}
+#scrollTop.vis{opacity:1;transform:translateY(0) scale(1);pointer-events:auto}
+#scrollTop:hover{
+  background:rgba(124,218,255,.18);
+  border-color:rgba(124,218,255,.5);
+  transform:translateY(-4px) scale(1.1);
+  box-shadow:0 14px 40px rgba(124,218,255,.25);
+}
+[data-theme="light"] #scrollTop{background:rgba(255,255,255,.85);border-color:rgba(10,60,120,.18);color:#0a6ebd}
+</style>
+</head>
+<body>
+
+<!-- ─── BACKDROP LAYERS ─── -->
+<div class="atmo" aria-hidden="true"></div>
+<div class="grid-bg" aria-hidden="true"></div>
+<div class="grain" aria-hidden="true"></div>
+<canvas id="hero-canvas" aria-hidden="true"></canvas>
+
+<!-- ─── NAV ─── -->
+<div class="nav-wrap">
+  <nav class="land-nav" id="landNav">
+    <a class="nav-brand" href="/">
+      <div class="nav-brand-mark" aria-hidden="true">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
+          <path d="M3 8l9-5 9 5-9 5-9-5z" stroke="#06080f" stroke-width="2" stroke-linejoin="round"/>
+          <path d="M7 10.5V15c0 1.5 2.5 3 5 3s5-1.5 5-3v-4.5" stroke="#06080f" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+      </div>
+      <span class="nav-brand-text">TeacherPro</span>
+    </a>
+
+    <div class="nav-pills">
+      <a href="#features" class="nav-pill">{{ _('home_features_label') }}</a>
+      <a href="#showcase" class="nav-pill">{{ _('home_showcase_label') }}</a>
+      <a href="#stats" class="nav-pill">{{ _('home_stats_label') }}</a>
+      <a href="#announcements" class="nav-pill">{{ _('home_ann_label') }}</a>
+    </div>
+
+    <div class="nav-right" id="navRight">
+      <div class="lang-sw" id="langSw">
+        <button class="lang-btn{% if current_language == 'uz' %} on{% endif %}" onclick="setLang('uz')">UZ</button>
+        <button class="lang-btn{% if current_language == 'ru' %} on{% endif %}" onclick="setLang('ru')">RU</button>
+        <button class="lang-btn{% if current_language == 'en' %} on{% endif %}" onclick="setLang('en')">EN</button>
+      </div>
+      <button class="theme-btn" id="themeBtn" onclick="toggleTheme()" aria-label="Theme">
+        <svg id="themeIco" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M21 12.79A9 9 0 1111.21 3 7 7 0 0021 12.79z"/>
+        </svg>
+      </button>
+      <a class="btn-cta" href="{{ root_path }}/login">
+        {{ _('home_login') }}
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><polyline points="9 18 15 12 9 6"/></svg>
+      </a>
+    </div>
+
+    <button class="hamburger" id="hamburger" aria-label="Menu" aria-expanded="false">
+      <span></span><span></span><span></span>
+    </button>
+  </nav>
+
+  <div class="mobile-drawer" id="mobileDrawer">
+    <a href="#features" class="nav-pill">{{ _('home_features_label') }}</a>
+    <a href="#showcase" class="nav-pill">{{ _('home_showcase_label') }}</a>
+    <a href="#stats" class="nav-pill">{{ _('home_stats_label') }}</a>
+    <a href="#announcements" class="nav-pill">{{ _('home_ann_label') }}</a>
+    <div class="lang-sw" style="align-self:flex-start">
+      <button class="lang-btn{% if current_language == 'uz' %} on{% endif %}" onclick="setLang('uz')">UZ</button>
+      <button class="lang-btn{% if current_language == 'ru' %} on{% endif %}" onclick="setLang('ru')">RU</button>
+      <button class="lang-btn{% if current_language == 'en' %} on{% endif %}" onclick="setLang('en')">EN</button>
+    </div>
+    <button class="nav-pill" style="background:var(--glass);border:1px solid var(--hair-2);justify-content:flex-start" onclick="toggleTheme()">
+      <svg id="themeIcoM" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M21 12.79A9 9 0 1111.21 3 7 7 0 0021 12.79z"/>
+      </svg>
+      <span id="themeLabel">Theme</span>
+    </button>
+    <a class="btn-cta" href="{{ root_path }}/login" style="align-self:flex-start">{{ _('home_login') }}</a>
+  </div>
+</div>
+
+<!-- ─── HERO ─── -->
+<section class="hero">
+  <div class="hero-stack">
+    <div class="hero-eyebrow">
+      <span class="hero-eyebrow-chip">v2.0</span>
+      {{ _('home_badge') }}
+    </div>
+
+    <h1 class="hero-display">
+      {{ _('home_hero_t1') }}<br>
+      <span class="ser">{{ _('home_hero_tgrad') }}<sup>✦</sup></span><br>
+      {{ _('home_hero_t3') }}
+    </h1>
+
+    <p class="hero-sub">{{ _('home_hero_sub') }}</p>
+
+    <div class="hero-cta-row">
+      <a href="{{ root_path }}/login" class="btn-primary">
+        <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M15 3h4a2 2 0 012 2v14a2 2 0 01-2 2h-4"/><polyline points="10 17 15 12 10 7"/><line x1="15" y1="12" x2="3" y2="12"/></svg>
+        {{ _('home_login') }}
+      </a>
+      <a href="#features" class="btn-ghost">
+        {{ _('home_more') }}
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><line x1="12" y1="5" x2="12" y2="19"/><polyline points="19 12 12 19 5 12"/></svg>
+      </a>
+    </div>
+  </div>
+
+  <!-- Hero side — floating glass widgets -->
+  <div class="hero-side">
+    <div class="glass-card hero-mini">
+      <div class="hero-mini-icon">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/></svg>
+      </div>
+      <div class="hero-mini-text">
+        <div class="hero-mini-title">{{ _('home_feat1_title') }}</div>
+        <div class="hero-mini-sub">{{ _('home_feat1_desc') }}</div>
+      </div>
+    </div>
+
+    <div class="glass-card hero-live">
+      <div class="live-row">
+        <span class="live-label">{{ _('home_stat_schools') }}</span>
+        <span class="live-num" data-target="{{ stats.schools }}">0</span>
+      </div>
+      <div class="live-divider"></div>
+      <div class="live-row">
+        <span class="live-label">{{ _('home_stat_teachers') }}</span>
+        <span class="live-num" data-target="{{ stats.teachers }}">0</span>
+      </div>
+      <div class="live-divider"></div>
+      <div class="live-row">
+        <span class="live-label">{{ _('home_stat_students') }}</span>
+        <span class="live-num" data-target="{{ stats.students }}">0</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="scroll-hint" aria-hidden="true">
+    {{ _('home_scroll') }}
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg>
+  </div>
+</section>
+
+<!-- ─── FEATURES — editorial numbered list ─── -->
+<section id="features">
+  <div class="wrap">
+    <div class="section-head rv up">
+      <span class="section-label">{{ _('home_features_label') }}</span>
+      <h2 class="section-title">{{ _('home_features_title') }}</h2>
+      <p class="section-sub">{{ _('home_features_sub') }}</p>
+    </div>
+
+    <div class="feat-list">
+      <div class="feat-row rv up d1">
+        <div class="feat-num">01</div>
+        <h3 class="feat-head">{{ _('home_feat1_title') }}</h3>
+        <p class="feat-body">{{ _('home_feat1_desc') }}</p>
+        <div class="feat-arrow">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
+        </div>
+      </div>
+      <div class="feat-row rv up d2">
+        <div class="feat-num">02</div>
+        <h3 class="feat-head">{{ _('home_feat2_title') }}</h3>
+        <p class="feat-body">{{ _('home_feat2_desc') }}</p>
+        <div class="feat-arrow">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
+        </div>
+      </div>
+      <div class="feat-row rv up d3">
+        <div class="feat-num">03</div>
+        <h3 class="feat-head">{{ _('home_feat3_title') }}</h3>
+        <p class="feat-body">{{ _('home_feat3_desc') }}</p>
+        <div class="feat-arrow">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
+        </div>
+      </div>
+      <div class="feat-row rv up d4">
+        <div class="feat-num">04</div>
+        <h3 class="feat-head">{{ _('home_feat4_title') }}</h3>
+        <p class="feat-body">{{ _('home_feat4_desc') }}</p>
+        <div class="feat-arrow">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ─── APP SHOWCASE ─── -->
+<section id="showcase">
+  <div class="wrap">
+    <div class="section-head rv up">
+      <span class="section-label">{{ _('home_showcase_label') }}</span>
+      <h2 class="section-title">{{ _('home_showcase_title') }}</h2>
+      <p class="section-sub">{{ _('home_showcase_sub') }}</p>
+    </div>
+    <div class="showcase-wrap rv zoom">
+      <div class="stabs" id="stabs">
+        <button class="stab on" data-tab="0" onclick="switchTab(0)"><span class="stab-num">01</span>{{ _('home_tab0') }}</button>
+        <button class="stab" data-tab="1" onclick="switchTab(1)"><span class="stab-num">02</span>{{ _('home_tab1') }}</button>
+        <button class="stab" data-tab="2" onclick="switchTab(2)"><span class="stab-num">03</span>{{ _('home_tab2') }}</button>
+        <button class="stab" data-tab="3" onclick="switchTab(3)"><span class="stab-num">04</span>{{ _('home_tab3') }}</button>
+        <button class="stab" data-tab="4" onclick="switchTab(4)"><span class="stab-num">05</span>{{ _('home_tab4') }}</button>
+      </div>
+      <div class="browser-frame">
+        <div class="browser">
+          <div class="browser-bar">
+            <div class="bdots"><div class="bd bd-r"></div><div class="bd bd-y"></div><div class="bd bd-g"></div></div>
+            <div class="burl" id="burl">teacherpro.uz/teacher/create-exam</div>
+          </div>
+          <div class="browser-body">
+
+            <div class="mpanel on" id="tab0">
+              <div class="mn"><span class="mn-brand">TeacherPro</span>
+                <div class="mn-links"><span class="mn-link a">Bosh sahifa</span><span class="mn-link">Imtihonlar</span><span class="mn-link">Natijalar</span></div>
+              </div>
+              <div class="mb">
+                <div class="mp-title">Yangi imtihon yaratish</div>
+                <div class="msteps"><div class="mstep done"></div><div class="mstep cur"></div><div class="mstep"></div></div>
+                <div class="mfg">
+                  <div class="mf"><label>Sinf</label><select class="msel"><option>7-A sinf</option></select></div>
+                  <div class="mf"><label>Fan</label><select class="msel"><option>Matematika</option></select></div>
+                  <div class="mf"><label>Chorak</label><select class="msel"><option>2-chorak</option></select></div>
+                  <div class="mf"><label>Imtihon nomi</label><select class="msel"><option>BSB-1</option></select></div>
+                  <div class="mf"><label>Imtihon turi</label><select class="msel"><option>Nazariy</option></select></div>
+                  <div class="mf"><label>Savol turi</label><select class="msel"><option>Test</option></select></div>
+                </div>
+                <div style="display:flex;gap:8px;margin-top:8px">
+                  <button class="mbtn mbtn-g">Orqaga</button>
+                  <button class="mbtn mbtn-p">Davom etish →</button>
+                </div>
+              </div>
+            </div>
+
+            <div class="mpanel" id="tab1">
+              <div class="mn"><span class="mn-brand">TeacherPro</span><div class="mn-links"><span class="mn-link">Bosh sahifa</span><span class="mn-link a">AI Taqdimotlar</span></div></div>
+              <div class="mb">
+                <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">
+                  <div class="mp-title" style="margin-bottom:0">AI Taqdimotlar</div>
+                  <button class="mbtn mbtn-p">+ Yangi</button>
+                </div>
+                <div class="mcards">
+                  <div class="mcard"><div class="mcard-title">Kvadrat tenglamalar</div><div><span class="mbadge">UZ</span><span class="mbadge v">14 slayd</span></div><div class="mcard-meta">Matematika · 12-may 2026</div></div>
+                  <div class="mcard"><div class="mcard-title">Kimyoviy reaksiyalar</div><div><span class="mbadge">RU</span><span class="mbadge v">9 slayd</span></div><div class="mcard-meta">Kimyo · 10-may 2026</div></div>
+                  <div class="mcard"><div class="mcard-title">Fotosintez jarayoni</div><div><span class="mbadge">UZ</span><span class="mbadge v">11 slayd</span></div><div class="mcard-meta">Biologiya · 9-may 2026</div></div>
+                  <div class="mcard"><div class="mcard-title">Ikkinchi jahon urushi</div><div><span class="mbadge">UZ</span><span class="mbadge v">16 slayd</span></div><div class="mcard-meta">Tarix · 7-may 2026</div></div>
+                </div>
+              </div>
+            </div>
+
+            <div class="mpanel" id="tab2">
+              <div class="mn"><span class="mn-brand">TeacherPro</span><div class="mn-links"><span class="mn-link">Bosh sahifa</span><span class="mn-link a">AI Savollar</span></div></div>
+              <div class="mb">
+                <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">
+                  <div class="mp-title" style="margin-bottom:0">Savollar to'plami</div>
+                  <button class="mbtn mbtn-p">+ Yangi</button>
+                </div>
+                <div class="mqlist">
+                  <div class="mqrow"><div class="mqrow-left"><div class="mqrow-icon"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 015.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg></div><div><div class="mqrow-name">Algebra — Tenglamalar</div><div class="mqrow-sub">Matematika · 7-sinf</div></div></div><div class="mqrow-count">20 savol</div></div>
+                  <div class="mqrow"><div class="mqrow-left"><div class="mqrow-icon v"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 015.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg></div><div><div class="mqrow-name">Atom tuzilishi</div><div class="mqrow-sub">Kimyo · 9-sinf</div></div></div><div class="mqrow-count">15 savol</div></div>
+                  <div class="mqrow"><div class="mqrow-left"><div class="mqrow-icon"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 015.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg></div><div><div class="mqrow-name">Geometriya — Uchburchaklar</div><div class="mqrow-sub">Matematika · 8-sinf</div></div></div><div class="mqrow-count">18 savol</div></div>
+                </div>
+              </div>
+            </div>
+
+            <div class="mpanel" id="tab3">
+              <div class="mn"><span class="mn-brand">TeacherPro</span><div class="mn-links"><span class="mn-link">Bosh sahifa</span><span class="mn-link a">Quiz Race</span></div></div>
+              <div class="mb" style="text-align:center">
+                <div class="mp-title" style="text-align:left">O'yin kutish xonasi</div>
+                <div class="qr-box">
+                  <svg viewBox="0 0 50 50" width="76" height="76" xmlns="http://www.w3.org/2000/svg">
+                    <rect x="2" y="2" width="14" height="14" rx="1.5" fill="none" stroke="#111" stroke-width="2"/><rect x="5" y="5" width="8" height="8" fill="#111"/>
+                    <rect x="34" y="2" width="14" height="14" rx="1.5" fill="none" stroke="#111" stroke-width="2"/><rect x="37" y="5" width="8" height="8" fill="#111"/>
+                    <rect x="2" y="34" width="14" height="14" rx="1.5" fill="none" stroke="#111" stroke-width="2"/><rect x="5" y="37" width="8" height="8" fill="#111"/>
+                    <rect x="18" y="2" width="3" height="3" fill="#111"/><rect x="22" y="2" width="3" height="3" fill="#111"/><rect x="26" y="4" width="3" height="3" fill="#111"/>
+                    <rect x="18" y="18" width="3" height="3" fill="#111"/><rect x="22" y="20" width="3" height="3" fill="#111"/><rect x="26" y="18" width="3" height="3" fill="#111"/>
+                    <rect x="34" y="18" width="3" height="3" fill="#111"/><rect x="38" y="20" width="3" height="3" fill="#111"/><rect x="42" y="18" width="3" height="3" fill="#111"/>
+                    <rect x="18" y="34" width="3" height="3" fill="#111"/><rect x="22" y="36" width="3" height="3" fill="#111"/><rect x="26" y="34" width="3" height="3" fill="#111"/>
+                    <rect x="34" y="34" width="3" height="3" fill="#111"/><rect x="38" y="36" width="3" height="3" fill="#111"/><rect x="42" y="34" width="3" height="3" fill="#111"/>
+                  </svg>
+                </div>
+                <div class="game-code">K7X4</div>
+                <div class="game-sub">O'quvchilar <strong style="color:var(--teal)">play.teacherpro.uz</strong> ga kirsin</div>
+                <div class="players-row">
+                  <div class="player-chip">Alisher</div><div class="player-chip">Malika</div><div class="player-chip">Doniyor</div><div class="player-chip">Shahnoza</div>
+                </div>
+                <div style="font-size:.62rem;color:var(--dim);margin-top:8px">4 o'yinchi qo'shildi</div>
+              </div>
+            </div>
+
+            <div class="mpanel" id="tab4">
+              <div class="mn"><span class="mn-brand">TeacherPro</span><div class="mn-links"><span class="mn-link">Bosh sahifa</span><span class="mn-link a">Natijalar</span></div></div>
+              <div class="mb">
+                <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">
+                  <div class="mp-title" style="margin-bottom:0">7-A — Matematika — BSB-1</div>
+                  <button class="mbtn mbtn-g">↓ Yuklab olish</button>
+                </div>
+                <table class="mtable">
+                  <thead><tr><th>O'quvchi</th><th>Bilish</th><th>Qo'llash</th><th>Mulohaza</th><th>Jami</th></tr></thead>
+                  <tbody>
+                    <tr><td>Alisher Nazarov</td><td><span class="sc sc-hi">18/20</span></td><td><span class="sc sc-hi">22/25</span></td><td><span class="sc sc-md">28/35</span></td><td><span class="sc-pct">85%</span></td></tr>
+                    <tr><td>Malika Karimova</td><td><span class="sc sc-hi">19/20</span></td><td><span class="sc sc-hi">24/25</span></td><td><span class="sc sc-hi">32/35</span></td><td><span class="sc-pct">94%</span></td></tr>
+                    <tr><td>Doniyor Umarov</td><td><span class="sc sc-md">14/20</span></td><td><span class="sc sc-lo">15/25</span></td><td><span class="sc sc-md">22/35</span></td><td><span class="sc-pct">63%</span></td></tr>
+                    <tr><td>Shahnoza Yusupova</td><td><span class="sc sc-hi">17/20</span></td><td><span class="sc sc-hi">21/25</span></td><td><span class="sc sc-hi">30/35</span></td><td><span class="sc-pct">85%</span></td></tr>
+                    <tr><td>Bobur Toshmatov</td><td><span class="sc sc-md">12/20</span></td><td><span class="sc sc-md">18/25</span></td><td><span class="sc sc-md">24/35</span></td><td><span class="sc-pct">68%</span></td></tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ─── STATS ─── -->
+<section id="stats">
+  <div class="wrap">
+    <div class="section-head rv up" style="text-align:center;margin-left:auto;margin-right:auto">
+      <span class="section-label">{{ _('home_stats_label') }}</span>
+      <h2 class="section-title">{{ _('home_stats_title') }}</h2>
+    </div>
+    <div class="stats-bar rv zoom">
+      <div class="stat-cell">
+        <span class="stat-num" data-target="{{ stats.schools }}">0</span>
+        <span class="stat-label">{{ _('home_stat_schools') }}</span>
+      </div>
+      <div class="stat-cell">
+        <span class="stat-num" data-target="{{ stats.teachers }}">0</span>
+        <span class="stat-label">{{ _('home_stat_teachers') }}</span>
+      </div>
+      <div class="stat-cell">
+        <span class="stat-num" data-target="{{ stats.classes }}">0</span>
+        <span class="stat-label">{{ _('home_stat_classes') }}</span>
+      </div>
+      <div class="stat-cell">
+        <span class="stat-num" data-target="{{ stats.students }}">0</span>
+        <span class="stat-label">{{ _('home_stat_students') }}</span>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ─── ANNOUNCEMENTS ─── -->
+{% macro ann_img_carousel(ann, arrows=false) %}
+  {% set imgs = [] %}
+  {% if ann.image_url %}{% set imgs = imgs + [ann.image_url] %}{% endif %}
+  {% if ann.image_url_2 %}{% set imgs = imgs + [ann.image_url_2] %}{% endif %}
+  {% if ann.image_url_3 %}{% set imgs = imgs + [ann.image_url_3] %}{% endif %}
+  <div class="ann-img-wrap">
+    {% if imgs %}
+    <div class="ann-slider" data-count="{{ imgs|length }}">
+      <div class="ann-slides">
+        {% for img in imgs %}
+        <div class="ann-slide"><img src="{{ img }}" alt="{{ ann.title }}" loading="lazy" onerror="this.closest('.ann-slide').style.display='none'"></div>
+        {% endfor %}
+      </div>
+      {% if imgs|length > 1 %}
+        {% if arrows %}
+        <button class="ann-arr ann-arr-prev" type="button" aria-label="Previous image">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="15 18 9 12 15 6"/></svg>
+        </button>
+        <button class="ann-arr ann-arr-next" type="button" aria-label="Next image">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="9 18 15 12 9 6"/></svg>
+        </button>
+        {% endif %}
+        <div class="ann-dots" role="tablist">
+          {% for img in imgs %}
+          <button class="ann-dot{% if loop.first %} active{% endif %}" type="button" data-idx="{{ loop.index0 }}" aria-label="Image {{ loop.index }}" role="tab"></button>
+          {% endfor %}
+        </div>
+      {% endif %}
+    </div>
+    {% else %}
+    <svg width="52" height="52" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
+    {% endif %}
+  </div>
+{% endmacro %}
+
+{% if announcements %}
+<section id="announcements">
+  <div class="wrap">
+    <div class="section-head rv up">
+      <span class="section-label">{{ _('home_ann_label') }}</span>
+      <h2 class="section-title">{{ _('home_ann_title') }}</h2>
+      <p class="section-sub">{{ _('home_ann_sub') }}</p>
+    </div>
+
+    {% set feat = announcements[0] %}
+    {% set sides = announcements[1:3] %}
+    {% set extras = announcements[3:] %}
+
+    <div class="ann-bento rv zoom">
+      <article class="ann-card ann-feat">
+        {{ ann_img_carousel(feat, arrows=true) }}
+        <div class="ann-body">
+          {% if feat.badge %}<span class="ann-badge">{{ feat.badge }}</span>{% endif %}
+          <h3 class="ann-title">{{ feat.title }}</h3>
+          {% if feat.body %}<p class="ann-text">{{ feat.body }}</p>{% endif %}
+          {% if feat.link_url %}
+          <a href="{{ feat.link_url }}" class="ann-link" target="_blank" rel="noopener">
+            {{ _('home_ann_more') }}
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
+          </a>
+          {% endif %}
+        </div>
+      </article>
+
+      <div style="display:flex;flex-direction:column;gap:18px">
+        {% for ann in sides %}
+        <article class="ann-card ann-side" style="flex:1">
+          {{ ann_img_carousel(ann) }}
+          <div class="ann-body">
+            {% if ann.badge %}<span class="ann-badge">{{ ann.badge }}</span>{% endif %}
+            <h3 class="ann-title">{{ ann.title }}</h3>
+            {% if ann.body %}<p class="ann-text" style="display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden">{{ ann.body }}</p>{% endif %}
+            {% if ann.link_url %}
+            <a href="{{ ann.link_url }}" class="ann-link" target="_blank" rel="noopener">
+              {{ _('home_ann_more') }}
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
+            </a>
+            {% endif %}
+          </div>
+        </article>
+        {% endfor %}
+        {% if sides|length == 0 %}
+        <div style="flex:1;border-radius:var(--r-xl);background:var(--glass);border:1px dashed var(--hair-2)"></div>
+        {% endif %}
+      </div>
+    </div>
+
+    {% if extras %}
+    <div class="ann-bento-extra">
+      {% for ann in extras %}
+      <article class="ann-card ann-extra rv up" style="transition-delay:{{ loop.index0 * 0.07 }}s">
+        {{ ann_img_carousel(ann) }}
+        <div class="ann-body">
+          {% if ann.badge %}<span class="ann-badge">{{ ann.badge }}</span>{% endif %}
+          <h3 class="ann-title">{{ ann.title }}</h3>
+          {% if ann.body %}<p class="ann-text">{{ ann.body }}</p>{% endif %}
+          {% if ann.link_url %}
+          <a href="{{ ann.link_url }}" class="ann-link" target="_blank" rel="noopener">
+            {{ _('home_ann_more') }}
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
+          </a>
+          {% endif %}
+        </div>
+      </article>
+      {% endfor %}
+    </div>
+    {% endif %}
+
+  </div>
+</section>
+{% endif %}
+
+<!-- ─── CTA ─── -->
+<section id="cta">
+  <div class="cta-card rv zoom">
+    <h2 class="cta-title">{{ _('home_cta_title') }}</h2>
+    <p class="cta-sub">{{ _('home_cta_sub') }}</p>
+    <a href="{{ root_path }}/login" class="btn-primary" style="font-size:1rem;padding:14px 28px">
+      <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M15 3h4a2 2 0 012 2v14a2 2 0 01-2 2h-4"/><polyline points="10 17 15 12 10 7"/><line x1="15" y1="12" x2="3" y2="12"/></svg>
+      {{ _('home_cta_btn') }}
+    </a>
+  </div>
+</section>
+
+<!-- ─── FOOTER ─── -->
+<footer>
+  <p class="footer-line">
+    &copy; 2026 <strong style="color:var(--text)">TeacherPro</strong>
+    <span class="footer-dot">·</span>
+    Abdug'afforov Javohir
+    <span class="footer-dot">·</span>
+    <a href="https://t.me/AbdJavohir" target="_blank" rel="noopener">@AbdJavohir</a>
+    <span class="footer-dot">·</span>
+    Mo'minov Asrorbek
+    <span class="footer-dot">·</span>
+    <a href="https://t.me/Teacher_Asrorbey" target="_blank" rel="noopener">@Teacher_Asrorbey</a>
+  </p>
+</footer>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script>
+/* ─── THEME ─── */
+var SUN_ICO='<circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/>';
+var MOON_ICO='<path d="M21 12.79A9 9 0 1111.21 3 7 7 0 0021 12.79z"/>';
+
+function applyThemeIcon(t){
+  var ico = t==='dark' ? MOON_ICO : SUN_ICO;
+  var lbl = t==='dark' ? "Qorong'u rejim" : "Yorug' rejim";
+  ['themeIco','themeIcoM'].forEach(function(id){
+    var el=document.getElementById(id);
+    if(el) el.innerHTML=ico;
+  });
+  var lbEl=document.getElementById('themeLabel');
+  if(lbEl) lbEl.textContent=lbl;
+}
+function toggleTheme(){
+  var cur=document.documentElement.getAttribute('data-theme');
+  var next=cur==='dark'?'light':'dark';
+  document.documentElement.setAttribute('data-theme',next);
+  localStorage.setItem('theme',next);
+  applyThemeIcon(next);
+  if(typeof __themeChange3D==='function') __themeChange3D();
+}
+applyThemeIcon(document.documentElement.getAttribute('data-theme')||'dark');
+
+/* ─── LANGUAGE ─── */
+function setLang(l){
+  fetch('{{ root_path }}/set-language/'+l, {
+    method:'POST',credentials:'include',
+    headers:{'X-Requested-With':'XMLHttpRequest'}
+  }).then(function(r){
+    if(r.ok||r.status===200||r.redirected) location.reload();
+    else location.href='{{ root_path }}/set-language/'+l;
+  }).catch(function(){ location.href='{{ root_path }}/set-language/'+l; });
+}
+
+/* ─── NAV SCROLL ─── */
+var nav=document.getElementById('landNav');
+window.addEventListener('scroll',function(){
+  nav.classList.toggle('scrolled',scrollY>40);
+},{passive:true});
+
+/* ─── HAMBURGER ─── */
+var hamburger=document.getElementById('hamburger');
+var drawer=document.getElementById('mobileDrawer');
+hamburger.addEventListener('click',function(){
+  var open=drawer.classList.toggle('open');
+  hamburger.classList.toggle('open',open);
+  hamburger.setAttribute('aria-expanded',open);
+});
+
+/* ─── SHOWCASE TABS ─── */
+var tabUrls=['teacherpro.uz/teacher/create-exam','teacherpro.uz/teacher/ai','teacherpro.uz/teacher/ai-questions','teacherpro.uz/teacher/games/quiz-race/lobby','teacherpro.uz/teacher/results/42'];
+function switchTab(i){
+  document.querySelectorAll('.stab').forEach(function(b,idx){ b.classList.toggle('on',idx===i); });
+  document.querySelectorAll('.mpanel').forEach(function(p,idx){ p.classList.toggle('on',idx===i); });
+  document.getElementById('burl').textContent=tabUrls[i];
+}
+
+/* ─── THREE.JS BACKDROP — full-page ─── */
+var __themeChange3D = null;
+(function(){
+  var canvas=document.getElementById('hero-canvas');
+  if(!canvas||typeof THREE==='undefined') return;
+  var renderer=new THREE.WebGLRenderer({canvas:canvas,alpha:true,antialias:true});
+  renderer.setPixelRatio(Math.min(devicePixelRatio,2));
+
+  var scene=new THREE.Scene();
+  var camera=new THREE.PerspectiveCamera(52,2,0.1,100);
+  camera.position.z=13;
+
+  function curPal(){
+    var light = document.documentElement.getAttribute('data-theme')==='light';
+    return {
+      light: light,
+      pairs: light ? [
+        [0x0a4a78,0x2eaee0],
+        [0x4a1ea5,0x8a55ff],
+        [0x0a7858,0x18c89c],
+        [0x0a4a78,0x2eaee0],
+        [0x4a1ea5,0x8a55ff],
+        [0x0a7858,0x18c89c]
+      ] : [
+        [0x4a86d0,0x8addff],
+        [0xa073ff,0xeaa6ff],
+        [0x3ee8c0,0xb0fce4],
+        [0x6cd0ff,0xc8edff],
+        [0xae82ff,0xe0c8ff],
+        [0x3ee8c0,0xb0fce4]
+      ],
+      wire: light ? 0x1a7ab0 : 0x9ad6ff,
+      wireOp: light ? .55 : .22,
+      bokeh: light ? 0x4a6688 : 0xa6c8ea,
+      bokehOp: light ? .55 : .6,
+      glow: light ? 0x0a78b0 : 0x7cdaff,
+      glowOp: light ? .42 : .28,
+      blending: light ? THREE.NormalBlending : THREE.AdditiveBlending
+    };
+  }
+
+  function glassMat(c1,c2,pal){
+    return new THREE.ShaderMaterial({
+      transparent:true,
+      uniforms:{
+        cInner:{value:new THREE.Color(c1)},
+        cEdge:{value:new THREE.Color(c2)},
+        opacityMul:{value:1.0},
+        isLight:{value: pal.light?1.0:0.0}
+      },
+      vertexShader:[
+        'varying vec3 vN; varying vec3 vV;',
+        'void main(){',
+        '  vec4 mp = modelViewMatrix * vec4(position,1.0);',
+        '  vN = normalize(normalMatrix * normal);',
+        '  vV = normalize(-mp.xyz);',
+        '  gl_Position = projectionMatrix * mp;',
+        '}'
+      ].join('\n'),
+      fragmentShader:[
+        'uniform vec3 cInner; uniform vec3 cEdge; uniform float opacityMul; uniform float isLight;',
+        'varying vec3 vN; varying vec3 vV;',
+        'void main(){',
+        '  float f = pow(1.0 - max(dot(vN,vV),0.0), 2.2);',
+        '  vec3 col = mix(cInner, cEdge, f);',
+        '  float aMax = isLight > .5 ? .82 : .55;',
+        '  float aMin = isLight > .5 ? .22 : .08;',
+        '  float a = mix(aMin, aMax, f) * opacityMul;',
+        '  gl_FragColor = vec4(col, a);',
+        '}'
+      ].join('\n'),
+      side:THREE.DoubleSide,
+      depthWrite:false,
+      blending: pal.blending
+    });
+  }
+
+  var pal = curPal();
+
+  /* Centerpiece — refractive crystal */
+  var centerGeo=new THREE.IcosahedronGeometry(1.55,1);
+  var centerMatA=glassMat(pal.pairs[0][0], pal.pairs[0][1], pal);
+  var centerInner=new THREE.Mesh(centerGeo,centerMatA);
+  var centerOuter=new THREE.Mesh(new THREE.IcosahedronGeometry(1.75,0),
+    new THREE.MeshBasicMaterial({color:pal.wire,wireframe:true,transparent:true,opacity:pal.wireOp}));
+  var centerGroup=new THREE.Group();
+  centerGroup.add(centerInner); centerGroup.add(centerOuter);
+  centerGroup.position.set(3.8,1.6,0);
+  scene.add(centerGroup);
+
+  /* Satellites — distributed tall so scroll reveals new ones */
+  var sats=[];
+  var satGeos=[
+    new THREE.IcosahedronGeometry(.45,0),
+    new THREE.OctahedronGeometry(.5,0),
+    new THREE.TetrahedronGeometry(.6,0),
+    new THREE.TorusGeometry(.42,.12,8,16),
+    new THREE.TorusGeometry(.55,.07,5,9),
+    new THREE.OctahedronGeometry(.42,1),
+    new THREE.IcosahedronGeometry(.38,0)
+  ];
+  for(var i=0;i<32;i++){
+    var pair=pal.pairs[i%pal.pairs.length];
+    var mat=glassMat(pair[0],pair[1],pal);
+    mat.uniforms.opacityMul.value=.55+Math.random()*.4;
+    var g=satGeos[i%satGeos.length];
+    var m=new THREE.Mesh(g,mat);
+    m.position.set(
+      (Math.random()-.5)*26,
+      (Math.random()-.5)*44,
+      (Math.random()-.5)*10-2
+    );
+    m.scale.setScalar(.5+Math.random()*1.5);
+    m.rotation.set(Math.random()*6.28,Math.random()*6.28,Math.random()*6.28);
+    sats.push({mesh:m,rx:(Math.random()-.5)*.009,ry:(Math.random()-.5)*.012,
+      fSpd:.25+Math.random()*.5,fPhs:Math.random()*6.28,baseY:m.position.y});
+    scene.add(m);
+  }
+
+  /* Bokeh dust — also distributed tall */
+  var pg=new THREE.BufferGeometry();
+  var pv=[];
+  for(var i=0;i<480;i++) pv.push((Math.random()-.5)*36,(Math.random()-.5)*52,(Math.random()-.5)*14-5);
+  pg.setAttribute('position',new THREE.Float32BufferAttribute(pv,3));
+  var bokehPoints=new THREE.Points(pg,new THREE.PointsMaterial({color:pal.bokeh,size:.05,transparent:true,opacity:pal.bokehOp,sizeAttenuation:true}));
+  scene.add(bokehPoints);
+
+  var gg=new THREE.BufferGeometry();
+  var gv=[];
+  for(var i=0;i<40;i++) gv.push((Math.random()-.5)*28,(Math.random()-.5)*44,(Math.random()-.5)*8-3);
+  gg.setAttribute('position',new THREE.Float32BufferAttribute(gv,3));
+  var glowPoints=new THREE.Points(gg,new THREE.PointsMaterial({color:pal.glow,size:.2,transparent:true,opacity:pal.glowOp,sizeAttenuation:true}));
+  scene.add(glowPoints);
+
+  __themeChange3D = function(){
+    var p=curPal();
+    centerMatA.uniforms.cInner.value.setHex(p.pairs[0][0]);
+    centerMatA.uniforms.cEdge.value.setHex(p.pairs[0][1]);
+    centerMatA.uniforms.isLight.value=p.light?1.0:0.0;
+    centerMatA.blending=p.blending; centerMatA.needsUpdate=true;
+    centerOuter.material.color.setHex(p.wire);
+    centerOuter.material.opacity=p.wireOp;
+    centerOuter.material.needsUpdate=true;
+    for(var i=0;i<sats.length;i++){
+      var sp=p.pairs[i%p.pairs.length];
+      sats[i].mesh.material.uniforms.cInner.value.setHex(sp[0]);
+      sats[i].mesh.material.uniforms.cEdge.value.setHex(sp[1]);
+      sats[i].mesh.material.uniforms.isLight.value=p.light?1.0:0.0;
+      sats[i].mesh.material.blending=p.blending;
+      sats[i].mesh.material.needsUpdate=true;
+    }
+    bokehPoints.material.color.setHex(p.bokeh);
+    bokehPoints.material.opacity=p.bokehOp;
+    glowPoints.material.color.setHex(p.glow);
+    glowPoints.material.opacity=p.glowOp;
+  };
+
+  /* Mouse parallax */
+  var mx=0,my=0,tx=0,ty=0;
+  window.addEventListener('mousemove',function(e){
+    mx=(e.clientX/innerWidth-.5)*2;
+    my=(e.clientY/innerHeight-.5)*2;
+  });
+
+  /* Click anywhere on bg to pulse the crystal */
+  var pulse=0;
+  window.addEventListener('click',function(e){
+    /* ignore clicks inside interactive elements */
+    var t=e.target;
+    while(t && t!==document.body){
+      if(['A','BUTTON','INPUT','SELECT','TEXTAREA'].indexOf(t.tagName)>-1) return;
+      t=t.parentNode;
+    }
+    pulse=1.4;
+  });
+
+  function resize(){
+    renderer.setSize(innerWidth,innerHeight,false);
+    camera.aspect=innerWidth/innerHeight;
+    camera.updateProjectionMatrix();
+  }
+  window.addEventListener('resize',resize,{passive:true});
+  resize();
+
+  var af;
+  function animate(){
+    af=requestAnimationFrame(animate);
+    var t=performance.now()*.001;
+    var sY=window.scrollY*.0008;
+    tx+=(mx-tx)*.045; ty+=(my-ty)*.045;
+    pulse*=.94;
+    scene.rotation.y = tx*.18 + Math.sin(t*.08)*.05 + sY*.4;
+    scene.rotation.x = -ty*.10;
+    scene.position.y = sY*5;
+    centerGroup.rotation.y += .0028 + pulse*.04;
+    centerGroup.rotation.x += .0012 + pulse*.02;
+    centerOuter.rotation.y -= .005 + pulse*.03;
+    centerOuter.rotation.x -= .0022 + pulse*.015;
+    centerGroup.scale.setScalar(1 + Math.sin(t*.9)*.04 + pulse*.18);
+    for(var i=0;i<sats.length;i++){
+      var o=sats[i];
+      o.mesh.rotation.x += o.rx + pulse*.01;
+      o.mesh.rotation.y += o.ry + pulse*.015;
+      o.mesh.position.y = o.baseY + Math.sin(t*o.fSpd+o.fPhs)*.55;
+    }
+    renderer.render(scene,camera);
+  }
+  animate();
+  document.addEventListener('visibilitychange',function(){
+    if(document.hidden) cancelAnimationFrame(af); else animate();
+  });
+})();
+
+/* ─── SCROLL REVEAL ─── */
+var rvObs=new IntersectionObserver(function(entries){
+  entries.forEach(function(e){ if(e.isIntersecting) e.target.classList.add('vis'); });
+},{threshold:.1,rootMargin:'0px 0px -60px 0px'});
+document.querySelectorAll('.rv').forEach(function(el){ rvObs.observe(el); });
+
+/* ─── COUNTERS ─── */
+var cntObs=new IntersectionObserver(function(entries){
+  entries.forEach(function(entry){
+    if(!entry.isIntersecting) return;
+    var el=entry.target;
+    var target=parseInt(el.dataset.target,10)||0;
+    if(target===0){el.textContent='0';return;}
+    var dur=1800,t0=performance.now();
+    function tick(now){
+      var p=Math.min((now-t0)/dur,1);
+      var ease=1-Math.pow(1-p,3);
+      el.textContent=Math.floor(ease*target).toLocaleString();
+      if(p<1) requestAnimationFrame(tick);
+      else el.textContent=target.toLocaleString();
+    }
+    requestAnimationFrame(tick);
+    cntObs.unobserve(el);
+  });
+},{threshold:.4});
+document.querySelectorAll('.stat-num,.live-num').forEach(function(el){ cntObs.observe(el); });
+
+/* ─── SMOOTH ANCHOR ─── */
+document.querySelectorAll('a[href^="#"]').forEach(function(a){
+  a.addEventListener('click',function(e){
+    var id=a.getAttribute('href').slice(1);
+    var el=document.getElementById(id);
+    if(el){
+      e.preventDefault();
+      el.scrollIntoView({behavior:'smooth',block:'start'});
+      if(drawer.classList.contains('open')){
+        drawer.classList.remove('open');
+        hamburger.classList.remove('open');
+      }
+    }
+  });
+});
+
+/* ─── MOUSE SPOTLIGHT (glass-card / stat-cell / ann-card) ─── */
+document.querySelectorAll('.glass-card,.stat-cell,.ann-card').forEach(function(el){
+  el.addEventListener('mousemove',function(e){
+    var r=el.getBoundingClientRect();
+    el.style.setProperty('--mx',((e.clientX-r.left)/r.width*100)+'%');
+    el.style.setProperty('--my',((e.clientY-r.top)/r.height*100)+'%');
+  });
+});
+
+/* ─── 3D TILT on feature rows (soft, lazy follow) ─── */
+document.querySelectorAll('.feat-row').forEach(function(row){
+  var cx=0,cy=0,tx=0,ty=0,raf=null;
+  function tick(){
+    cx+=(tx-cx)*.08; cy+=(ty-cy)*.08;
+    row.style.transform='perspective(1200px) rotateX('+cy.toFixed(3)+'deg) rotateY('+cx.toFixed(3)+'deg)';
+    if(Math.abs(tx-cx)>.005||Math.abs(ty-cy)>.005) raf=requestAnimationFrame(tick);
+    else raf=null;
+  }
+  row.addEventListener('mousemove',function(e){
+    var r=row.getBoundingClientRect();
+    tx=(e.clientX-r.left)/r.width-.5;
+    ty=(e.clientY-r.top)/r.height-.5;
+    tx*=3; ty*=-2;
+    if(!raf) raf=requestAnimationFrame(tick);
+  });
+  row.addEventListener('mouseleave',function(){
+    tx=0;ty=0;
+    if(!raf) raf=requestAnimationFrame(tick);
+  });
+});
+
+/* ─── ANN CAROUSEL ─── */
+document.querySelectorAll('.ann-slider').forEach(function(sl){
+  var track = sl.querySelector('.ann-slides');
+  var count = parseInt(sl.dataset.count, 10) || 1;
+  if(count <= 1) return;
+  var dots  = sl.querySelectorAll('.ann-dot');
+  var cur   = 0;
+  var timer;
+
+  function go(n){
+    cur = ((n % count) + count) % count;
+    track.style.transform = 'translateX(-' + (cur * 100) + '%)';
+    dots.forEach(function(d, i){ d.classList.toggle('active', i === cur); });
+    clearInterval(timer);
+    timer = setInterval(function(){ go(cur + 1); }, 4500);
+  }
+
+  dots.forEach(function(d, i){
+    d.addEventListener('click', function(e){ e.stopPropagation(); go(i); });
+  });
+  var prev = sl.querySelector('.ann-arr-prev');
+  var next = sl.querySelector('.ann-arr-next');
+  if(prev) prev.addEventListener('click', function(e){ e.stopPropagation(); go(cur - 1); });
+  if(next) next.addEventListener('click', function(e){ e.stopPropagation(); go(cur + 1); });
+
+  /* Touch swipe */
+  var tx0 = null;
+  sl.addEventListener('touchstart', function(e){ tx0 = e.touches[0].clientX; }, {passive:true});
+  sl.addEventListener('touchend',   function(e){
+    if(tx0 === null) return;
+    var dx = e.changedTouches[0].clientX - tx0;
+    if(Math.abs(dx) > 36) go(cur + (dx < 0 ? 1 : -1));
+    tx0 = null;
+  }, {passive:true});
+
+  timer = setInterval(function(){ go(cur + 1); }, 4500);
+});
+
+/* ─── SCROLL TO TOP ─── */
+document.addEventListener('DOMContentLoaded', function(){
+  var btn = document.getElementById('scrollTop');
+  if(!btn) return;
+  window.addEventListener('scroll', function(){
+    btn.classList.toggle('vis', window.scrollY > 340);
+  }, {passive:true});
+  btn.addEventListener('click', function(){
+    window.scrollTo({top:0, behavior:'smooth'});
+  });
+});
+</script>
+
+<!-- Scroll-to-top button -->
+<button id="scrollTop" aria-label="Tepaga qaytish">
+  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+    <line x1="12" y1="19" x2="12" y2="5"/><polyline points="5 12 12 5 19 12"/>
+  </svg>
+</button>
+</body>
+</html>

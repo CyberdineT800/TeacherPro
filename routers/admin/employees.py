@@ -158,8 +158,9 @@ async def delete_employee(request: Request, id: int, db: AsyncSession = Depends(
         return RedirectResponse(url="/admin/employees", status_code=303)
     try:
         for exam in (await db.execute(select(Exam).where(Exam.teacher_id == id))).scalars().all():
-            await db.execute(delete(Question).where(Question.exam_id == exam.id))
+            # Delete exam_results first (references questions.id via FK)
             await db.execute(delete(ExamResult).where(ExamResult.exam_id == exam.id))
+            await db.execute(delete(Question).where(Question.exam_id == exam.id))
             await db.delete(exam)
         await db.delete(emp)
         await db.commit()

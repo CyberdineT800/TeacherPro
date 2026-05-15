@@ -72,6 +72,16 @@ async def init_db():
                 "ALTER TABLE employees "
                 "ADD COLUMN IF NOT EXISTS games_enabled BOOLEAN NOT NULL DEFAULT FALSE"
             ))
+            # Widen image_url to TEXT and add extra image columns
+            await conn.execute(text(
+                "ALTER TABLE announcements "
+                "ALTER COLUMN image_url TYPE TEXT"
+            ))
+            await conn.execute(text(
+                "ALTER TABLE announcements "
+                "ADD COLUMN IF NOT EXISTS image_url_2 TEXT, "
+                "ADD COLUMN IF NOT EXISTS image_url_3 TEXT"
+            ))
 
 class School(Base):
     __tablename__ = 'schools'
@@ -368,3 +378,26 @@ class GameParticipant(Base):
 Index('ix_game_sessions_teacher_created', GameSession.teacher_id, GameSession.created_at)
 Index('ix_game_sessions_status', GameSession.status)
 Index('ix_game_questions_session_order', GameQuestion.session_id, GameQuestion.order)
+
+
+# ============================================================================
+# ANNOUNCEMENT MODEL
+# ============================================================================
+
+class Announcement(Base):
+    """Admin-managed announcements shown on the public home page."""
+    __tablename__ = 'announcements'
+    id          = Column(Integer, primary_key=True)
+    title       = Column(String(200), nullable=False)
+    body        = Column(Text, nullable=True)
+    image_url   = Column(Text, nullable=True)
+    image_url_2 = Column(Text, nullable=True)
+    image_url_3 = Column(Text, nullable=True)
+    badge       = Column(String(60), nullable=True)   # e.g. "Yangi", "Muhim"
+    link_url    = Column(String(500), nullable=True)  # optional "Read more" link
+    is_active   = Column(Boolean, default=True,  nullable=False, index=True)
+    order_num   = Column(Integer,  default=0,    nullable=False)
+    created_at  = Column(DateTime, default=datetime.utcnow)
+    updated_at  = Column(DateTime, default=datetime.utcnow)
+
+Index('ix_announcements_active_order', Announcement.is_active, Announcement.order_num)

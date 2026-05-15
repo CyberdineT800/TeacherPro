@@ -1,0 +1,282 @@
+{% extends "base.html" %}
+{% block title %}{{ _('announcements') }}{% endblock %}
+
+{% block extra_css %}
+<style>
+.ann-layout{display:grid;grid-template-columns:1fr 400px;gap:1.25rem;align-items:start}
+@media(max-width:960px){.ann-layout{grid-template-columns:1fr}}
+.ann-item{display:flex;align-items:flex-start;gap:1rem;padding:1.1rem 1.25rem;background:var(--glass-bg);border:1px solid var(--glass-border);border-radius:var(--r-md);transition:.15s}
+.ann-item:hover{border-color:var(--glass-border-strong)}
+.ann-thumb-row{display:flex;gap:.35rem;flex-shrink:0}
+.ann-thumb{width:56px;height:44px;border-radius:var(--r-xs);background:var(--glass-bg-strong);overflow:hidden;display:flex;align-items:center;justify-content:center}
+.ann-thumb img{width:100%;height:100%;object-fit:cover}
+.ann-thumb svg{opacity:.3}
+.ann-meta{flex:1;min-width:0}
+.ann-badge-chip{display:inline-block;padding:.15rem .55rem;border-radius:var(--r-pill);font-size:.72rem;font-weight:700;letter-spacing:.05em;margin-bottom:.3rem;background:rgba(100,200,255,.1);border:1px solid rgba(100,200,255,.22);color:var(--c-cyan)}
+.ann-title-row{font-weight:700;font-size:.95rem;margin-bottom:.2rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.ann-body-preview{font-size:.82rem;color:var(--text-muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.ann-actions{display:flex;align-items:center;gap:.5rem;flex-shrink:0}
+.status-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0;margin-top:.35rem}
+.dot-on{background:var(--ok)}.dot-off{background:var(--text-dim,#555)}
+.order-badge{display:inline-block;min-width:28px;padding:.1rem .5rem;text-align:center;background:var(--glass-bg-strong);border-radius:var(--r-xs);font-size:.78rem;font-weight:700;color:var(--text-muted)}
+.form-card{background:var(--glass-bg);border:1px solid var(--glass-border);border-radius:var(--r-md);padding:1.5rem;position:sticky;top:5rem}
+.form-card h3{font-size:1rem;font-weight:700;margin-bottom:1.25rem;padding-bottom:.75rem;border-bottom:1px solid var(--glass-border)}
+/* Image upload slots */
+.img-slots{display:grid;grid-template-columns:1fr 1fr 1fr;gap:.5rem;margin-bottom:1rem}
+.img-slot{position:relative}
+.img-slot-label{font-size:.6rem;color:var(--text-muted);font-weight:700;text-transform:uppercase;letter-spacing:.05em;margin-bottom:.3rem;text-align:center}
+.img-zone{
+  border:2px dashed var(--glass-border);border-radius:var(--r-sm);
+  aspect-ratio:4/3;cursor:pointer;transition:.2s;background:var(--glass-bg-strong);
+  display:flex;flex-direction:column;align-items:center;justify-content:center;gap:.25rem;
+  overflow:hidden;position:relative;
+}
+.img-zone:hover{border-color:var(--c-cyan);background:rgba(100,200,255,.04)}
+.img-zone input[type=file]{display:none}
+.img-zone-text{font-size:.67rem;color:var(--text-muted);text-align:center;padding:0 .4rem}
+.img-zone-preview{width:100%;height:100%;object-fit:cover;display:block;position:absolute;inset:0}
+.img-slot-clear{
+  position:absolute;top:.25rem;right:.25rem;width:20px;height:20px;
+  background:rgba(0,0,0,.7);border:none;color:#fff;border-radius:50%;
+  cursor:pointer;font-size:12px;line-height:1;display:none;
+  align-items:center;justify-content:center;z-index:2;
+}
+.img-slot-clear.visible{display:flex}
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="ann-layout">
+
+  <!-- LIST -->
+  <div>
+    <div style="display:flex;justify-content:space-between;align-items:center;gap:.75rem;margin-bottom:1.25rem;flex-wrap:wrap">
+      <div>
+        <h2 style="margin:0">{{ _('announcements') }}</h2>
+        <p style="margin:.2rem 0 0;color:var(--text-muted);font-size:.85rem">{{ _('ann_home_manage') }}</p>
+      </div>
+      <a href="{{ url_for('admin_dashboard') }}" class="btn btn-secondary btn-sm">← {{ _('back') }}</a>
+    </div>
+
+    {% if announcements %}
+    <div style="display:flex;flex-direction:column;gap:.65rem">
+      {% for ann in announcements %}
+      <div class="ann-item">
+        <div class="status-dot {{ 'dot-on' if ann.is_active else 'dot-off' }}" title="{{ _('active') if ann.is_active else _('inactive') }}"></div>
+        <div class="ann-thumb-row">
+          {% for img in [ann.image_url, ann.image_url_2, ann.image_url_3] if img %}
+          <div class="ann-thumb">
+            <img src="{{ img }}" alt="" onerror="this.style.display='none'">
+          </div>
+          {% else %}
+          <div class="ann-thumb">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
+          </div>
+          {% endfor %}
+        </div>
+        <div class="ann-meta">
+          {% if ann.badge %}<span class="ann-badge-chip">{{ ann.badge }}</span>{% endif %}
+          <div class="ann-title-row">{{ ann.title }}</div>
+          {% if ann.body %}<div class="ann-body-preview">{{ ann.body }}</div>{% endif %}
+          <div style="font-size:.75rem;color:var(--text-muted);margin-top:.25rem">
+            <span class="order-badge">#{{ ann.order_num }}</span>
+            {% if ann.created_at %} · {{ ann.created_at.strftime('%d.%m.%Y') }}{% endif %}
+          </div>
+        </div>
+        <div class="ann-actions">
+          <button class="btn btn-secondary btn-sm" onclick="openEditEl(this)"
+            data-id="{{ ann.id }}"
+            data-title="{{ ann.title | e }}"
+            data-body="{{ (ann.body or '') | e }}"
+            data-img1="{{ (ann.image_url or '') | e }}"
+            data-img2="{{ (ann.image_url_2 or '') | e }}"
+            data-img3="{{ (ann.image_url_3 or '') | e }}"
+            data-badge="{{ (ann.badge or '') | e }}"
+            data-link="{{ (ann.link_url or '') | e }}"
+            data-order="{{ ann.order_num }}"
+            data-active="{{ ann.is_active | lower }}">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/>
+              <path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/>
+            </svg>
+          </button>
+          <form method="post" action="{{ url_for('admin_announcements') }}/{{ ann.id }}/toggle" style="display:inline">
+            <button type="submit" class="btn {{ 'btn-warning' if ann.is_active else 'btn-success' }} btn-sm">
+              {% if ann.is_active %}
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17.94 17.94A10.07 10.07 0 0112 20c-7 0-11-8-11-8a18.45 18.45 0 015.06-5.94M9.9 4.24A9.12 9.12 0 0112 4c7 0 11 8 11 8a18.5 18.5 0 01-2.16 3.19m-6.72-1.07a3 3 0 11-4.24-4.24"/><line x1="1" y1="1" x2="23" y2="23"/></svg>
+              {% else %}
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+              {% endif %}
+            </button>
+          </form>
+          <form method="post" action="{{ url_for('admin_announcements') }}/{{ ann.id }}/delete"
+            style="display:inline" onsubmit="return confirm({{ _('ann_delete_confirm')|tojson }})">
+            <button type="submit" class="btn btn-danger btn-sm">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6"/><path d="M10 11v6M14 11v6"/><path d="M9 6V4a1 1 0 011-1h4a1 1 0 011 1v2"/></svg>
+            </button>
+          </form>
+        </div>
+      </div>
+      {% endfor %}
+    </div>
+    {% else %}
+    <div style="text-align:center;padding:3rem 1rem;color:var(--text-muted);background:var(--glass-bg);border:1px dashed var(--glass-border);border-radius:var(--r-md)">
+      <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" style="margin-bottom:1rem;opacity:.4"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="12" y1="18" x2="12" y2="12"/><line x1="9" y1="15" x2="15" y2="15"/></svg>
+      <p>{{ _('ann_empty') }}</p>
+    </div>
+    {% endif %}
+  </div>
+
+  <!-- FORM -->
+  <div class="form-card" id="formPanel">
+    <h3 id="formTitle">
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align:-.1em"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+      {{ _('ann_new') }}
+    </h3>
+    <form method="post" id="annForm" action="{{ url_for('admin_announcements') }}/create" enctype="multipart/form-data">
+
+      <div class="form-group">
+        <label class="form-label">{{ _('ann_heading') }} *</label>
+        <input type="text" name="title" id="fTitle" class="form-control" required maxlength="200">
+      </div>
+      <div class="form-group">
+        <label class="form-label">{{ _('ann_body') }}</label>
+        <textarea name="body" id="fBody" class="form-control" rows="3" maxlength="1000"></textarea>
+      </div>
+
+      <!-- 3 image slots -->
+      <div class="form-group">
+        <label class="form-label">{{ _('ann_image') }} (max 3)</label>
+        <div class="img-slots">
+          {% for i in [('','1','fImg1','keepImg1'), ('2','2','fImg2','keepImg2'), ('3','3','fImg3','keepImg3')] %}
+          {% set suf, num, fid, kid = i %}
+          <div class="img-slot">
+            <div class="img-slot-label">{{ loop.index }}</div>
+            <div class="img-zone" id="zone{{ num }}" onclick="document.getElementById('{{ fid }}').click()">
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" style="opacity:.35"><polyline points="16 16 12 12 8 16"/><line x1="12" y1="12" x2="12" y2="21"/><path d="M20.39 18.39A5 5 0 0018 9h-1.26A8 8 0 103 16.3"/></svg>
+              <span class="img-zone-text">{{ _('ann_image') }}</span>
+              <input type="file" id="{{ fid }}" name="image{% if suf %}{{ suf }}{% endif %}" accept="image/*"
+                onchange="handleSlot(this,'{{ num }}')">
+            </div>
+            {% if loop.index == 1 %}
+            <input type="hidden" name="keep_img1" id="keepImg1">
+            {% elif loop.index == 2 %}
+            <input type="hidden" name="keep_img2" id="keepImg2">
+            {% else %}
+            <input type="hidden" name="keep_img3" id="keepImg3">
+            {% endif %}
+            <button type="button" class="img-slot-clear" id="clr{{ num }}" onclick="clearSlot('{{ num }}')">×</button>
+          </div>
+          {% endfor %}
+        </div>
+        <div style="font-size:.72rem;color:var(--text-muted)">{{ _('ann_image_hint') }}</div>
+      </div>
+
+      <div class="form-row">
+        <div class="form-group">
+          <label class="form-label">{{ _('ann_badge') }}</label>
+          <input type="text" name="badge" id="fBadge" class="form-control" maxlength="60" placeholder="Yangi">
+        </div>
+        <div class="form-group">
+          <label class="form-label">{{ _('ann_order') }}</label>
+          <input type="number" name="order_num" id="fOrder" class="form-control" value="0" min="0">
+        </div>
+      </div>
+      <div class="form-group">
+        <label class="form-label">{{ _('ann_link') }}</label>
+        <input type="url" name="link_url" id="fLink" class="form-control" placeholder="https://...">
+      </div>
+      <div class="form-group" style="display:flex;align-items:center;gap:.6rem;margin-bottom:1.1rem">
+        <input type="checkbox" name="is_active" id="fActive" checked style="width:16px;height:16px;accent-color:var(--c-cyan)">
+        <label for="fActive" class="form-label" style="margin:0;cursor:pointer">{{ _('ann_active_label') }}</label>
+      </div>
+      <button type="submit" class="btn btn-primary" style="width:100%">{{ _('ann_save') }}</button>
+      <button type="button" class="btn btn-secondary" style="width:100%;margin-top:.5rem" onclick="resetForm()">{{ _('ann_cancel') }}</button>
+    </form>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+var LABELS = {
+  newTitle: {{ _('ann_new')|tojson }},
+  editTitle: {{ _('ann_edit_title')|tojson }},
+  createUrl: '{{ url_for("admin_announcements") }}/create',
+  uploadText: {{ _('ann_image')|tojson }},
+};
+
+function handleSlot(input, num) {
+  if (!input.files[0]) return;
+  var reader = new FileReader();
+  reader.onload = function(e) {
+    var zone = document.getElementById('zone' + num);
+    // Remove existing preview img if any
+    var old = zone.querySelector('.img-zone-preview');
+    if (old) old.remove();
+    var img = document.createElement('img');
+    img.className = 'img-zone-preview';
+    img.src = e.target.result;
+    zone.appendChild(img);
+    document.getElementById('clr' + num).classList.add('visible');
+  };
+  reader.readAsDataURL(input.files[0]);
+}
+
+function getKidId(num) {
+  return num === '1' ? 'keepImg1' : (num === '2' ? 'keepImg2' : 'keepImg3');
+}
+function getFid(num) {
+  return num === '1' ? 'fImg1' : (num === '2' ? 'fImg2' : 'fImg3');
+}
+
+function clearSlot(num) {
+  var zone = document.getElementById('zone' + num);
+  var prev = zone.querySelector('.img-zone-preview');
+  if (prev) prev.remove();
+  document.getElementById(getFid(num)).value = '';
+  document.getElementById(getKidId(num)).value = '';
+  document.getElementById('clr' + num).classList.remove('visible');
+}
+
+function setSlotPreview(num, url) {
+  if (!url) { clearSlot(num); return; }
+  var zone = document.getElementById('zone' + num);
+  var old = zone.querySelector('.img-zone-preview');
+  if (old) old.remove();
+  var img = document.createElement('img');
+  img.className = 'img-zone-preview';
+  img.src = url;
+  zone.appendChild(img);
+  document.getElementById(getKidId(num)).value = url;
+  document.getElementById('clr' + num).classList.add('visible');
+}
+
+function openEditEl(btn) {
+  var d = btn.dataset;
+  var editSvg = '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align:-.1em"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/></svg> ';
+  document.getElementById('formTitle').innerHTML = editSvg + LABELS.editTitle;
+  document.getElementById('annForm').action = '{{ url_for("admin_announcements") }}/' + d.id + '/edit';
+  document.getElementById('fTitle').value  = d.title  || '';
+  document.getElementById('fBody').value   = d.body   || '';
+  document.getElementById('fBadge').value  = d.badge  || '';
+  document.getElementById('fLink').value   = d.link   || '';
+  document.getElementById('fOrder').value  = d.order  || '0';
+  document.getElementById('fActive').checked = (d.active === 'true');
+  setSlotPreview('1', d.img1 || '');
+  setSlotPreview('2', d.img2 || '');
+  setSlotPreview('3', d.img3 || '');
+  document.getElementById('formPanel').scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+
+function resetForm() {
+  document.getElementById('formTitle').innerHTML =
+    '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align:-.1em"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg> '
+    + LABELS.newTitle;
+  document.getElementById('annForm').action = LABELS.createUrl;
+  document.getElementById('annForm').reset();
+  document.getElementById('fActive').checked = true;
+  ['1','2','3'].forEach(clearSlot);
+}
+</script>
+{% endblock %}
