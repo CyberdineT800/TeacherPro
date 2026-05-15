@@ -120,7 +120,13 @@ if not SECRET_KEY:
     )
     SECRET_KEY = 'dev-insecure-key-please-set-SECRET_KEY-env-var'
 
-app.add_middleware(SessionMiddleware, secret_key=SECRET_KEY)
+app.add_middleware(
+    SessionMiddleware,
+    secret_key=SECRET_KEY,
+    https_only=True,   # Secure flag — cookie never sent over plain HTTP
+    same_site="lax",   # CSRF protection: blocks cross-site POST/PUT/DELETE
+    max_age=86400,     # 24-hour session lifetime
+)
 
 app.mount("/static", StaticFiles(directory="static"), name="static")
 

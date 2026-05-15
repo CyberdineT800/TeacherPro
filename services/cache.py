@@ -245,3 +245,33 @@ async def cache_del_all_ref() -> None:
     """Call when admin edits reference tables."""
     await cache_delete("ref:quarters", "ref:question_types",
                        "ref:exam_types", "ref:exam_names", "ref:staff_titles")
+
+
+# ── Home page (public landing) ────────────────────────────────────────────────
+
+TTL_HOME_STATS        = 600   # 10 min — school/teacher/student counts rarely change
+TTL_HOME_ANNOUNCEMENTS = 300  # 5 min — TTL safety net; invalidated explicitly on admin edit
+
+
+async def cache_get_home_stats() -> Optional[dict]:
+    return await cache_get("home:stats")
+
+
+async def cache_set_home_stats(stats: dict) -> None:
+    await cache_set("home:stats", stats, TTL_HOME_STATS)
+
+
+async def cache_del_home_stats() -> None:
+    await cache_delete("home:stats")
+
+
+async def cache_get_home_announcements() -> Optional[list]:
+    return await cache_get("home:announcements")
+
+
+async def cache_set_home_announcements(announcements: list) -> None:
+    await cache_set("home:announcements", announcements, TTL_HOME_ANNOUNCEMENTS)
+
+
+async def cache_del_home_announcements() -> None:
+    await cache_delete("home:announcements")

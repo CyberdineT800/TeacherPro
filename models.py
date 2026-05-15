@@ -30,10 +30,11 @@ else:
         DATABASE_URL,
         echo=False,
         future=True,
-        pool_size=10,
-        max_overflow=20,
+        pool_size=5,          # 4 workers × 5 = 20 base connections
+        max_overflow=10,      # 4 workers × 10 = 40 burst; total max 60 << pg max_connections=200
         pool_pre_ping=True,
         pool_recycle=1800,
+        pool_timeout=30,      # raise after 30s if no connection available
     )
 
 AsyncSessionLocal = async_sessionmaker(

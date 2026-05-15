@@ -15,6 +15,7 @@ from config import RedirectResponse
 from models import get_db, Announcement
 from dependencies import require_admin, flash, get_template_context
 from language import language_manager
+from services.cache import cache_del_home_announcements
 
 
 def _t(request: Request, key: str) -> str:
@@ -105,6 +106,7 @@ async def announcement_create(
     )
     db.add(ann)
     await db.commit()
+    await cache_del_home_announcements()
     flash(request, _t(request, "ann_added"), "success")
     return RedirectResponse(url="/admin/announcements", status_code=303)
 
@@ -153,6 +155,7 @@ async def announcement_edit(
     ann.is_active = (is_active == "on")
     ann.updated_at = datetime.utcnow()
     await db.commit()
+    await cache_del_home_announcements()
     flash(request, _t(request, "ann_updated"), "success")
     return RedirectResponse(url="/admin/announcements", status_code=303)
 
@@ -166,6 +169,7 @@ async def announcement_toggle(ann_id: int, request: Request, db: AsyncSession = 
         ann.is_active = not ann.is_active
         ann.updated_at = datetime.utcnow()
         await db.commit()
+        await cache_del_home_announcements()
     return RedirectResponse(url="/admin/announcements", status_code=303)
 
 
@@ -180,5 +184,6 @@ async def announcement_delete(ann_id: int, request: Request, db: AsyncSession = 
         _remove_file(ann.image_url_3)
         await db.delete(ann)
         await db.commit()
+        await cache_del_home_announcements()
         flash(request, _t(request, "ann_deleted"), "success")
     return RedirectResponse(url="/admin/announcements", status_code=303)
