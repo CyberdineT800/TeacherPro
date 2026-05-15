@@ -1,5 +1,4 @@
 """Admin AI management routes (dashboard + AI presentation & question settings)."""
-import asyncio
 import json
 import logging
 import re
@@ -68,13 +67,12 @@ def _t(request: Request, key: str) -> str:
 
 @router.get("/dashboard", response_class=HTMLResponse)
 async def admin_dashboard(request: Request, db: AsyncSession = Depends(get_db)):
-    import asyncio as _asyncio
-    schools_count, employees_count, classes_count, students_count = await _asyncio.gather(
-        db.scalar(select(func.count(School.id))),
-        db.scalar(select(func.count(Employee.id))),
-        db.scalar(select(func.count(SchoolClass.id))),
-        db.scalar(select(func.count(Student.id))),
-    )
+    # Sequential queries — asyncio.gather on a shared session causes
+    # "concurrent operations are not permitted" in SQLAlchemy async.
+    schools_count   = await db.scalar(select(func.count(School.id)))
+    employees_count = await db.scalar(select(func.count(Employee.id)))
+    classes_count   = await db.scalar(select(func.count(SchoolClass.id)))
+    students_count  = await db.scalar(select(func.count(Student.id)))
     context = await get_template_context(request)
     context.update({
         'schools_count': schools_count,

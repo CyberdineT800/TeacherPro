@@ -28,20 +28,32 @@ templates = Jinja2Templates(directory="templates")
 # ── Reference-data helpers (cached) ──────────────────────────────────────────
 
 async def _ref_list(name: str, db: AsyncSession, model, order=None):
-    """Return a cached list of SimpleNamespace rows for reference tables."""
+    """Return a cached list of reference rows.
+
+    Always checks Redis first; on cache-miss fetches from DB using its own
+    short-lived session so we never interleave Redis awaits with the
+    caller's request-scoped session.
+    """
     import types
+    from models import AsyncSessionLocal
+
     cached = await cache_get_ref(name)
     if cached is not None:
         return [types.SimpleNamespace(**row) for row in cached]
-    q = select(model)
-    if order is not None:
-        q = q.order_by(order)
-    rows = (await db.execute(q)).scalars().all()
-    await cache_set_ref(name, [
-        {c.key: getattr(r, c.key) for c in model.__table__.columns}
-        for r in rows
-    ])
-    return rows
+
+    # Cache miss: use a fresh isolated session to avoid async state conflicts
+    async with AsyncSessionLocal() as fresh_db:
+        q = select(model)
+        if order is not None:
+            q = q.order_by(order)
+        rows = (await fresh_db.execute(q)).scalars().all()
+        serialized = [
+            {c.key: getattr(r, c.key) for c in model.__table__.columns}
+            for r in rows
+        ]
+
+    await cache_set_ref(name, serialized)
+    return [types.SimpleNamespace(**row) for row in serialized]
 
 
 # ============================================================================
