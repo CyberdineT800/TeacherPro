@@ -20,6 +20,22 @@
 .dot-on{background:var(--ok)}.dot-off{background:var(--text-dim,#555)}
 .order-badge{display:inline-block;min-width:28px;padding:.1rem .5rem;text-align:center;background:var(--glass-bg-strong);border-radius:var(--r-xs);font-size:.78rem;font-weight:700;color:var(--text-muted)}
 .form-card{background:var(--glass-bg);border:1px solid var(--glass-border);border-radius:var(--r-md);padding:1.5rem;position:sticky;top:5rem}
+
+/* ── Mobile list item ── */
+@media(max-width:620px){
+  .ann-item{flex-wrap:wrap;gap:.55rem .75rem}
+  .ann-thumb{width:44px;height:36px}
+  .ann-thumb-row{flex-wrap:nowrap;overflow:hidden;max-width:calc(100% - 20px)}
+  .ann-meta{flex:1 1 calc(100% - 160px);min-width:0}
+  .ann-actions{
+    flex:0 0 100%;
+    justify-content:flex-end;
+    padding-top:.5rem;
+    border-top:1px solid var(--glass-border);
+    margin-top:.15rem;
+  }
+  .status-dot{margin-top:.2rem}
+}
 .form-card h3{font-size:1rem;font-weight:700;margin-bottom:1.25rem;padding-bottom:.75rem;border-bottom:1px solid var(--glass-border)}
 /* Image upload slots */
 .img-slots{display:grid;grid-template-columns:1fr 1fr 1fr;gap:.5rem;margin-bottom:1rem}
