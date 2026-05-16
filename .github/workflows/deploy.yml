@@ -24,13 +24,14 @@ jobs:
 
       - name: Install dependencies
         run: |
-          python3 -c "raw=open('requirements.txt','rb').read(); enc='utf-16' if raw[:2] in (b'\xff\xfe',b'\xfe\xff') else ('utf-16-le' if len(raw)>1 and raw[1:2]==b'\x00' else 'utf-8-sig'); open('/tmp/req.txt','w',encoding='utf-8').write(raw.decode(enc).replace('\ufeff',''))"
+          python3 -c "raw=open('requirements.txt','rb').read(); enc='utf-16' if raw[:2] in (b'\xff\xfe',b'\xfe\xff') else ('utf-16-le' if len(raw)>1 and raw[1:2]==b'\x00' else 'utf-8-sig'); open('/tmp/req.txt','w',encoding='utf-8').write(raw.decode(enc).replace('﻿',''))"
           pip install -r /tmp/req.txt
 
       - name: Syntax check (all .py files)
         run: |
           python -m py_compile main.py models.py utils.py dependencies.py
           find routers -name "*.py" -exec python -m py_compile {} +
+          find services -name "*.py" -exec python -m py_compile {} +
 
       - name: Import check
         run: python -c "import main, models, utils, dependencies"
@@ -66,18 +67,46 @@ jobs:
           key: ${{ secrets.TP_SERVER_SSH_KEY }}
           port: ${{ secrets.TP_SERVER_PORT }}
           script: |
-            set -e
+            set -euo pipefail
 
-            APP_DIR=${{ env.APP_DIR }}
+            APP_DIR=/var/www/teacherpro
             RELEASE=$APP_DIR/release
             CURRENT=$APP_DIR/current
             BACKUP=$APP_DIR/backup
             VENV=$APP_DIR/venv
             DATA=$APP_DIR/data
 
-            echo "── Stopping service ──"
-            sudo systemctl stop teacherpro || true
+            # ── helpers ────────────────────────────────────────────────────
+            stop_services() {
+              # Stop HTTP first (stops new requests), then WS (ongoing games)
+              sudo systemctl stop teacherpro-http teacherpro-ws 2>/dev/null || true
+            }
 
+            start_services() {
+              # WS service owns /run/teacherpro/ (RuntimeDirectory) — start it first
+              sudo systemctl start teacherpro-ws
+              sudo systemctl start teacherpro-http
+            }
+
+            rollback() {
+              echo "── Rolling back ──"
+              stop_services
+              rm -rf "$CURRENT"
+              if [ -d "$BACKUP" ]; then
+                mv "$BACKUP" "$CURRENT"
+                sudo chown -R www-data:www-data "$CURRENT"
+                start_services
+                echo "Rollback complete — previous release restored"
+              else
+                echo "No backup found — services left stopped"
+              fi
+            }
+
+            # ── stop ──────────────────────────────────────────────────────
+            echo "── Stopping services ──"
+            stop_services
+
+            # ── rotate releases ───────────────────────────────────────────
             echo "── Rotating releases ──"
             if [ -d "$CURRENT" ]; then
               rm -rf "$BACKUP"
@@ -86,51 +115,64 @@ jobs:
             rm -rf "$CURRENT"
             mv "$RELEASE" "$CURRENT"
 
-            echo "── Ensuring data dir exists ──"
+            # ── ownership ─────────────────────────────────────────────────
+            echo "── Setting ownership ──"
             mkdir -p "$DATA"
             sudo chown -R www-data:www-data "$CURRENT"
             sudo chown -R www-data:www-data "$DATA"
 
+            # ── Python deps ───────────────────────────────────────────────
             echo "── Installing/updating Python deps ──"
             if [ ! -d "$VENV" ]; then
               python3.11 -m venv "$VENV"
             fi
             "$VENV/bin/pip" install --quiet --upgrade pip
-            python3.11 -c "raw=open('$CURRENT/requirements.txt','rb').read(); enc='utf-16' if raw[:2] in (b'\xff\xfe',b'\xfe\xff') else ('utf-16-le' if len(raw)>1 and raw[1:2]==b'\x00' else 'utf-8-sig'); open('/tmp/req.txt','w',encoding='utf-8').write(raw.decode(enc).replace('\ufeff',''))"
+            python3.11 -c "
+            raw = open('$CURRENT/requirements.txt', 'rb').read()
+            if raw[:2] in (b'\xff\xfe', b'\xfe\xff'):
+                enc = 'utf-16'
+            elif len(raw) > 1 and raw[1:2] == b'\x00':
+                enc = 'utf-16-le'
+            else:
+                enc = 'utf-8-sig'
+            open('/tmp/req.txt', 'w', encoding='utf-8').write(raw.decode(enc).replace('﻿', ''))
+            "
             "$VENV/bin/pip" install --quiet -r /tmp/req.txt
 
+            # ── pre-flight import check ────────────────────────────────────
             echo "── Pre-flight import check ──"
             cd "$CURRENT"
             "$VENV/bin/python" -c "import main, models, utils, dependencies" 2>&1 || {
               echo "Import check failed — aborting before service start"
+              rollback
               exit 1
             }
 
-            echo "── Starting service ──"
-            sudo systemctl start teacherpro
+            # ── start ─────────────────────────────────────────────────────
+            echo "── Starting services ──"
+            start_services
 
+            # ── health check (via HTTP service socket) ────────────────────
             echo "── Health check ──"
             STATUS="000"
-            for i in 1 2 3 4 5 6 7 8 9 10; do
+            for i in $(seq 1 12); do
               sleep 3
-              STATUS=$(curl -o /dev/null -s -w "%{http_code}" --unix-socket /run/teacherpro/teacherpro.sock http://localhost/health 2>/dev/null || echo "000")
-              echo "  attempt $i: HTTP $STATUS"
+              STATUS=$(curl -o /dev/null -s -w "%{http_code}" \
+                --unix-socket /run/teacherpro/http.sock \
+                http://localhost/health 2>/dev/null || echo "000")
+              echo "  attempt $i/12: HTTP $STATUS"
               [ "$STATUS" = "200" ] && break
             done
+
             if [ "$STATUS" != "200" ]; then
               echo "Health check failed (HTTP $STATUS) — dumping logs"
-              sudo journalctl -u teacherpro -n 100 --no-pager || true
-              echo "── Rolling back ──"
-              sudo systemctl stop teacherpro || true
-              rm -rf "$CURRENT"
-              if [ -d "$BACKUP" ]; then
-                mv "$BACKUP" "$CURRENT"
-                sudo systemctl start teacherpro
-                echo "Rollback complete"
-              fi
+              sudo journalctl -u teacherpro-http -n 80 --no-pager || true
+              sudo journalctl -u teacherpro-ws  -n 30 --no-pager || true
+              rollback
               exit 1
             fi
 
+            # ── reload nginx ──────────────────────────────────────────────
             echo "── Reloading nginx ──"
             sudo systemctl reload nginx
 
