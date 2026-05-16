@@ -68,11 +68,8 @@ async def teacher_games_hub(
 ):
     """Hub page — shows all available game types."""
     teacher_id = request.session.get('user_id')
-    teacher = (await db.execute(
-        select(Employee).where(Employee.id == teacher_id)
-    )).scalar_one_or_none()
-
-    if not teacher or not teacher.games_enabled:
+    teacher = _user  # already cached by require_login
+    if not teacher.games_enabled:
         flash(request, "O'yin funksiyasi sizga yoqilmagan. Administrator bilan bog'laning.", 'warning')
         return RedirectResponse(url="/teacher/dashboard", status_code=303)
 
@@ -96,11 +93,8 @@ async def teacher_quiz_race_sessions(
 ):
     """List of this teacher's Quiz Race sessions with a detail panel."""
     teacher_id = request.session.get('user_id')
-    teacher = (await db.execute(
-        select(Employee).where(Employee.id == teacher_id)
-    )).scalar_one_or_none()
-
-    if not teacher or not teacher.games_enabled:
+    teacher = _user  # already cached by require_login
+    if not teacher.games_enabled:
         flash(request, "O'yin funksiyasi sizga yoqilmagan. Administrator bilan bog'laning.", 'warning')
         return RedirectResponse(url="/teacher/dashboard", status_code=303)
 
@@ -144,10 +138,8 @@ async def teacher_quiz_race_create_form(
     _user: Employee = Depends(require_login),
 ):
     teacher_id = request.session.get('user_id')
-    teacher = (await db.execute(
-        select(Employee).where(Employee.id == teacher_id)
-    )).scalar_one_or_none()
-    if not teacher or not teacher.games_enabled:
+    teacher = _user  # already cached by require_login
+    if not teacher.games_enabled:
         return RedirectResponse(url="/teacher/games", status_code=303)
 
     subjects = (await db.execute(select(Subject).order_by(Subject.name))).scalars().all()
@@ -179,10 +171,8 @@ async def teacher_quiz_race_create(
     _user: Employee = Depends(require_login),
 ):
     teacher_id = request.session.get('user_id')
-    teacher = (await db.execute(
-        select(Employee).where(Employee.id == teacher_id)
-    )).scalar_one_or_none()
-    if not teacher or not teacher.games_enabled:
+    teacher = _user  # already cached by require_login
+    if not teacher.games_enabled:
         raise HTTPException(403)
 
     saved_set_id_int: Optional[int] = None

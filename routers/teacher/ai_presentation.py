@@ -21,52 +21,13 @@ from sqlalchemy.orm import defer
 from models import get_db, Employee, Subject, AIPresentation
 from dependencies import require_login, flash, get_template_context, page_info
 from services.ai_service import generate_presentation
-from language import language_manager
+from services.ai_shared import translate, reset_if_new_day, TEMPLATES, LANGUAGE_DISPLAY
+from language import language_manager  # used for _p lambda (presentation-language translate)
 
 log = logging.getLogger("teacher.ai_presentation")
 router = APIRouter(prefix="/teacher", dependencies=[Depends(require_login)])
 templates = Jinja2Templates(directory="templates")
 
-LANGUAGE_DISPLAY = {'uz': "O'zbekcha", 'ru': "Русский", 'en': "English"}
-
-TEMPLATES: dict = {
-    'cosmos': {
-        'label': 'Cosmos',
-        'stage_bg': 'linear-gradient(135deg, #182448, #0a0e1c)',
-        'accent': '#64c8ff',
-        'pptx': {'title': (0x1a, 0x4d, 0x9e), 'subtitle': (0x55, 0x66, 0x77),
-                 'muted': (0x88, 0x88, 0x88), 'correct': (0x1d, 0x9b, 0x4f),
-                 'wrong': (0xc0, 0x39, 0x2b), 'body': (0x33, 0x33, 0x33)},
-    },
-    'ocean': {
-        'label': 'Ocean',
-        'stage_bg': 'linear-gradient(135deg, #0d2b3e, #071a2c)',
-        'accent': '#00d4aa',
-        'pptx': {'title': (0x0d, 0x5c, 0x6e), 'subtitle': (0x3d, 0x7a, 0x8a),
-                 'muted': (0x70, 0x90, 0x95), 'correct': (0x00, 0xb8, 0x8a),
-                 'wrong': (0xc0, 0x39, 0x2b), 'body': (0x1a, 0x3a, 0x40)},
-    },
-    'aurora': {
-        'label': 'Aurora',
-        'stage_bg': 'linear-gradient(135deg, #1e1244, #0d0a2e)',
-        'accent': '#b478ff',
-        'pptx': {'title': (0x5a, 0x1e, 0x9e), 'subtitle': (0x7a, 0x5a, 0xaa),
-                 'muted': (0x88, 0x70, 0xa0), 'correct': (0x1d, 0x9b, 0x4f),
-                 'wrong': (0xc0, 0x39, 0x2b), 'body': (0x2a, 0x1a, 0x44)},
-    },
-}
-
-
-def _t(request: Request, key: str) -> str:
-    lang = request.session.get('language', 'uz')
-    return language_manager.get(key, lang)
-
-
-def _reset_if_new_day(teacher: Employee):
-    today = date.today()
-    if teacher.ai_last_reset != today:
-        teacher.ai_used_today = 0
-        teacher.ai_last_reset = today
 
 
 @router.get("/ai", response_class=HTMLResponse)
@@ -76,10 +37,10 @@ async def teacher_ai_list(request: Request, page: int = 1, db: AsyncSession = De
     teacher = (await db.execute(select(Employee).where(Employee.id == teacher_id))).scalar_one()
 
     if not teacher.ai_enabled:
-        flash(request, _t(request, 'ai_disabled_for_you'), 'warning')
+        flash(request, translate(request, 'ai_disabled_for_you'), 'warning')
         return RedirectResponse(url="/teacher/dashboard", status_code=303)
 
-    _reset_if_new_day(teacher)
+    reset_if_new_day(teacher)
     await db.commit()
 
     total = (await db.execute(
@@ -109,14 +70,14 @@ async def teacher_ai_create_form(request: Request, db: AsyncSession = Depends(ge
     teacher = (await db.execute(select(Employee).where(Employee.id == teacher_id))).scalar_one()
 
     if not teacher.ai_enabled:
-        flash(request, _t(request, 'ai_disabled_short'), 'warning')
+        flash(request, translate(request, 'ai_disabled_short'), 'warning')
         return RedirectResponse(url="/teacher/dashboard", status_code=303)
 
-    _reset_if_new_day(teacher)
+    reset_if_new_day(teacher)
     await db.commit()
 
     if teacher.ai_used_today >= teacher.ai_daily_limit:
-        flash(request, _t(request, 'ai_limit_reached_msg'), 'warning')
+        flash(request, translate(request, 'ai_limit_reached_msg'), 'warning')
         return RedirectResponse(url="/teacher/ai", status_code=303)
 
     subjects = (await db.execute(select(Subject).order_by(Subject.name))).scalars().all()
@@ -140,28 +101,28 @@ async def teacher_ai_generate(
     teacher = (await db.execute(select(Employee).where(Employee.id == teacher_id))).scalar_one()
 
     if not teacher.ai_enabled:
-        return JSONResponse({'ok': False, 'error': _t(request, 'ai_disabled_short')}, status_code=403)
+        return JSONResponse({'ok': False, 'error': translate(request, 'ai_disabled_short')}, status_code=403)
 
-    _reset_if_new_day(teacher)
+    reset_if_new_day(teacher)
     if teacher.ai_used_today >= teacher.ai_daily_limit:
-        return JSONResponse({'ok': False, 'error': _t(request, 'ai_limit_reached_short')}, status_code=429)
+        return JSONResponse({'ok': False, 'error': translate(request, 'ai_limit_reached_short')}, status_code=429)
 
     if not (1 <= grade <= 11):
-        return JSONResponse({'ok': False, 'error': _t(request, 'ai_invalid_grade')}, status_code=400)
+        return JSONResponse({'ok': False, 'error': translate(request, 'ai_invalid_grade')}, status_code=400)
     topic = (topic or '').strip()
     if not topic or len(topic) > 300:
-        return JSONResponse({'ok': False, 'error': _t(request, 'ai_invalid_topic')}, status_code=400)
+        return JSONResponse({'ok': False, 'error': translate(request, 'ai_invalid_topic')}, status_code=400)
     if language not in ('uz', 'ru', 'en'):
         language = 'uz'
 
     subject = (await db.execute(select(Subject).where(Subject.id == subject_id))).scalar_one_or_none()
     if not subject:
-        return JSONResponse({'ok': False, 'error': _t(request, 'ai_subject_not_found')}, status_code=400)
+        return JSONResponse({'ok': False, 'error': translate(request, 'ai_subject_not_found')}, status_code=400)
 
     try:
         data = await generate_presentation(subject.name, grade, topic, language)
     except Exception as e:
-        return JSONResponse({'ok': False, 'error': f"{_t(request, 'ai_error_prefix')}: {str(e)[:200]}"}, status_code=500)
+        return JSONResponse({'ok': False, 'error': f"{translate(request, 'ai_error_prefix')}: {str(e)[:200]}"}, status_code=500)
 
     tpl_key = template if template in TEMPLATES else 'cosmos'
     presentation = AIPresentation(
@@ -226,7 +187,7 @@ async def teacher_ai_delete(pid: int, request: Request, db: AsyncSession = Depen
 
     await db.delete(presentation)
     await db.commit()
-    flash(request, _t(request, 'ai_presentation_deleted'), 'success')
+    flash(request, translate(request, 'ai_presentation_deleted'), 'success')
     return RedirectResponse(url="/teacher/ai", status_code=303)
 
 

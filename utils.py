@@ -1,3 +1,4 @@
+import logging
 import os
 import openpyxl
 import pandas as pd
@@ -16,6 +17,8 @@ from reportlab.pdfbase.ttfonts import TTFont
 from docx.oxml.ns import qn
 from docx.oxml import OxmlElement
 from fastapi import UploadFile
+
+log = logging.getLogger("utils")
 
 # Register a Unicode-capable font for PDF (supports Cyrillic, Latin, Uzbek chars).
 # Priority: Arial (Windows) → DejaVu Sans (Linux/cross-platform) → Helvetica (no Cyrillic fallback)
@@ -132,7 +135,7 @@ async def process_student_excel(file: UploadFile):
                 })
                 
             except Exception as e:
-                print(f"Qator {idx+1} ni qayta ishlashda xatolik: {e}")
+                log.debug("Row %d parse error: %s", idx + 1, e)
                 continue
         
         if not has_group:
@@ -141,11 +144,11 @@ async def process_student_excel(file: UploadFile):
             for i, s in enumerate(students):
                 s['group_number'] = 1 if i < half else 2
 
-        print(f"Excel fayldan {len(students)} ta o'quvchi yuklandi")
+        log.info("Excel: %d students loaded", len(students))
         return students
         
     except Exception as e:
-        print(f"Excel faylni o'qishda xatolik: {e}")
+        log.error("Excel read error: %s", e)
         return []
 
 def generate_excel_report(exam_data):

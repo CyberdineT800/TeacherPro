@@ -19,67 +19,32 @@ from sqlalchemy.orm import selectinload, defer
 
 from models import get_db, Employee, School, SchoolClass, Student, Subject, AIPresentation, AIQuestionSet
 from dependencies import require_admin, flash, get_template_context, page_info
-from language import language_manager
+from services.ai_shared import translate, TEMPLATES, LANGUAGE_DISPLAY, TYPE_DISPLAY
+from services.cache import cache_get_admin_stats, cache_set_admin_stats
 
 log = logging.getLogger("admin.ai")
 
 router = APIRouter(prefix="/admin", dependencies=[Depends(require_admin)])
 templates = Jinja2Templates(directory="templates")
 
-LANGUAGE_DISPLAY = {'uz': "O'zbekcha", 'ru': "Русский", 'en': "English"}
-TYPE_DISPLAY = {'test': "Test (MCQ)", 'open': "Ochiq savollar"}
-
-# PPTX templates (shared with teacher AI presentation module)
-TEMPLATES: dict = {
-    'cosmos': {
-        'label': 'Cosmos',
-        'stage_bg': 'linear-gradient(135deg, #182448, #0a0e1c)',
-        'accent': '#64c8ff',
-        'pptx': {'title': (0x1a, 0x4d, 0x9e), 'subtitle': (0x55, 0x66, 0x77),
-                 'muted': (0x88, 0x88, 0x88), 'correct': (0x1d, 0x9b, 0x4f),
-                 'wrong': (0xc0, 0x39, 0x2b), 'body': (0x33, 0x33, 0x33)},
-    },
-    'ocean': {
-        'label': 'Ocean',
-        'stage_bg': 'linear-gradient(135deg, #0d2b3e, #071a2c)',
-        'accent': '#00d4aa',
-        'pptx': {'title': (0x0d, 0x5c, 0x6e), 'subtitle': (0x3d, 0x7a, 0x8a),
-                 'muted': (0x70, 0x90, 0x95), 'correct': (0x00, 0xb8, 0x8a),
-                 'wrong': (0xc0, 0x39, 0x2b), 'body': (0x1a, 0x3a, 0x40)},
-    },
-    'aurora': {
-        'label': 'Aurora',
-        'stage_bg': 'linear-gradient(135deg, #1e1244, #0d0a2e)',
-        'accent': '#b478ff',
-        'pptx': {'title': (0x5a, 0x1e, 0x9e), 'subtitle': (0x7a, 0x5a, 0xaa),
-                 'muted': (0x88, 0x70, 0xa0), 'correct': (0x1d, 0x9b, 0x4f),
-                 'wrong': (0xc0, 0x39, 0x2b), 'body': (0x2a, 0x1a, 0x44)},
-    },
-}
-
-
-def _t(request: Request, key: str) -> str:
-    lang = request.session.get('language', 'uz')
-    return language_manager.get(key, lang)
-
-
 # ── Admin dashboard ──────────────────────────────────────────────────────────
 
 @router.get("/dashboard", response_class=HTMLResponse)
 async def admin_dashboard(request: Request, db: AsyncSession = Depends(get_db)):
-    # Sequential queries — asyncio.gather on a shared session causes
-    # "concurrent operations are not permitted" in SQLAlchemy async.
-    schools_count   = await db.scalar(select(func.count(School.id)))
-    employees_count = await db.scalar(select(func.count(Employee.id)))
-    classes_count   = await db.scalar(select(func.count(SchoolClass.id)))
-    students_count  = await db.scalar(select(func.count(Student.id)))
+    # Try Redis cache first (TTL 60 s — stale counts are fine for a dashboard)
+    stats = await cache_get_admin_stats()
+    if stats is None:
+        # Sequential queries — asyncio.gather on a shared session causes
+        # "concurrent operations are not permitted" in SQLAlchemy async.
+        stats = {
+            'schools_count':   await db.scalar(select(func.count(School.id)))   or 0,
+            'employees_count': await db.scalar(select(func.count(Employee.id))) or 0,
+            'classes_count':   await db.scalar(select(func.count(SchoolClass.id))) or 0,
+            'students_count':  await db.scalar(select(func.count(Student.id)))  or 0,
+        }
+        await cache_set_admin_stats(stats)
     context = await get_template_context(request)
-    context.update({
-        'schools_count': schools_count,
-        'employees_count': employees_count,
-        'classes_count': classes_count,
-        'students_count': students_count,
-    })
+    context.update(stats)
     return templates.TemplateResponse('admin_dashboard.html', context)
 
 
@@ -150,13 +115,14 @@ async def admin_ai_settings_save(
     teacher.ai_daily_limit = max(0, min(50, ai_daily_limit))
     teacher.ai_questions_daily_limit = max(0, min(100, ai_questions_daily_limit))
     await db.commit()
-    flash(request, f"{teacher.first_name} {teacher.last_name} — {_t(request, 'ai_settings_saved_suffix')}", 'success')
+    flash(request, f"{teacher.first_name} {teacher.last_name} — {translate(request, 'ai_settings_saved_suffix')}", 'success')
     return RedirectResponse(url="/admin/ai/settings", status_code=303)
 
 
 @router.get("/ai/{pid}/download")
 async def admin_ai_download(pid: int, db: AsyncSession = Depends(get_db)):
-    from routers.teacher.ai_presentation import TEMPLATES as T, build_pptx as _build_pptx
+    from services.ai_shared import TEMPLATES as T
+    from routers.teacher.ai_presentation import build_pptx as _build_pptx
     presentation = (await db.execute(
         select(AIPresentation).where(AIPresentation.id == pid)
     )).scalar_one_or_none()

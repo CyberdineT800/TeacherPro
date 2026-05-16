@@ -18,22 +18,15 @@ from sqlalchemy.orm import defer
 from models import get_db, Employee, Subject, AIQuestionSet
 from dependencies import require_login, flash, get_template_context, page_info
 from services.ai_service import generate_questions
-from language import language_manager
+from services.ai_shared import translate, reset_if_new_day, LANGUAGE_DISPLAY, TYPE_DISPLAY
 
 log = logging.getLogger("teacher.ai_questions")
 router = APIRouter(prefix="/teacher", dependencies=[Depends(require_login)])
 templates = Jinja2Templates(directory="templates")
 
-LANGUAGE_DISPLAY = {'uz': "O'zbekcha", 'ru': "Русский", 'en': "English"}
-TYPE_DISPLAY = {'test': "Test (MCQ)", 'open': "Ochiq savollar"}
 
 
-def _t(request: Request, key: str) -> str:
-    lang = request.session.get('language', 'uz')
-    return language_manager.get(key, lang)
-
-
-def _reset_if_new_day(teacher: Employee):
+def reset_if_new_day(teacher: Employee):
     today = date.today()
     if teacher.ai_questions_last_reset != today:
         teacher.ai_questions_used_today = 0
@@ -47,10 +40,10 @@ async def teacher_questions_list(request: Request, page: int = 1, db: AsyncSessi
     teacher = (await db.execute(select(Employee).where(Employee.id == teacher_id))).scalar_one()
 
     if not teacher.ai_enabled:
-        flash(request, _t(request, 'ai_disabled_for_you'), 'warning')
+        flash(request, translate(request, 'ai_disabled_for_you'), 'warning')
         return RedirectResponse(url="/teacher/dashboard", status_code=303)
 
-    _reset_if_new_day(teacher)
+    reset_if_new_day(teacher)
     await db.commit()
 
     total = (await db.execute(
@@ -80,14 +73,14 @@ async def teacher_questions_create_form(request: Request, db: AsyncSession = Dep
     teacher = (await db.execute(select(Employee).where(Employee.id == teacher_id))).scalar_one()
 
     if not teacher.ai_enabled:
-        flash(request, _t(request, 'ai_disabled_short'), 'warning')
+        flash(request, translate(request, 'ai_disabled_short'), 'warning')
         return RedirectResponse(url="/teacher/dashboard", status_code=303)
 
-    _reset_if_new_day(teacher)
+    reset_if_new_day(teacher)
     await db.commit()
 
     if teacher.ai_questions_used_today >= teacher.ai_questions_daily_limit:
-        flash(request, _t(request, 'ai_limit_reached_msg'), 'warning')
+        flash(request, translate(request, 'ai_limit_reached_msg'), 'warning')
         return RedirectResponse(url="/teacher/ai-questions", status_code=303)
 
     subjects = (await db.execute(select(Subject).order_by(Subject.name))).scalars().all()
@@ -111,17 +104,17 @@ async def teacher_questions_generate(
     teacher = (await db.execute(select(Employee).where(Employee.id == teacher_id))).scalar_one()
 
     if not teacher.ai_enabled:
-        return JSONResponse({'ok': False, 'error': _t(request, 'ai_disabled_short')}, status_code=403)
+        return JSONResponse({'ok': False, 'error': translate(request, 'ai_disabled_short')}, status_code=403)
 
-    _reset_if_new_day(teacher)
+    reset_if_new_day(teacher)
     if teacher.ai_questions_used_today >= teacher.ai_questions_daily_limit:
-        return JSONResponse({'ok': False, 'error': _t(request, 'ai_limit_reached_short')}, status_code=429)
+        return JSONResponse({'ok': False, 'error': translate(request, 'ai_limit_reached_short')}, status_code=429)
 
     if not (1 <= grade <= 11):
-        return JSONResponse({'ok': False, 'error': _t(request, 'ai_invalid_grade')}, status_code=400)
+        return JSONResponse({'ok': False, 'error': translate(request, 'ai_invalid_grade')}, status_code=400)
     topic = (topic or '').strip()
     if not topic or len(topic) > 300:
-        return JSONResponse({'ok': False, 'error': _t(request, 'ai_invalid_topic')}, status_code=400)
+        return JSONResponse({'ok': False, 'error': translate(request, 'ai_invalid_topic')}, status_code=400)
     if language not in ('uz', 'ru', 'en'):
         language = 'uz'
     if question_type == 'test':
@@ -132,13 +125,13 @@ async def teacher_questions_generate(
 
     subject = (await db.execute(select(Subject).where(Subject.id == subject_id))).scalar_one_or_none()
     if not subject:
-        return JSONResponse({'ok': False, 'error': _t(request, 'ai_subject_not_found')}, status_code=400)
+        return JSONResponse({'ok': False, 'error': translate(request, 'ai_subject_not_found')}, status_code=400)
 
     try:
         data = await generate_questions(subject.name, grade, topic, language, question_type, question_count)
     except Exception as e:
         log.error("Question generation failed: %s\n%s", e, traceback.format_exc())
-        return JSONResponse({'ok': False, 'error': f"{_t(request, 'ai_error_prefix')}: {str(e)[:200]}"}, status_code=500)
+        return JSONResponse({'ok': False, 'error': f"{translate(request, 'ai_error_prefix')}: {str(e)[:200]}"}, status_code=500)
 
     actual_count = len(data.get('questions', []))
     qs = AIQuestionSet(
@@ -211,7 +204,7 @@ async def teacher_questions_delete(qid: int, request: Request, db: AsyncSession 
         raise HTTPException(403)
     await db.delete(qs)
     await db.commit()
-    flash(request, _t(request, 'ai_presentation_deleted'), 'success')
+    flash(request, translate(request, 'ai_presentation_deleted'), 'success')
     return RedirectResponse(url="/teacher/ai-questions", status_code=303)
 
 

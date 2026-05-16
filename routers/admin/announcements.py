@@ -14,13 +14,9 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from config import RedirectResponse
 from models import get_db, Announcement
 from dependencies import require_admin, flash, get_template_context
-from language import language_manager
+from services.ai_shared import translate
 from services.cache import cache_del_home_announcements
 
-
-def _t(request: Request, key: str) -> str:
-    lang = request.session.get("language", "uz")
-    return language_manager.get(key, lang)
 
 
 log = logging.getLogger("admin.announcements")
@@ -107,7 +103,7 @@ async def announcement_create(
     db.add(ann)
     await db.commit()
     await cache_del_home_announcements()
-    flash(request, _t(request, "ann_added"), "success")
+    flash(request, translate(request, "ann_added"), "success")
     return RedirectResponse(url="/admin/announcements", status_code=303)
 
 
@@ -156,7 +152,7 @@ async def announcement_edit(
     ann.updated_at = datetime.utcnow()
     await db.commit()
     await cache_del_home_announcements()
-    flash(request, _t(request, "ann_updated"), "success")
+    flash(request, translate(request, "ann_updated"), "success")
     return RedirectResponse(url="/admin/announcements", status_code=303)
 
 
@@ -185,5 +181,5 @@ async def announcement_delete(ann_id: int, request: Request, db: AsyncSession = 
         await db.delete(ann)
         await db.commit()
         await cache_del_home_announcements()
-        flash(request, _t(request, "ann_deleted"), "success")
+        flash(request, translate(request, "ann_deleted"), "success")
     return RedirectResponse(url="/admin/announcements", status_code=303)

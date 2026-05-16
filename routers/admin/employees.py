@@ -37,8 +37,9 @@ async def employees_list(
         selectinload(Employee.school), selectinload(Employee.staff_title)
     )
     count_q = select(func.count(Employee.id))
+    
     if sid:
-        base_q = base_q.where(Employee.school_id == sid)
+        base_q = base_q.where(Employee.school_id == sid).order_by(Employee.last_name, Employee.first_name)
         count_q = count_q.where(Employee.school_id == sid)
     else:
         base_q = base_q.order_by(Employee.created_at.desc())

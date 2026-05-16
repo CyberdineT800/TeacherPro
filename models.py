@@ -1,6 +1,6 @@
 from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession, async_sessionmaker
 from sqlalchemy.orm import DeclarativeBase, relationship
-from sqlalchemy import Column, Integer, String, Text, Boolean, Float, DateTime, Date, ForeignKey, Index
+from sqlalchemy import UniqueConstraint, Column, Integer, String, Text, Boolean, Float, DateTime, Date, ForeignKey, Index
 from werkzeug.security import generate_password_hash, check_password_hash
 from datetime import datetime
 from dotenv import load_dotenv
@@ -82,6 +82,19 @@ async def init_db():
                 "ALTER TABLE announcements "
                 "ADD COLUMN IF NOT EXISTS image_url_2 TEXT, "
                 "ADD COLUMN IF NOT EXISTS image_url_3 TEXT"
+            ))
+            # Unique nickname per game session (idempotent)
+            await conn.execute(text(
+                "DO $body$ BEGIN "
+                "  IF NOT EXISTS ("
+                "    SELECT 1 FROM pg_constraint "
+                "    WHERE conname = 'uq_participant_session_nickname'"
+                "  ) THEN "
+                "    ALTER TABLE game_participants "
+                "    ADD CONSTRAINT uq_participant_session_nickname "
+                "    UNIQUE (session_id, nickname); "
+                "  END IF; "
+                "END $body$"
             ))
 
 class School(Base):
@@ -364,6 +377,9 @@ class GameQuestion(Base):
 class GameParticipant(Base):
     """Final result record for one student in a completed GameSession."""
     __tablename__ = 'game_participants'
+    __table_args__ = (
+        UniqueConstraint('session_id', 'nickname', name='uq_participant_session_nickname'),
+    )
     id = Column(Integer, primary_key=True)
     session_id = Column(Integer, ForeignKey('game_sessions.id'), nullable=False, index=True)
     nickname = Column(String(100), nullable=False)

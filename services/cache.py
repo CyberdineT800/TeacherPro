@@ -275,3 +275,23 @@ async def cache_set_home_announcements(announcements: list) -> None:
 
 async def cache_del_home_announcements() -> None:
     await cache_delete("home:announcements")
+
+
+# ── Admin dashboard stats ─────────────────────────────────────────────────────
+# Short TTL: counts change when employees/schools/classes/students are added.
+# Explicit invalidation is complex (many routes), so we accept 60 s of stale.
+
+TTL_ADMIN_STATS = 60   # 1 min
+
+
+async def cache_get_admin_stats() -> Optional[dict]:
+    return await cache_get("admin:stats")
+
+
+async def cache_set_admin_stats(stats: dict) -> None:
+    await cache_set("admin:stats", stats, TTL_ADMIN_STATS)
+
+
+async def cache_del_admin_stats() -> None:
+    """Call after any admin action that changes entity counts."""
+    await cache_delete("admin:stats")
