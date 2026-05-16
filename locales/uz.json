@@ -462,5 +462,15 @@
   "home_tab1": "AI Taqdimotlar",
   "home_tab2": "AI Savollar",
   "home_tab3": "Quiz Race",
-  "home_tab4": "Baholar jadvali"
+  "home_tab4": "Baholar jadvali",
+  "share_heading": "Taqdimotni ulashish",
+  "share_create_link": "Havola yaratish",
+  "share_revoke_link": "Havolani bekor qilish",
+  "share_copy": "Nusxalash",
+  "share_copied": "Nusxalandi ✓",
+  "share_hint": "Havola orqali istalgan kishi avtorizatsiyasiz taqdimotni ko'ra oladi. Havolani istalgan vaqt bekor qilish mumkin.",
+  "share_revoke_confirm": "Havolani bekor qilmoqchimisiz? Eski havola ishlashni to'xtatadi.",
+  "share_error_create": "Havola yaratishda xatolik:",
+  "share_error_revoke": "Bekor qilishda xatolik:",
+  "share_go_home": "Bosh sahifa"
 }

@@ -96,6 +96,11 @@ async def init_db():
                 "  END IF; "
                 "END $body$"
             ))
+            # share_token for shareable presentation links
+            await conn.execute(text(
+                "ALTER TABLE ai_presentations "
+                "ADD COLUMN IF NOT EXISTS share_token VARCHAR(64)"
+            ))
 
 class School(Base):
     __tablename__ = 'schools'
@@ -300,6 +305,7 @@ class AIPresentation(Base):
     content = Column(Text, nullable=False)
     slides_count = Column(Integer, default=0, nullable=False)
     created_at = Column(DateTime, default=datetime.utcnow, index=True)
+    share_token = Column(String(64), nullable=True, unique=True, index=True)
 
     teacher = relationship('Employee')
     subject = relationship('Subject')

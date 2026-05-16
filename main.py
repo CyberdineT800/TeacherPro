@@ -22,6 +22,7 @@ from slowapi.errors import RateLimitExceeded
 from services.cache import init_redis, close_redis
 
 from routers import auth, language
+from routers.shared import router as shared_router
 from routers.home import router as home_router
 from routers.admin import router as admin_router
 from routers.teacher import router as teacher_router
@@ -251,6 +252,7 @@ async def not_found_handler(request: Request, exc: HTTPException):
     return _err_templates.TemplateResponse("404.html", context, status_code=404)
 
 # Include routers
+app.include_router(shared_router, tags=["Shared"])
 app.include_router(home_router, tags=["Home"])
 app.include_router(auth.router, tags=["Authentication"])
 app.include_router(admin_router, tags=["Admin"])

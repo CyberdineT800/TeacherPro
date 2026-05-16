@@ -295,3 +295,21 @@ async def cache_set_admin_stats(stats: dict) -> None:
 async def cache_del_admin_stats() -> None:
     """Call after any admin action that changes entity counts."""
     await cache_delete("admin:stats")
+
+# ── Shared presentation (public, no-auth links) ───────────────────────────────
+# Cached for 10 min; explicitly invalidated when teacher unshares.
+# Stores full presentation JSON so /s/{token} never hits the DB on cache hit.
+
+TTL_SHARED_PRESENTATION = 600   # 10 min
+
+
+async def cache_get_shared_presentation(token: str) -> Optional[dict]:
+    return await cache_get(f"shared_pres:{token}")
+
+
+async def cache_set_shared_presentation(token: str, data: dict) -> None:
+    await cache_set(f"shared_pres:{token}", data, TTL_SHARED_PRESENTATION)
+
+
+async def cache_del_shared_presentation(token: str) -> None:
+    await cache_delete(f"shared_pres:{token}")

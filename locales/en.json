@@ -463,5 +463,15 @@
   "home_tab1": "AI Presentations",
   "home_tab2": "AI Questions",
   "home_tab3": "Quiz Race",
-  "home_tab4": "Grade table"
+  "home_tab4": "Grade table",
+  "share_heading": "Share Presentation",
+  "share_create_link": "Create link",
+  "share_revoke_link": "Revoke link",
+  "share_copy": "Copy",
+  "share_copied": "Copied ✓",
+  "share_hint": "Anyone with this link can view the presentation without logging in. You can revoke the link at any time.",
+  "share_revoke_confirm": "Revoke this link? The existing link will stop working.",
+  "share_error_create": "Error creating link:",
+  "share_error_revoke": "Error revoking link:",
+  "share_go_home": "Home"
 }

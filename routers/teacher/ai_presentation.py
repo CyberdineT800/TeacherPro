@@ -10,6 +10,7 @@ from typing import Optional
 from urllib.parse import quote
 
 import httpx
+import secrets
 from fastapi import APIRouter, Request, Depends, Form, HTTPException
 from fastapi.responses import HTMLResponse, StreamingResponse, JSONResponse
 from config import RedirectResponse
@@ -22,6 +23,7 @@ from models import get_db, Employee, Subject, AIPresentation
 from dependencies import require_login, flash, get_template_context, page_info
 from services.ai_service import generate_presentation
 from services.ai_shared import translate, reset_if_new_day, TEMPLATES, LANGUAGE_DISPLAY
+from services.cache import cache_del_shared_presentation
 from language import language_manager  # used for _p lambda (presentation-language translate)
 
 log = logging.getLogger("teacher.ai_presentation")
@@ -168,6 +170,8 @@ async def teacher_ai_view(pid: int, request: Request, db: AsyncSession = Depends
         'allow_download': is_admin,
         'template_info': TEMPLATES[tpl_key], 'template_key': tpl_key,
         '_p': lambda key: language_manager.get(key, pres_lang),
+        'is_shared': False,
+        'share_url': (f'{request.base_url}s/{presentation.share_token}' if presentation.share_token else None),
     })
     return templates.TemplateResponse('teacher/ai_view.html', context)
 
@@ -189,6 +193,43 @@ async def teacher_ai_delete(pid: int, request: Request, db: AsyncSession = Depen
     await db.commit()
     flash(request, translate(request, 'ai_presentation_deleted'), 'success')
     return RedirectResponse(url="/teacher/ai", status_code=303)
+
+
+@router.post("/ai/{pid}/share")
+async def teacher_ai_share(pid: int, request: Request, db: AsyncSession = Depends(get_db)):
+    """Generate (or return existing) share token for a presentation."""
+    teacher_id = request.session.get('user_id')
+    presentation = (await db.execute(
+        select(AIPresentation).where(AIPresentation.id == pid)
+    )).scalar_one_or_none()
+    if not presentation:
+        raise HTTPException(404)
+    if presentation.teacher_id != teacher_id and not request.session.get('is_admin', False):
+        raise HTTPException(403)
+    if not presentation.share_token:
+        presentation.share_token = secrets.token_urlsafe(32)
+        await db.commit()
+    share_url = f"{request.base_url}s/{presentation.share_token}"
+    return JSONResponse({'share_url': share_url})
+
+
+@router.post("/ai/{pid}/unshare")
+async def teacher_ai_unshare(pid: int, request: Request, db: AsyncSession = Depends(get_db)):
+    """Revoke the share token, invalidating any existing links."""
+    teacher_id = request.session.get('user_id')
+    presentation = (await db.execute(
+        select(AIPresentation).where(AIPresentation.id == pid)
+    )).scalar_one_or_none()
+    if not presentation:
+        raise HTTPException(404)
+    if presentation.teacher_id != teacher_id and not request.session.get('is_admin', False):
+        raise HTTPException(403)
+    old_token = presentation.share_token
+    presentation.share_token = None
+    await db.commit()
+    if old_token:
+        await cache_del_shared_presentation(old_token)
+    return JSONResponse({'revoked': True})
 
 
 # ============================================================================
