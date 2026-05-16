@@ -212,6 +212,56 @@ async def teacher_questions_delete(qid: int, request: Request, db: AsyncSession 
 # PDF BUILDER
 # ============================================================================
 
+def _draw_pdf_header(canvas, doc):
+    """Draw branded header on every page: circle-T icon + 'TeacherPro' as a clickable link."""
+    from reportlab.lib.pagesizes import A4
+    from reportlab.lib.units import inch
+    from reportlab.lib import colors
+    from utils import _PDF_FONT, _PDF_FONT_BOLD
+
+    APP_URL  = "https://teacherpro.uz"
+    APP_NAME = "TeacherPro"
+
+    canvas.saveState()
+
+    page_w    = A4[0]
+    left_x    = 0.8 * inch
+    icon_r    = 7       # circle radius in points
+    center_y  = A4[1] - 0.32 * inch   # vertical center of header row
+
+    # ── circle icon ───────────────────────────────────────────────────────────
+    canvas.setFillColor(colors.HexColor('#0d1b2a'))
+    canvas.setStrokeColor(colors.HexColor('#66e0ff'))
+    canvas.setLineWidth(0.9)
+    canvas.circle(left_x + icon_r, center_y, icon_r, stroke=1, fill=1)
+
+    canvas.setFillColor(colors.white)
+    canvas.setFont(_PDF_FONT_BOLD, 8)
+    canvas.drawCentredString(left_x + icon_r, center_y - 3, "T")
+
+    # ── app name ──────────────────────────────────────────────────────────────
+    text_x = left_x + icon_r * 2 + 5
+    canvas.setFillColor(colors.HexColor('#111827'))
+    canvas.setFont(_PDF_FONT_BOLD, 10)
+    canvas.drawString(text_x, center_y - 3, APP_NAME)
+
+    # ── clickable link over icon + text ───────────────────────────────────────
+    name_w = canvas.stringWidth(APP_NAME, _PDF_FONT_BOLD, 10)
+    link_x1 = left_x
+    link_y1 = center_y - icon_r - 1
+    link_x2 = text_x + name_w
+    link_y2 = center_y + icon_r + 1
+    canvas.linkURL(APP_URL, (link_x1, link_y1, link_x2, link_y2), relative=0)
+
+    # ── thin separator line ───────────────────────────────────────────────────
+    sep_y = center_y - icon_r - 5
+    canvas.setStrokeColor(colors.HexColor('#CCCCCC'))
+    canvas.setLineWidth(0.5)
+    canvas.line(left_x, sep_y, page_w - 0.8 * inch, sep_y)
+
+    canvas.restoreState()
+
+
 def _build_question_pdf(data: dict, qs: AIQuestionSet, teacher_name: str) -> bytes:
     from reportlab.lib.pagesizes import A4
     from reportlab.lib.units import inch
@@ -223,7 +273,7 @@ def _build_question_pdf(data: dict, qs: AIQuestionSet, teacher_name: str) -> byt
 
     output = BytesIO()
     doc = SimpleDocTemplate(output, pagesize=A4,
-        topMargin=0.6 * inch, bottomMargin=0.6 * inch,
+        topMargin=0.75 * inch, bottomMargin=0.6 * inch,
         leftMargin=0.8 * inch, rightMargin=0.8 * inch)
     styles = getSampleStyleSheet()
     title_style = ParagraphStyle('QTitle', parent=styles['Normal'],
@@ -319,5 +369,7 @@ def _build_question_pdf(data: dict, qs: AIQuestionSet, teacher_name: str) -> byt
         fontName=_PDF_FONT, fontSize=9, textColor=colors.HexColor('#666666'))
     elements.append(Paragraph(f"O'qituvchi: {teacher_name}", footer_style))
 
-    doc.build(elements)
+    doc.build(elements,
+              onFirstPage=_draw_pdf_header,
+              onLaterPages=_draw_pdf_header)
     return output.getvalue()
