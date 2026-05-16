@@ -48,59 +48,11 @@ async def get_db():
         yield session
 
 async def init_db():
-    from sqlalchemy import text
     async with engine.begin() as conn:
         await conn.run_sync(Base.metadata.create_all)
-        if not _is_sqlite:
-            await conn.execute(text(
-                "ALTER TABLE employees "
-                "ADD COLUMN IF NOT EXISTS ai_enabled BOOLEAN NOT NULL DEFAULT FALSE, "
-                "ADD COLUMN IF NOT EXISTS ai_daily_limit INTEGER NOT NULL DEFAULT 3, "
-                "ADD COLUMN IF NOT EXISTS ai_used_today INTEGER NOT NULL DEFAULT 0, "
-                "ADD COLUMN IF NOT EXISTS ai_last_reset DATE"
-            ))
-            await conn.execute(text(
-                "ALTER TABLE ai_presentations "
-                "ADD COLUMN IF NOT EXISTS template VARCHAR(50) NOT NULL DEFAULT 'cosmos'"
-            ))
-            await conn.execute(text(
-                "ALTER TABLE employees "
-                "ADD COLUMN IF NOT EXISTS ai_questions_daily_limit INTEGER NOT NULL DEFAULT 5, "
-                "ADD COLUMN IF NOT EXISTS ai_questions_used_today INTEGER NOT NULL DEFAULT 0, "
-                "ADD COLUMN IF NOT EXISTS ai_questions_last_reset DATE"
-            ))
-            await conn.execute(text(
-                "ALTER TABLE employees "
-                "ADD COLUMN IF NOT EXISTS games_enabled BOOLEAN NOT NULL DEFAULT FALSE"
-            ))
-            # Widen image_url to TEXT and add extra image columns
-            await conn.execute(text(
-                "ALTER TABLE announcements "
-                "ALTER COLUMN image_url TYPE TEXT"
-            ))
-            await conn.execute(text(
-                "ALTER TABLE announcements "
-                "ADD COLUMN IF NOT EXISTS image_url_2 TEXT, "
-                "ADD COLUMN IF NOT EXISTS image_url_3 TEXT"
-            ))
-            # Unique nickname per game session (idempotent)
-            await conn.execute(text(
-                "DO $body$ BEGIN "
-                "  IF NOT EXISTS ("
-                "    SELECT 1 FROM pg_constraint "
-                "    WHERE conname = 'uq_participant_session_nickname'"
-                "  ) THEN "
-                "    ALTER TABLE game_participants "
-                "    ADD CONSTRAINT uq_participant_session_nickname "
-                "    UNIQUE (session_id, nickname); "
-                "  END IF; "
-                "END $body$"
-            ))
-            # share_token for shareable presentation links
-            await conn.execute(text(
-                "ALTER TABLE ai_presentations "
-                "ADD COLUMN IF NOT EXISTS share_token VARCHAR(64)"
-            ))
+    # Schema migrations are managed by Alembic (migrations/versions/).
+    # Run `alembic upgrade head` during deployment to apply pending changes.
+    # init_db() only handles table creation via create_all (safe for new deployments).
 
 class School(Base):
     __tablename__ = 'schools'

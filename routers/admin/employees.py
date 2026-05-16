@@ -10,6 +10,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, delete, func
 from sqlalchemy.orm import selectinload
 
+from services.cache import cache_del_admin_stats, cache_del_home_stats, cache_del_user
 from models import (
     get_db, School, Employee, StaffTitle, SchoolClass, Subject,
     Exam, Question, ExamResult, TeacherClass, TeacherSubject,
@@ -88,6 +89,8 @@ async def add_employee(
     for sid in assigned_subjects:
         db.add(TeacherSubject(teacher_id=emp.id, subject_id=int(sid)))
     await db.commit()
+    await cache_del_admin_stats()
+    await cache_del_home_stats()
     flash(request, "Xodim qo'shildi", 'success')
     return RedirectResponse(url="/admin/employees", status_code=303)
 
@@ -165,6 +168,9 @@ async def delete_employee(request: Request, id: int, db: AsyncSession = Depends(
             await db.delete(exam)
         await db.delete(emp)
         await db.commit()
+        await cache_del_admin_stats()
+        await cache_del_home_stats()
+        await cache_del_user(id)
         flash(request, "Xodim va uning yaratgan imtihonlari o'chirildi", 'success')
     except Exception as e:
         await db.rollback()

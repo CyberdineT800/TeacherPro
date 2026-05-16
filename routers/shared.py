@@ -20,6 +20,7 @@ from fastapi.templating import Jinja2Templates
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from rate_limit import limiter
 from models import get_db, AIPresentation
 from dependencies import get_template_context
 from services.ai_shared import TEMPLATES, LANGUAGE_DISPLAY
@@ -32,6 +33,7 @@ templates = Jinja2Templates(directory="templates")
 
 
 @router.get("/s/{token}", response_class=HTMLResponse)
+@limiter.limit("60/minute")
 async def shared_presentation(token: str, request: Request, db: AsyncSession = Depends(get_db)):
     """Render a shared AI presentation — public, no login needed."""
 

@@ -6,6 +6,7 @@ from fastapi.templating import Jinja2Templates
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, delete, func
 
+from services.cache import cache_del_admin_stats, cache_del_home_stats
 from models import get_db, School, Employee, SchoolClass, Student, Exam, Question, ExamResult
 from dependencies import require_admin, flash, get_template_context, page_info
 
@@ -44,6 +45,8 @@ async def add_school(
 ):
     db.add(School(name=name, address=address, phone=phone, email=email))
     await db.commit()
+    await cache_del_admin_stats()
+    await cache_del_home_stats()
     flash(request, "Maktab muvaffaqiyatli qo'shildi", 'success')
     return RedirectResponse(url="/admin/schools", status_code=303)
 
@@ -97,6 +100,8 @@ async def delete_school(request: Request, id: int, db: AsyncSession = Depends(ge
             emp.school_id = None
         await db.delete(school)
         await db.commit()
+        await cache_del_admin_stats()
+        await cache_del_home_stats()
         flash(request, "Maktab va unga bog'liq barcha ma'lumotlar o'chirildi", 'success')
     except Exception as e:
         await db.rollback()

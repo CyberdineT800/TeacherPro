@@ -139,6 +139,15 @@ jobs:
             "
             "$VENV/bin/pip" install --quiet -r /tmp/req.txt
 
+            # ── database migrations (Alembic) ─────────────────────────────
+            echo "── Running Alembic migrations ──"
+            cd "$CURRENT"
+            "$VENV/bin/alembic" upgrade head 2>&1 || {
+              echo "Alembic migration failed — aborting"
+              rollback
+              exit 1
+            }
+
             # ── pre-flight import check ────────────────────────────────────
             echo "── Pre-flight import check ──"
             cd "$CURRENT"

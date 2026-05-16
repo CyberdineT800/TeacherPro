@@ -8,6 +8,7 @@ from fastapi.templating import Jinja2Templates
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, delete, func
 
+from services.cache import cache_del_admin_stats
 from models import get_db, School, SchoolClass, Student, Exam, Question, ExamResult
 from dependencies import require_admin, flash, get_template_context, page_info
 from utils import process_student_excel
@@ -89,6 +90,7 @@ async def add_class(
         except Exception as e:
             flash(request, f"Excel faylni o'qishda xatolik: {e}", 'danger')
     await db.commit()
+    await cache_del_admin_stats()
     flash(request, "Sinf va o'quvchilar qo'shildi", 'success')
     return RedirectResponse(url="/admin/classes", status_code=303)
 
@@ -142,6 +144,7 @@ async def delete_class(request: Request, id: int, db: AsyncSession = Depends(get
         await db.execute(delete(Student).where(Student.class_id == id))
         await db.delete(cls)
         await db.commit()
+        await cache_del_admin_stats()
         flash(request, "Sinf va unga bog'liq barcha ma'lumotlar o'chirildi", 'success')
     except Exception as e:
         await db.rollback()

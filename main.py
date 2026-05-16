@@ -15,9 +15,9 @@ from models import (
     init_db, AsyncSessionLocal,
     Employee, Quarter, ExamName, ExamType, QuestionType, StaffTitle
 )
-from slowapi import Limiter, _rate_limit_exceeded_handler
-from slowapi.util import get_remote_address
+from slowapi import _rate_limit_exceeded_handler
 from slowapi.errors import RateLimitExceeded
+from rate_limit import limiter
 
 from services.cache import init_redis, close_redis
 
@@ -33,8 +33,6 @@ from fastapi.responses import HTMLResponse
 from fastapi.templating import Jinja2Templates as _Jinja2Templates
 _err_templates = _Jinja2Templates(directory="templates")
 
-# Rate limiter — keyed by client IP
-limiter = Limiter(key_func=get_remote_address)
 
 
 async def seed_defaults():
