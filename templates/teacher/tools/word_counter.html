@@ -1,0 +1,168 @@
+{% extends "base.html" %}
+{% block title %}{{ _('tool_word_counter_title') }}{% endblock %}
+
+{% block extra_css %}
+<style>
+.tool-wrap { max-width: 860px; margin: 0 auto; }
+.wc-area {
+    width: 100%; min-height: 260px; padding: .85rem;
+    background: var(--glass-bg); border: 1px solid var(--glass-border-strong);
+    border-radius: var(--r-md); color: var(--text); font-size: .95rem;
+    line-height: 1.7; resize: vertical; font-family: inherit;
+    transition: border-color .15s;
+}
+.wc-area:focus { outline: none; border-color: var(--c-cyan); }
+.wc-stats {
+    display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+    gap: .75rem; margin-top: 1rem;
+}
+.wc-stat {
+    background: var(--glass-bg); border: 1px solid var(--glass-border-strong);
+    border-radius: var(--r-md); padding: .85rem 1rem; text-align: center;
+}
+.wc-stat-val   { font-size: 1.7rem; font-weight: 800; color: var(--c-cyan); line-height: 1; }
+.wc-stat-label { font-size: .78rem; color: var(--text-muted); margin-top: .3rem; }
+.tool-actions  { display: flex; gap: .5rem; margin-top: .8rem; align-items: center; flex-wrap: wrap; }
+.clear-btn, .upload-btn {
+    padding: .35rem .8rem; background: transparent;
+    border: 1px solid var(--glass-border-strong); color: var(--text-muted);
+    border-radius: var(--r-sm); font-size: .82rem; cursor: pointer;
+}
+.clear-btn:hover, .upload-btn:hover { background: var(--glass-bg); color: var(--text); }
+.file-hint { font-size: .75rem; color: var(--text-muted); }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="card tool-wrap">
+    <div style="margin-bottom:1.2rem">
+        <a href="{{ root_path }}/teacher/tools" class="btn btn-secondary btn-sm">&larr; {{ _('tools') }}</a>
+    </div>
+
+    <h2 style="margin:0 0 .4rem">{{ _('tool_word_counter_title') }}</h2>
+    <p style="color:var(--text-muted);font-size:.9rem;margin:0 0 1rem">{{ _('tool_word_counter_desc') }}</p>
+
+    <textarea class="wc-area" id="wcText"
+        placeholder="{{ _('tool_wc_placeholder') }}"
+        oninput="updateStats()"></textarea>
+
+    <div class="tool-actions">
+        <button class="clear-btn" onclick="clearText()">{{ _('tool_clear') }}</button>
+        <button class="upload-btn" id="uploadBtn"
+            onclick="document.getElementById('wcFile').click()">{{ _('tool_upload_file_btn') }}</button>
+        <input type="file" id="wcFile" accept=".txt,.pdf,.docx" style="display:none" onchange="handleFile(this)">
+        <span class="file-hint">{{ _('tool_file_hint') }}</span>
+    </div>
+
+    <div class="wc-stats">
+        <div class="wc-stat">
+            <div class="wc-stat-val" id="statWords">0</div>
+            <div class="wc-stat-label">{{ _('tool_chip_words') }}</div>
+        </div>
+        <div class="wc-stat">
+            <div class="wc-stat-val" id="statChars">0</div>
+            <div class="wc-stat-label">{{ _('tool_chip_chars') }}</div>
+        </div>
+        <div class="wc-stat">
+            <div class="wc-stat-val" id="statCharsNoSp">0</div>
+            <div class="wc-stat-label">{{ _('tool_chip_chars_no_space') }}</div>
+        </div>
+        <div class="wc-stat">
+            <div class="wc-stat-val" id="statSentences">0</div>
+            <div class="wc-stat-label">{{ _('tool_chip_sentences') }}</div>
+        </div>
+        <div class="wc-stat">
+            <div class="wc-stat-val" id="statLines">0</div>
+            <div class="wc-stat-label">{{ _('tool_chip_lines') }}</div>
+        </div>
+        <div class="wc-stat">
+            <div class="wc-stat-val" id="statParagraphs">0</div>
+            <div class="wc-stat-label">{{ _('tool_chip_paragraphs') }}</div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/mammoth/1.6.0/mammoth.browser.min.js"></script>
+<script>
+const STR_LOADING = "{{ _('tool_file_loading') }}";
+const WORKER_URL  = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+
+function updateStats() {
+    const t = document.getElementById('wcText').value;
+    document.getElementById('statWords').textContent      = t.trim() ? t.trim().split(/\s+/).length : 0;
+    document.getElementById('statChars').textContent      = t.length;
+    document.getElementById('statCharsNoSp').textContent  = t.replace(/\s/g,'').length;
+    document.getElementById('statSentences').textContent  = t.trim() ? (t.match(/[.!?…]+/g)||[]).length : 0;
+    document.getElementById('statLines').textContent      = t ? t.split('\n').length : 0;
+    document.getElementById('statParagraphs').textContent = t.trim() ? t.trim().split(/\n\s*\n/).length : 0;
+}
+
+function clearText() {
+    document.getElementById('wcText').value = '';
+    updateStats();
+}
+
+async function handleFile(input) {
+    const file = input.files[0];
+    if (!file) return;
+    input.value = '';
+    const ext = file.name.split('.').pop().toLowerCase();
+    const btn = document.getElementById('uploadBtn');
+    const orig = btn.textContent;
+    btn.textContent = STR_LOADING;
+    btn.disabled = true;
+    try {
+        let text = '';
+        if (ext === 'txt') {
+            text = await readTxt(file);
+        } else if (ext === 'pdf') {
+            text = await readPdf(file);
+        } else if (ext === 'docx') {
+            text = await readDocx(file);
+        }
+        if (text) {
+            document.getElementById('wcText').value = text;
+            updateStats();
+        }
+    } catch(e) {
+        console.error('File read error:', e);
+    } finally {
+        btn.textContent = orig;
+        btn.disabled = false;
+    }
+}
+
+function readTxt(file) {
+    return new Promise((res, rej) => {
+        const r = new FileReader();
+        r.onload = e => res(e.target.result);
+        r.onerror = rej;
+        r.readAsText(file, 'UTF-8');
+    });
+}
+
+async function readPdf(file) {
+    if (typeof pdfjsLib === 'undefined') throw new Error('pdf.js not loaded');
+    pdfjsLib.GlobalWorkerOptions.workerSrc = WORKER_URL;
+    const buf = await file.arrayBuffer();
+    const pdf = await pdfjsLib.getDocument({ data: buf }).promise;
+    let out = '';
+    for (let i = 1; i <= pdf.numPages; i++) {
+        const page = await pdf.getPage(i);
+        const content = await page.getTextContent();
+        out += content.items.map(it => it.str).join(' ') + '\n';
+    }
+    return out.trim();
+}
+
+async function readDocx(file) {
+    if (typeof mammoth === 'undefined') throw new Error('mammoth not loaded');
+    const buf = await file.arrayBuffer();
+    const result = await mammoth.extractRawText({ arrayBuffer: buf });
+    return result.value;
+}
+</script>
+{% endblock %}

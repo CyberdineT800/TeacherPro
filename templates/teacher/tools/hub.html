@@ -1,0 +1,187 @@
+{% extends "base.html" %}
+{% block title %}{{ _('tools') }}{% endblock %}
+
+{% block extra_css %}
+<style>
+.th-header {
+    display: flex; justify-content: space-between; align-items: center;
+    gap: 1rem; flex-wrap: wrap; margin-bottom: 1.5rem;
+}
+.th-grid {
+    display: grid; gap: 1rem;
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+}
+.th-card {
+    display: flex; flex-direction: column; padding: 1.3rem;
+    border-radius: var(--r-md);
+    background: var(--glass-bg); border: 1px solid var(--glass-border-strong);
+    transition: transform .2s var(--ease), box-shadow .2s, border-color .2s;
+    position: relative; overflow: hidden;
+    text-decoration: none; color: inherit;
+}
+.th-card.available:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 0 0 1px var(--c-cyan), 0 8px 24px rgba(0,0,0,.3);
+    border-color: var(--c-cyan);
+}
+.th-card::before {
+    content: ""; position: absolute; left: 0; top: 0; bottom: 0; width: 4px;
+    background: var(--c-cyan); opacity: .9;
+}
+.th-card.disabled { opacity: .45; pointer-events: none; cursor: default; }
+.th-card.disabled::before { background: var(--text-muted); opacity: .4; }
+
+.th-status {
+    display: inline-flex; align-items: center; gap: .3rem;
+    padding: .2rem .65rem; border-radius: var(--r-pill);
+    font-size: .74rem; font-weight: 700; margin-bottom: .75rem;
+    border: 1px solid;
+}
+.th-status.active {
+    background: rgba(100,200,255,.1); color: var(--c-cyan);
+    border-color: rgba(100,200,255,.3);
+}
+.th-status.soon {
+    background: rgba(255,255,255,.05); color: var(--text-muted);
+    border-color: var(--glass-border);
+}
+.th-title { font-weight: 800; font-size: 1.05rem; margin: 0 0 .4rem; }
+.th-desc  { color: var(--text-muted); font-size: .87rem; line-height: 1.6; margin-bottom: 0; }
+.th-spacer { flex: 1; min-height: .6rem; }
+.th-chips { display: flex; flex-wrap: wrap; gap: .35rem; margin-bottom: .85rem; }
+.th-chip  {
+    padding: .22rem .6rem; border-radius: var(--r-pill);
+    background: rgba(255,255,255,.07); border: 1px solid var(--glass-border-strong);
+    font-size: .76rem; color: var(--text);
+}
+.th-footer {
+    padding-top: .85rem; border-top: 1px solid var(--glass-border-strong);
+    font-size: .82rem; color: var(--text-muted);
+}
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="card">
+    <div class="th-header">
+        <div>
+            <h2 style="margin:0">{{ _('tools') }}</h2>
+            <p style="margin:.35rem 0 0; color:var(--text-muted); font-size:.9rem">{{ _('tools_subtitle') }}</p>
+        </div>
+    </div>
+
+    <div class="th-grid">
+
+        <!-- Script Converter -->
+        <a href="{{ root_path }}/teacher/tools/script-converter" class="th-card available">
+            <span class="th-status active">{{ _('tool_available') }}</span>
+            <h3 class="th-title">{{ _('tool_script_converter_title') }}</h3>
+            <p class="th-desc">{{ _('tool_script_converter_desc') }}</p>
+            <div class="th-spacer"></div>
+            <div class="th-chips">
+                <span class="th-chip">Kirill &rarr; Lotin</span>
+                <span class="th-chip">Lotin &rarr; Kirill</span>
+                <span class="th-chip">{{ _('tool_chip_instant') }}</span>
+            </div>
+            <div class="th-footer">{{ _('tool_open') }} &rarr;</div>
+        </a>
+
+        <!-- Word Counter -->
+        <a href="{{ root_path }}/teacher/tools/word-counter" class="th-card available">
+            <span class="th-status active">{{ _('tool_available') }}</span>
+            <h3 class="th-title">{{ _('tool_word_counter_title') }}</h3>
+            <p class="th-desc">{{ _('tool_word_counter_desc') }}</p>
+            <div class="th-spacer"></div>
+            <div class="th-chips">
+                <span class="th-chip">{{ _('tool_chip_words') }}</span>
+                <span class="th-chip">{{ _('tool_chip_chars') }}</span>
+                <span class="th-chip">{{ _('tool_chip_sentences') }}</span>
+                <span class="th-chip">{{ _('tool_chip_instant') }}</span>
+            </div>
+            <div class="th-footer">{{ _('tool_open') }} &rarr;</div>
+        </a>
+
+        <!-- PDF Merge -->
+        <a href="{{ root_path }}/teacher/tools/pdf-merge" class="th-card available">
+            <span class="th-status active">{{ _('tool_available') }}</span>
+            <h3 class="th-title">{{ _('tool_pdf_merge_title') }}</h3>
+            <p class="th-desc">{{ _('tool_pdf_merge_desc') }}</p>
+            <div class="th-spacer"></div>
+            <div class="th-chips">
+                <span class="th-chip">{{ _('tool_chip_order') }}</span>
+                <span class="th-chip">{{ _('tool_chip_up_to_10') }}</span>
+                <span class="th-chip">10 MB</span>
+            </div>
+            <div class="th-footer">{{ _('tool_open') }} &rarr;</div>
+        </a>
+
+        <!-- Image to PDF -->
+        <a href="{{ root_path }}/teacher/tools/image-to-pdf" class="th-card available">
+            <span class="th-status active">{{ _('tool_available') }}</span>
+            <h3 class="th-title">{{ _('tool_img_pdf_title') }}</h3>
+            <p class="th-desc">{{ _('tool_img_pdf_desc') }}</p>
+            <div class="th-spacer"></div>
+            <div class="th-chips">
+                <span class="th-chip">JPG, PNG, WebP</span>
+                <span class="th-chip">{{ _('tool_chip_multipage') }}</span>
+                <span class="th-chip">{{ _('tool_chip_up_to_20') }}</span>
+            </div>
+            <div class="th-footer">{{ _('tool_open') }} &rarr;</div>
+        </a>
+
+        <!-- QR Generator -->
+        <a href="{{ root_path }}/teacher/tools/qr" class="th-card available">
+            <span class="th-status active">{{ _('tool_available') }}</span>
+            <h3 class="th-title">{{ _('tool_qr_title') }}</h3>
+            <p class="th-desc">{{ _('tool_qr_desc') }}</p>
+            <div class="th-spacer"></div>
+            <div class="th-chips">
+                <span class="th-chip">PNG</span>
+                <span class="th-chip">{{ _('tool_chip_custom_size') }}</span>
+                <span class="th-chip">URL, matn</span>
+            </div>
+            <div class="th-footer">{{ _('tool_open') }} &rarr;</div>
+        </a>
+
+        <!-- PDF Editor — coming soon -->
+        <div class="th-card disabled">
+            <span class="th-status soon">{{ _('tool_coming_soon') }}</span>
+            <h3 class="th-title">{{ _('tool_pdf_editor_title') }}</h3>
+            <p class="th-desc">{{ _('tool_pdf_editor_desc') }}</p>
+            <div class="th-spacer"></div>
+            <div class="th-chips">
+                <span class="th-chip">{{ _('tool_chip_edit') }}</span>
+                <span class="th-chip">{{ _('tool_chip_annotate') }}</span>
+            </div>
+            <div class="th-footer">{{ _('tool_in_development') }}</div>
+        </div>
+
+        <!-- PDF Split — coming soon -->
+        <div class="th-card disabled">
+            <span class="th-status soon">{{ _('tool_coming_soon') }}</span>
+            <h3 class="th-title">{{ _('tool_pdf_split_title') }}</h3>
+            <p class="th-desc">{{ _('tool_pdf_split_desc') }}</p>
+            <div class="th-spacer"></div>
+            <div class="th-chips">
+                <span class="th-chip">{{ _('tool_chip_page_range') }}</span>
+                <span class="th-chip">{{ _('tool_chip_extract') }}</span>
+            </div>
+            <div class="th-footer">{{ _('tool_in_development') }}</div>
+        </div>
+
+        <!-- Text Cleaner — coming soon -->
+        <div class="th-card disabled">
+            <span class="th-status soon">{{ _('tool_coming_soon') }}</span>
+            <h3 class="th-title">{{ _('tool_text_cleaner_title') }}</h3>
+            <p class="th-desc">{{ _('tool_text_cleaner_desc') }}</p>
+            <div class="th-spacer"></div>
+            <div class="th-chips">
+                <span class="th-chip">{{ _('tool_chip_spaces') }}</span>
+                <span class="th-chip">{{ _('tool_chip_unicode') }}</span>
+            </div>
+            <div class="th-footer">{{ _('tool_in_development') }}</div>
+        </div>
+
+    </div>
+</div>
+{% endblock %}

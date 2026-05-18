@@ -208,6 +208,14 @@ async def add_template_context(request: Request, call_next):
             # ── Teacher: games hub (game-agnostic) ──────────────────────────
             'teacher_games_hub': '/teacher/games',
 
+            # ── Teacher: tools hub ───────────────────────────────────────────
+            'teacher_tools_hub':      '/teacher/tools',
+            'tools_script_converter': '/teacher/tools/script-converter',
+            'tools_word_counter':     '/teacher/tools/word-counter',
+            'tools_pdf_merge':        '/teacher/tools/pdf-merge',
+            'tools_image_to_pdf':     '/teacher/tools/image-to-pdf',
+            'tools_qr':               '/teacher/tools/qr',
+
             # ── Teacher: Quiz Race ───────────────────────────────────────────
             'teacher_quiz_race_sessions': '/teacher/games/quiz-race/sessions',
             'teacher_quiz_race_create': '/teacher/games/quiz-race/create',

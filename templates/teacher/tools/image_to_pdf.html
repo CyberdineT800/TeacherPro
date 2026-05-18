@@ -1,0 +1,126 @@
+{% extends "base.html" %}
+{% block title %}{{ _('tool_img_pdf_title') }}{% endblock %}
+
+{% block extra_css %}
+<style>
+.tool-wrap { max-width: 680px; margin: 0 auto; }
+.drop-zone {
+    border: 2px dashed var(--glass-border-strong); border-radius: var(--r-md);
+    padding: 2.5rem 1.5rem; text-align: center; cursor: pointer;
+    transition: border-color .2s, background .2s; background: var(--glass-bg);
+}
+.drop-zone:hover, .drop-zone.drag-over {
+    border-color: var(--c-cyan); background: rgba(100,200,255,.05);
+}
+.drop-zone input[type=file] { display: none; }
+.drop-icon  { font-size: 2rem; margin-bottom: .5rem; }
+.drop-title { font-weight: 700; margin-bottom: .3rem; }
+.drop-hint  { font-size: .82rem; color: var(--text-muted); }
+.preview-grid {
+    display: grid; grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
+    gap: .6rem; margin-top: 1rem;
+}
+.preview-item {
+    position: relative; border-radius: var(--r-sm);
+    border: 1px solid var(--glass-border-strong); overflow: hidden;
+    aspect-ratio: 1;
+}
+.preview-item img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.preview-del {
+    position: absolute; top: 2px; right: 2px; width: 20px; height: 20px;
+    background: rgba(0,0,0,.7); border: none; border-radius: 50%;
+    color: white; font-size: .7rem; cursor: pointer; display: flex;
+    align-items: center; justify-content: center; line-height: 1;
+}
+.submit-row { margin-top: 1.2rem; display: flex; gap: .6rem; align-items: center; }
+.tool-note  { font-size: .8rem; color: var(--text-muted); margin-top: .75rem; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="card tool-wrap">
+    <div style="margin-bottom:1.2rem">
+        <a href="{{ root_path }}/teacher/tools" class="btn btn-secondary btn-sm">&larr; {{ _('tools') }}</a>
+    </div>
+
+    <h2 style="margin:0 0 .4rem">{{ _('tool_img_pdf_title') }}</h2>
+    <p style="color:var(--text-muted);font-size:.9rem;margin:0 0 1.2rem">{{ _('tool_img_pdf_desc') }}</p>
+
+    <form id="imgForm" method="post" enctype="multipart/form-data"
+          action="{{ root_path }}/teacher/tools/image-to-pdf">
+
+        <div class="drop-zone" id="dropZone" onclick="document.getElementById('imgFiles').click()">
+            <div class="drop-icon">[IMG]</div>
+            <div class="drop-title">{{ _('tool_upload_click_or_drag') }}</div>
+            <div class="drop-hint">{{ _('tool_img_pdf_hint') }}</div>
+            <input type="file" id="imgFiles" name="files" multiple accept=".jpg,.jpeg,.png,.webp,.bmp,.tiff">
+        </div>
+
+        <div class="preview-grid" id="previewGrid"></div>
+
+        <div class="submit-row">
+            <button type="submit" class="btn btn-primary" id="submitBtn" disabled>
+                {{ _('tool_img_pdf_submit') }}
+            </button>
+            <button type="button" class="btn btn-secondary" onclick="clearFiles()">{{ _('tool_clear') }}</button>
+        </div>
+        <p class="tool-note">{{ _('tool_img_pdf_note') }}</p>
+    </form>
+</div>
+
+<script>
+const _STR_LOADING_IMG = "{{ _('tool_file_loading') }}";
+document.getElementById('imgForm').addEventListener('submit', function() {
+    const btn = document.getElementById('submitBtn');
+    btn.disabled = true;
+    btn.textContent = _STR_LOADING_IMG;
+});
+
+const input = document.getElementById('imgFiles');
+const grid  = document.getElementById('previewGrid');
+const btn   = document.getElementById('submitBtn');
+const zone  = document.getElementById('dropZone');
+let files   = [];
+const _ALLOWED = new Set(['jpg','jpeg','png','webp','bmp','tiff','tif']);
+
+input.addEventListener('change', () => addFiles(input.files));
+zone.addEventListener('dragover',  e => { e.preventDefault(); zone.classList.add('drag-over'); });
+zone.addEventListener('dragleave', () => zone.classList.remove('drag-over'));
+zone.addEventListener('drop', e => {
+    e.preventDefault(); zone.classList.remove('drag-over');
+    addFiles(e.dataTransfer.files);
+});
+
+function addFiles(newFiles) {
+    for (const f of newFiles) {
+        const ext = f.name.split('.').pop().toLowerCase();
+        if (!_ALLOWED.has(ext)) continue;
+        if (files.length >= 20) break;
+        files.push(f);
+    }
+    render();
+}
+
+function render() {
+    grid.innerHTML = '';
+    files.forEach((f, i) => {
+        const item = document.createElement('div');
+        item.className = 'preview-item';
+        const img = document.createElement('img');
+        img.src = URL.createObjectURL(f);
+        const del = document.createElement('button');
+        del.className = 'preview-del'; del.type = 'button'; del.textContent = 'x';
+        del.onclick = () => removeFile(i);
+        item.append(img, del);
+        grid.appendChild(item);
+    });
+    btn.disabled = files.length < 1;
+    const dt = new DataTransfer();
+    files.forEach(f => dt.items.add(f));
+    input.files = dt.files;
+}
+
+function removeFile(i) { files.splice(i, 1); render(); }
+function clearFiles()  { files = []; render(); }
+</script>
+{% endblock %}

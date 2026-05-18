@@ -1,0 +1,208 @@
+{% extends "base.html" %}
+{% block title %}{{ _('tool_qr_title') }}{% endblock %}
+
+{% block extra_css %}
+<style>
+.tool-wrap  { max-width: 640px; margin: 0 auto; }
+.qr-form    { display: flex; flex-direction: column; gap: 1rem; }
+.qr-label   { font-size: .85rem; color: var(--text-muted); margin-bottom: .3rem; }
+.qr-textarea {
+    width: 100%; padding: .65rem .85rem;
+    background: var(--glass-bg); border: 1px solid var(--glass-border-strong);
+    border-radius: var(--r-md); color: var(--text); font-size: .95rem;
+    font-family: inherit; transition: border-color .15s;
+    min-height: 110px; resize: vertical; line-height: 1.6;
+}
+.qr-textarea:focus { outline: none; border-color: var(--c-cyan); }
+.char-hint { font-size: .78rem; color: var(--text-muted); text-align: right; }
+
+/* Size selector */
+.size-row  { display: flex; gap: .5rem; flex-wrap: wrap; }
+.size-btn  {
+    padding: .3rem .8rem; border-radius: var(--r-pill);
+    background: var(--glass-bg); border: 1px solid var(--glass-border-strong);
+    cursor: pointer; font-size: .82rem; color: var(--text-muted);
+    transition: background .15s, color .15s, border-color .15s;
+}
+.size-btn.active { background: rgba(100,200,255,.12); border-color: var(--c-cyan); color: var(--c-cyan); }
+
+/* Style / color section */
+.style-grid {
+    display: grid; grid-template-columns: 1fr 1fr; gap: .75rem;
+}
+.style-preset-row { display: flex; gap: .4rem; flex-wrap: wrap; margin-top: .4rem; }
+.style-preset {
+    padding: .25rem .65rem; border-radius: var(--r-pill);
+    border: 1px solid var(--glass-border-strong); cursor: pointer;
+    font-size: .78rem; color: var(--text-muted);
+    background: var(--glass-bg); transition: border-color .15s;
+}
+.style-preset:hover { border-color: var(--c-cyan); color: var(--text); }
+.color-row { display: flex; align-items: center; gap: .5rem; }
+.color-row input[type=color] {
+    width: 36px; height: 28px; padding: 2px 3px;
+    border-radius: var(--r-sm); border: 1px solid var(--glass-border-strong);
+    background: var(--glass-bg); cursor: pointer;
+}
+.err-select {
+    padding: .35rem .65rem; background: var(--glass-bg);
+    border: 1px solid var(--glass-border-strong); border-radius: var(--r-sm);
+    color: var(--text); font-size: .85rem; width: 100%;
+}
+.err-select:focus { outline: none; border-color: var(--c-cyan); }
+
+/* Preview */
+.qr-result {
+    display: none; margin-top: 1.5rem;
+    background: var(--glass-bg); border: 1px solid var(--glass-border-strong);
+    border-radius: var(--r-md); padding: 1.5rem; text-align: center;
+}
+.qr-result img { max-width: 100%; border-radius: var(--r-sm); display: block; margin: 0 auto 1rem; }
+.qr-result-actions { display: flex; gap: .6rem; justify-content: center; flex-wrap: wrap; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="card tool-wrap">
+    <div style="margin-bottom:1.2rem">
+        <a href="{{ root_path }}/teacher/tools" class="btn btn-secondary btn-sm">&larr; {{ _('tools') }}</a>
+    </div>
+
+    <h2 style="margin:0 0 .4rem">{{ _('tool_qr_title') }}</h2>
+    <p style="color:var(--text-muted);font-size:.9rem;margin:0 0 1.2rem">{{ _('tool_qr_desc') }}</p>
+
+    <form class="qr-form" id="qrForm" action="{{ root_path }}/teacher/tools/qr" method="post">
+
+        <div>
+            <div class="qr-label">{{ _('tool_qr_text_label') }}</div>
+            <textarea class="qr-textarea" name="text" id="qrText" maxlength="2000"
+                placeholder="{{ _('tool_qr_placeholder') }}"
+                oninput="document.getElementById('charCount').textContent=this.value.length"
+                required></textarea>
+            <div class="char-hint"><span id="charCount">0</span> / 2000</div>
+        </div>
+
+        <div>
+            <div class="qr-label">{{ _('tool_qr_size_label') }}</div>
+            <input type="hidden" name="size" id="sizeInput" value="300">
+            <div class="size-row">
+                <button type="button" class="size-btn" onclick="setSize(150)">150 px</button>
+                <button type="button" class="size-btn active" onclick="setSize(300)">300 px</button>
+                <button type="button" class="size-btn" onclick="setSize(500)">500 px</button>
+                <button type="button" class="size-btn" onclick="setSize(800)">800 px</button>
+            </div>
+        </div>
+
+        <div>
+            <div class="qr-label">{{ _('tool_qr_style_label') }}</div>
+            <div class="style-preset-row" id="presetRow">
+                <button type="button" class="style-preset" onclick="applyPreset('#000000','#ffffff')">Klassik</button>
+                <button type="button" class="style-preset" onclick="applyPreset('#0e2a4a','#f0f9ff')">Ko'k</button>
+                <button type="button" class="style-preset" onclick="applyPreset('#1a1a2e','#e8f5e9')">Yashil</button>
+                <button type="button" class="style-preset" onclick="applyPreset('#7b2d00','#fff7ed')">Issiq</button>
+                <button type="button" class="style-preset" onclick="applyPreset('#ffffff','#1e1e2e')">Tun</button>
+            </div>
+            <div class="style-grid" style="margin-top:.75rem">
+                <div>
+                    <div class="qr-label" style="margin-bottom:.3rem">{{ _('tool_qr_fg_color') }}</div>
+                    <div class="color-row">
+                        <input type="color" name="fg_color" id="fgColor" value="#000000">
+                        <span id="fgHex" style="font-size:.82rem;color:var(--text-muted)">#000000</span>
+                    </div>
+                </div>
+                <div>
+                    <div class="qr-label" style="margin-bottom:.3rem">{{ _('tool_qr_bg_color') }}</div>
+                    <div class="color-row">
+                        <input type="color" name="bg_color" id="bgColor" value="#ffffff">
+                        <span id="bgHex" style="font-size:.82rem;color:var(--text-muted)">#ffffff</span>
+                    </div>
+                </div>
+                <div>
+                    <div class="qr-label" style="margin-bottom:.3rem">{{ _('tool_qr_error_level') }}</div>
+                    <select name="error_level" class="err-select">
+                        <option value="L">{{ _('tool_qr_error_low') }}</option>
+                        <option value="M" selected>{{ _('tool_qr_error_med') }}</option>
+                        <option value="Q">{{ _('tool_qr_error_high') }}</option>
+                        <option value="H">{{ _('tool_qr_error_max') }}</option>
+                    </select>
+                </div>
+            </div>
+        </div>
+
+        <div>
+            <button type="submit" class="btn btn-primary" id="submitBtn">{{ _('tool_qr_submit') }}</button>
+        </div>
+    </form>
+
+    <!-- Preview -->
+    <div class="qr-result" id="qrResult">
+        <div class="qr-label" style="margin-bottom:.75rem">{{ _('tool_qr_preview') }}</div>
+        <img id="qrImg" src="" alt="QR">
+        <div class="qr-result-actions">
+            <a id="qrDownload" class="btn btn-primary" download="qr.png">{{ _('tool_qr_download') }}</a>
+        </div>
+    </div>
+</div>
+
+<script>
+const STR_GENERATING = "{{ _('tool_qr_generating') }}";
+const STR_SUBMIT     = "{{ _('tool_qr_submit') }}";
+
+function setSize(val) {
+    document.getElementById('sizeInput').value = val;
+    document.querySelectorAll('.size-btn').forEach(b => {
+        b.classList.toggle('active', b.textContent.trim() === val + ' px');
+    });
+}
+
+function applyPreset(fg, bg) {
+    const fgEl = document.getElementById('fgColor');
+    const bgEl = document.getElementById('bgColor');
+    fgEl.value = fg; bgEl.value = bg;
+    document.getElementById('fgHex').textContent = fg;
+    document.getElementById('bgHex').textContent = bg;
+}
+
+document.getElementById('fgColor').addEventListener('input', function() {
+    document.getElementById('fgHex').textContent = this.value;
+});
+document.getElementById('bgColor').addEventListener('input', function() {
+    document.getElementById('bgHex').textContent = this.value;
+});
+
+document.getElementById('qrForm').addEventListener('submit', async function(e) {
+    e.preventDefault();
+    const btn = document.getElementById('submitBtn');
+    btn.disabled = true;
+    btn.textContent = STR_GENERATING;
+
+    try {
+        const resp = await fetch(this.action, { method: 'POST', body: new FormData(this) });
+        if (!resp.ok) {
+            const err = await resp.text();
+            console.error('QR error:', err);
+            return;
+        }
+        const blob = await resp.blob();
+        const url  = URL.createObjectURL(blob);
+
+        const img  = document.getElementById('qrImg');
+        const dl   = document.getElementById('qrDownload');
+        const res  = document.getElementById('qrResult');
+
+        // Revoke previous object URL if any
+        if (img.src && img.src.startsWith('blob:')) URL.revokeObjectURL(img.src);
+
+        img.src   = url;
+        dl.href   = url;
+        res.style.display = 'block';
+        res.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    } catch(err) {
+        console.error('QR fetch error:', err);
+    } finally {
+        btn.disabled = false;
+        btn.textContent = STR_SUBMIT;
+    }
+});
+</script>
+{% endblock %}

@@ -1,0 +1,326 @@
+{% extends "base.html" %}
+{% block title %}{{ _('tool_script_converter_title') }}{% endblock %}
+
+{% block extra_css %}
+<style>
+.tool-wrap { max-width: 920px; margin: 0 auto; }
+.tool-tabs  { display: flex; gap: .5rem; margin-bottom: 1.2rem; }
+.tool-tab   {
+    padding: .4rem 1.1rem; border-radius: var(--r-pill);
+    background: var(--glass-bg); border: 1px solid var(--glass-border-strong);
+    cursor: pointer; font-size: .88rem; font-weight: 600; color: var(--text-muted);
+    transition: background .15s, color .15s, border-color .15s;
+}
+.tool-tab.active {
+    background: rgba(100,200,255,.12); border-color: var(--c-cyan); color: var(--c-cyan);
+}
+.converter-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
+@media (max-width: 600px) { .converter-grid { grid-template-columns: 1fr; } }
+.conv-label { font-size: .82rem; color: var(--text-muted); margin-bottom: .4rem; }
+.conv-area  {
+    width: 100%; min-height: 220px; padding: .75rem;
+    background: var(--glass-bg); border: 1px solid var(--glass-border-strong);
+    border-radius: var(--r-md); color: var(--text); font-size: .95rem;
+    line-height: 1.6; resize: vertical; font-family: inherit;
+    transition: border-color .15s; box-sizing: border-box;
+}
+.conv-area:focus { outline: none; border-color: var(--c-cyan); }
+.conv-area[readonly] { color: var(--text); cursor: text; }
+.conv-actions { display: flex; gap: .5rem; margin-top: .65rem; flex-wrap: wrap; align-items: center; }
+.copy-btn {
+    padding: .3rem .75rem; background: rgba(100,200,255,.1);
+    border: 1px solid rgba(100,200,255,.25); color: var(--c-cyan);
+    border-radius: var(--r-sm); font-size: .82rem; cursor: pointer; transition: background .15s;
+}
+.copy-btn:hover { background: rgba(100,200,255,.2); }
+.copy-btn:disabled { opacity: .55; cursor: not-allowed; }
+.clear-btn, .upload-btn {
+    padding: .3rem .75rem; background: transparent;
+    border: 1px solid var(--glass-border-strong); color: var(--text-muted);
+    border-radius: var(--r-sm); font-size: .82rem; cursor: pointer; transition: background .15s;
+}
+.clear-btn:hover, .upload-btn:hover { background: var(--glass-bg); color: var(--text); }
+.char-count { font-size: .78rem; color: var(--text-muted); margin-top: .35rem; }
+.file-hint  { font-size: .75rem; color: var(--text-muted); }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="card tool-wrap">
+    <div style="margin-bottom:1.2rem">
+        <a href="{{ root_path }}/teacher/tools" class="btn btn-secondary btn-sm">&larr; {{ _('tools') }}</a>
+    </div>
+
+    <h2 style="margin:0 0 .4rem">{{ _('tool_script_converter_title') }}</h2>
+    <p style="color:var(--text-muted);font-size:.9rem;margin:0 0 1.2rem">{{ _('tool_script_converter_desc') }}</p>
+
+    <div class="tool-tabs">
+        <button class="tool-tab active" onclick="setMode('k2l')">Kirill &rarr; Lotin</button>
+        <button class="tool-tab" onclick="setMode('l2k')">Lotin &rarr; Kirill</button>
+    </div>
+
+    <div class="converter-grid">
+        <div>
+            <div class="conv-label" id="srcLabel">{{ _('tool_script_kirill') }}</div>
+            <textarea class="conv-area" id="srcText"
+                placeholder="{{ _('tool_converter_placeholder_src') }}"
+                oninput="convert()"></textarea>
+            <div class="conv-actions">
+                <button class="clear-btn" onclick="clearAll()">{{ _('tool_clear') }}</button>
+                <button class="upload-btn" id="uploadBtn"
+                    onclick="document.getElementById('fileInput').click()">{{ _('tool_upload_file_btn') }}</button>
+                <input type="file" id="fileInput" accept=".txt,.pdf,.docx" style="display:none" onchange="handleFile(this)">
+                <span class="file-hint">{{ _('tool_file_hint') }}</span>
+            </div>
+            <div class="char-count" id="srcCount">0 {{ _('tool_chars') }}</div>
+        </div>
+        <div>
+            <div class="conv-label" id="dstLabel">{{ _('tool_script_lotin') }}</div>
+            <textarea class="conv-area" id="dstText" readonly
+                placeholder="{{ _('tool_converter_placeholder_dst') }}"></textarea>
+            <div class="conv-actions">
+                <button class="copy-btn" id="copyBtn" onclick="copyResult()">{{ _('tool_copy') }}</button>
+                <button class="copy-btn" id="downloadBtn" style="display:none" onclick="downloadConverted()">{{ _('tool_qr_download') }}</button>
+            </div>
+            <div class="char-count" id="dstCount">0 {{ _('tool_chars') }}</div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/mammoth/1.6.0/mammoth.browser.min.js"></script>
+<script>
+const LABEL_KIRILL = "{{ _('tool_script_kirill') }}";
+const LABEL_LOTIN  = "{{ _('tool_script_lotin') }}";
+const STR_CHARS    = "{{ _('tool_chars') }}";
+const STR_COPY     = "{{ _('tool_copy') }}";
+const STR_COPIED   = "{{ _('tool_copied') }}";
+const STR_LOADING  = "{{ _('tool_file_loading') }}";
+
+let mode = 'k2l';
+let _uploadedFile = null;   // original File object
+let _uploadedBase = null;   // filename without extension
+let _uploadedExt  = null;   // 'txt', 'pdf', or 'docx'
+
+const srcText     = document.getElementById('srcText');
+const dstText     = document.getElementById('dstText');
+const srcCount    = document.getElementById('srcCount');
+const dstCount    = document.getElementById('dstCount');
+const downloadBtn = document.getElementById('downloadBtn');
+
+function setMode(m) {
+    mode = m;
+    document.querySelectorAll('.tool-tab').forEach((t, i) => {
+        t.classList.toggle('active', (i===0 && m==='k2l') || (i===1 && m==='l2k'));
+    });
+    document.getElementById('srcLabel').textContent = m==='k2l' ? LABEL_KIRILL : LABEL_LOTIN;
+    document.getElementById('dstLabel').textContent = m==='k2l' ? LABEL_LOTIN  : LABEL_KIRILL;
+    convert();
+}
+
+// Sync textarea resize
+if (typeof ResizeObserver !== 'undefined') {
+    let syncing = false;
+    const ro = new ResizeObserver(entries => {
+        if (syncing) return;
+        syncing = true;
+        for (const e of entries) {
+            const h = e.target.style.height;
+            if (h) {
+                const other = e.target === srcText ? dstText : srcText;
+                other.style.height = h;
+            }
+        }
+        syncing = false;
+    });
+    ro.observe(srcText);
+    ro.observe(dstText);
+}
+
+// Kirill -> Lotin
+const KL_MULTI = [
+    ['Нг','Ng'],['нг','ng'],['Ш','Sh'],['ш','sh'],['Ч','Ch'],['ч','ch'],
+    ['Ю','Yu'],['ю','yu'],['Я','Ya'],['я','ya'],['Ё','Yo'],['ё','yo'],
+    ['Е','Ye'],['е','ye'],['Ж','J'],['ж','j'],['Ц','Ts'],['ц','ts'],
+    ['Щ','Sh'],['щ','sh'],['Ъ','ʼ'],['ъ','ʼ'],['Ь',''],['ь',''],['Ы','I'],['ы','i'],
+];
+const KL_SINGLE = {
+    'А':'A','а':'a','Б':'B','б':'b','В':'V','в':'v','Г':'G','г':'g',
+    'Д':'D','д':'d','З':'Z','з':'z','И':'I','и':'i','Й':'Y','й':'y',
+    'К':'K','к':'k','Л':'L','л':'l','М':'M','м':'m','Н':'N','н':'n',
+    'О':'O','о':'o','П':'P','п':'p','Р':'R','р':'r','С':'S','с':'s',
+    'Т':'T','т':'t','У':'U','у':'u','Ф':'F','ф':'f','Х':'X','х':'x',
+    'Э':'E','э':'e','Ҳ':'H','ҳ':'h','Қ':'Q','қ':'q',
+    'Ғ':'Gʻ','ғ':'gʻ','Ў':'Oʻ','ў':'oʻ',
+};
+
+// Lotin -> Kirill
+const LK_MULTI_RE = [
+    [/O[ʻʼ''']/g,'Ў'],[/o[ʻʼ''']/g,'ў'],
+    [/G[ʻʼ''']/g,'Ғ'],[/g[ʻʼ''']/g,'ғ'],
+    [/Ng/g,'Нг'],[/ng/g,'нг'],[/NG/g,'НГ'],
+    [/Sh/g,'Ш'],[/sh/g,'ш'],[/SH/g,'Ш'],
+    [/Ch/g,'Ч'],[/ch/g,'ч'],[/CH/g,'Ч'],
+    [/Ts/g,'Ц'],[/ts/g,'ц'],[/TS/g,'Ц'],
+    [/Ye/g,'Е'],[/ye/g,'е'],[/YE/g,'Е'],
+    [/Yo/g,'Ё'],[/yo/g,'ё'],[/YO/g,'Ё'],
+    [/Yu/g,'Ю'],[/yu/g,'ю'],[/YU/g,'Ю'],
+    [/Ya/g,'Я'],[/ya/g,'я'],[/YA/g,'Я'],
+    [/[ʼʻ']/g,'ъ'],
+];
+const LK_SINGLE = {
+    'A':'А','a':'а','B':'Б','b':'б','V':'В','v':'в','G':'Г','g':'г',
+    'D':'Д','d':'д','E':'Е','e':'е','Z':'З','z':'з','I':'И','i':'и',
+    'Y':'Й','y':'й','J':'Ж','j':'ж','K':'К','k':'к','L':'Л','l':'л',
+    'M':'М','m':'м','N':'Н','n':'н','O':'О','o':'о','P':'П','p':'п',
+    'R':'Р','r':'р','S':'С','s':'с','T':'Т','t':'т','U':'У','u':'у',
+    'F':'Ф','f':'ф','X':'Х','x':'х','H':'Ҳ','h':'ҳ','Q':'Қ','q':'қ',
+};
+
+function kirillToLotin(text) {
+    let res = text;
+    for (const [k, v] of KL_MULTI) res = res.split(k).join(v);
+    return res.split('').map(ch => KL_SINGLE[ch] ?? ch).join('');
+}
+function lotinToKirill(text) {
+    let res = text;
+    for (const [re, v] of LK_MULTI_RE) res = res.replace(re, v);
+    return res.split('').map(ch => LK_SINGLE[ch] ?? ch).join('');
+}
+
+function convert() {
+    const src = srcText.value;
+    const dst = mode === 'k2l' ? kirillToLotin(src) : lotinToKirill(src);
+    dstText.value = dst;
+    srcCount.textContent = src.length + ' ' + STR_CHARS;
+    dstCount.textContent = dst.length + ' ' + STR_CHARS;
+    if (!dst) _hideDownload();
+}
+
+function clearAll() {
+    srcText.value = dstText.value = '';
+    srcCount.textContent = dstCount.textContent = '0 ' + STR_CHARS;
+    _uploadedFile = null;
+    _uploadedBase = null;
+    _uploadedExt  = null;
+    _hideDownload();
+}
+
+function _hideDownload() { downloadBtn.style.display = 'none'; }
+function _showDownload()  { downloadBtn.style.display = ''; }
+
+async function downloadConverted() {
+    if (!_uploadedFile) return;
+    const orig = downloadBtn.textContent;
+    downloadBtn.disabled = true;
+    downloadBtn.textContent = STR_LOADING;
+    try {
+        const fd = new FormData();
+        fd.append('file', _uploadedFile);
+        fd.append('mode', mode);
+        const resp = await fetch(window.ROOT_PATH + '/teacher/tools/convert-file', {
+            method: 'POST',
+            body: fd,
+        });
+        if (resp.status === 422) {
+            const err = await resp.json();
+            alert(err.detail || 'Konvertatsiya mumkin emas.');
+            return;
+        }
+        if (!resp.ok) {
+            alert('Xatolik yuz berdi: ' + resp.status);
+            return;
+        }
+        const blob = await resp.blob();
+        const url  = URL.createObjectURL(blob);
+        const a    = document.createElement('a');
+        a.href     = url;
+        a.download = _uploadedBase + '_converted.' + _uploadedExt;
+        document.body.appendChild(a);
+        a.click();
+        setTimeout(() => { URL.revokeObjectURL(url); a.remove(); }, 2000);
+    } catch (e) {
+        console.error('Download error:', e);
+        alert("Tarmoq xatosi. Qaytadan urinib ko'ring.");
+    } finally {
+        downloadBtn.disabled = false;
+        downloadBtn.textContent = orig;
+    }
+}
+
+function copyResult() {
+    if (!dstText.value) return;
+    navigator.clipboard.writeText(dstText.value).then(() => {
+        const btn = document.getElementById('copyBtn');
+        btn.textContent = STR_COPIED;
+        setTimeout(() => { btn.textContent = STR_COPY; }, 1800);
+    });
+}
+
+// File upload — preview in textarea (client-side), download is server-side
+async function handleFile(input) {
+    const file = input.files[0];
+    if (!file) return;
+    input.value = '';
+    const ext      = file.name.split('.').pop().toLowerCase();
+    const baseName = file.name.replace(/\.[^.]+$/, '');
+    const btn      = document.getElementById('uploadBtn');
+    const orig     = btn.textContent;
+    btn.textContent = STR_LOADING;
+    btn.disabled    = true;
+    _hideDownload();
+    try {
+        let text = '';
+        if (ext === 'txt')        text = await readTxt(file);
+        else if (ext === 'pdf')   text = await readPdf(file);
+        else if (ext === 'docx')  text = await readDocx(file);
+        if (text) {
+            srcText.value = text;
+            convert();
+            _uploadedFile = file;
+            _uploadedBase = baseName;
+            _uploadedExt  = ext;
+            _showDownload();
+        }
+    } catch (e) {
+        console.error('File read error:', e);
+    } finally {
+        btn.textContent = orig;
+        btn.disabled    = false;
+    }
+}
+
+function readTxt(file) {
+    return new Promise((res, rej) => {
+        const r = new FileReader();
+        r.onload  = e => res(e.target.result);
+        r.onerror = rej;
+        r.readAsText(file, 'UTF-8');
+    });
+}
+
+async function readPdf(file) {
+    const WORKER = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+    if (typeof pdfjsLib === 'undefined') throw new Error('pdf.js not loaded');
+    pdfjsLib.GlobalWorkerOptions.workerSrc = WORKER;
+    const buf = await file.arrayBuffer();
+    const pdf = await pdfjsLib.getDocument({ data: buf }).promise;
+    let out = '';
+    for (let i = 1; i <= pdf.numPages; i++) {
+        const page    = await pdf.getPage(i);
+        const content = await page.getTextContent();
+        out += content.items.map(it => it.str).join(' ') + '\n';
+    }
+    return out.trim();
+}
+
+async function readDocx(file) {
+    if (typeof mammoth === 'undefined') throw new Error('mammoth not loaded');
+    const buf    = await file.arrayBuffer();
+    const result = await mammoth.extractRawText({ arrayBuffer: buf });
+    return result.value;
+}
+</script>
+{% endblock %}

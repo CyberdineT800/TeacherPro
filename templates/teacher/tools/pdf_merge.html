@@ -1,0 +1,122 @@
+{% extends "base.html" %}
+{% block title %}{{ _('tool_pdf_merge_title') }}{% endblock %}
+
+{% block extra_css %}
+<style>
+.tool-wrap  { max-width: 680px; margin: 0 auto; }
+.drop-zone  {
+    border: 2px dashed var(--glass-border-strong); border-radius: var(--r-md);
+    padding: 2.5rem 1.5rem; text-align: center; cursor: pointer;
+    transition: border-color .2s, background .2s;
+    background: var(--glass-bg);
+}
+.drop-zone:hover, .drop-zone.drag-over {
+    border-color: var(--c-cyan); background: rgba(100,200,255,.05);
+}
+.drop-zone input[type=file] { display: none; }
+.drop-icon   { font-size: 2rem; margin-bottom: .5rem; }
+.drop-title  { font-weight: 700; margin-bottom: .3rem; }
+.drop-hint   { font-size: .82rem; color: var(--text-muted); }
+.file-list   { margin-top: 1rem; display: flex; flex-direction: column; gap: .4rem; }
+.file-item   {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: .55rem .85rem; background: var(--glass-bg);
+    border: 1px solid var(--glass-border-strong); border-radius: var(--r-sm);
+    font-size: .88rem;
+}
+.file-name   { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.file-size   { color: var(--text-muted); font-size: .78rem; margin: 0 .75rem; white-space: nowrap; }
+.file-del    {
+    background: none; border: none; cursor: pointer; color: var(--err);
+    font-size: .9rem; padding: 0 .2rem; line-height: 1;
+}
+.submit-row  { margin-top: 1.2rem; display: flex; gap: .6rem; align-items: center; }
+.tool-note   { font-size: .8rem; color: var(--text-muted); margin-top: .75rem; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="card tool-wrap">
+    <div style="margin-bottom:1.2rem">
+        <a href="{{ root_path }}/teacher/tools" class="btn btn-secondary btn-sm">&larr; {{ _('tools') }}</a>
+    </div>
+
+    <h2 style="margin:0 0 .4rem">{{ _('tool_pdf_merge_title') }}</h2>
+    <p style="color:var(--text-muted);font-size:.9rem;margin:0 0 1.2rem">{{ _('tool_pdf_merge_desc') }}</p>
+
+    <form id="mergeForm" method="post" enctype="multipart/form-data"
+          action="{{ root_path }}/teacher/tools/pdf-merge">
+
+        <div class="drop-zone" id="dropZone" onclick="document.getElementById('pdfFiles').click()">
+            <div class="drop-icon">[PDF]</div>
+            <div class="drop-title">{{ _('tool_upload_click_or_drag') }}</div>
+            <div class="drop-hint">{{ _('tool_pdf_merge_hint') }}</div>
+            <input type="file" id="pdfFiles" name="files" multiple accept=".pdf">
+        </div>
+
+        <div class="file-list" id="fileList"></div>
+
+        <div class="submit-row">
+            <button type="submit" class="btn btn-primary" id="submitBtn" disabled>
+                {{ _('tool_pdf_merge_submit') }}
+            </button>
+            <button type="button" class="btn btn-secondary" onclick="clearFiles()">{{ _('tool_clear') }}</button>
+        </div>
+        <p class="tool-note">{{ _('tool_pdf_merge_note') }}</p>
+    </form>
+</div>
+
+<script>
+const _STR_LOADING_PDF = "{{ _('tool_file_loading') }}";
+document.getElementById('mergeForm').addEventListener('submit', function() {
+    const btn = document.getElementById('submitBtn');
+    btn.disabled = true;
+    btn.textContent = _STR_LOADING_PDF;
+});
+
+const input = document.getElementById('pdfFiles');
+const list  = document.getElementById('fileList');
+const btn   = document.getElementById('submitBtn');
+const zone  = document.getElementById('dropZone');
+let files   = [];
+
+input.addEventListener('change', () => addFiles(input.files));
+
+zone.addEventListener('dragover',  e => { e.preventDefault(); zone.classList.add('drag-over'); });
+zone.addEventListener('dragleave', () => zone.classList.remove('drag-over'));
+zone.addEventListener('drop', e => {
+    e.preventDefault(); zone.classList.remove('drag-over');
+    addFiles(e.dataTransfer.files);
+});
+
+function addFiles(newFiles) {
+    for (const f of newFiles) {
+        if (!f.name.toLowerCase().endsWith('.pdf')) continue;
+        if (files.length >= 10) break;
+        files.push(f);
+    }
+    render();
+}
+
+function render() {
+    list.innerHTML = '';
+    files.forEach((f, i) => {
+        const el = document.createElement('div');
+        el.className = 'file-item';
+        el.innerHTML = `<span class="file-name">${i+1}. ${f.name}</span>
+            <span class="file-size">${(f.size/1024/1024).toFixed(2)} MB</span>
+            <button class="file-del" onclick="removeFile(${i})" type="button">x</button>`;
+        list.appendChild(el);
+    });
+    btn.disabled = files.length < 2;
+
+    // rebuild input from DataTransfer
+    const dt = new DataTransfer();
+    files.forEach(f => dt.items.add(f));
+    input.files = dt.files;
+}
+
+function removeFile(i) { files.splice(i, 1); render(); }
+function clearFiles()  { files = []; render(); }
+</script>
+{% endblock %}

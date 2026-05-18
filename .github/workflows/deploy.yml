@@ -159,6 +159,7 @@ jobs:
 
             # ── start ─────────────────────────────────────────────────────
             echo "── Starting services ──"
+            sudo systemctl daemon-reload
             start_services
 
             # ── health check (via HTTP service socket) ────────────────────
