@@ -1642,13 +1642,30 @@ def _libreoffice_convert(data: bytes, src_ext: str, tgt_ext: str) -> bytes:
         src_path = os.path.join(tmp, f'input.{src_ext}')
         with open(src_path, 'wb') as f:
             f.write(data)
-            
+
         profile_dir = os.path.join(tmp, 'lo_profile')
-        os.makedirs(profile_dir, exist_ok=True)
         user_install = f'-env:UserInstallation=file://{profile_dir}'
 
+        lo_home  = os.path.join(tmp, 'home')
+        lo_cache = os.path.join(lo_home, '.cache')
+        lo_cfg   = os.path.join(lo_home, '.config')
+        lo_data  = os.path.join(lo_home, '.local', 'share')
+        lo_run   = os.path.join(lo_home, 'run')
+        for d in (lo_cache, lo_cfg, lo_data, lo_run):
+            os.makedirs(d, exist_ok=True)
+        try:
+            os.chmod(lo_run, 0o700)
+        except OSError:
+            pass
+
         env = os.environ.copy()
-        env['TMPDIR'] = tmp
+        env['HOME']            = lo_home
+        env['XDG_CACHE_HOME']  = lo_cache
+        env['XDG_CONFIG_HOME'] = lo_cfg
+        env['XDG_DATA_HOME']   = lo_data
+        env['XDG_RUNTIME_DIR'] = lo_run
+        env['TMPDIR']          = tmp
+        env['FONTCONFIG_PATH'] = '/etc/fonts'
         env.setdefault('LANG',   'C.UTF-8')
         env.setdefault('LC_ALL', 'C.UTF-8')
 
