@@ -1637,17 +1637,7 @@ def _libreoffice_convert(data: bytes, src_ext: str, tgt_ext: str) -> bytes:
         data = _substitute_fonts_for_lo(data)
 
     if tgt_ext == 'pdf':
-        convert_to_arg = (
-            'pdf:writer_pdf_Export:'
-            '{'
-                '"SelectPdfVersion":{"type":"long","value":"17"},'
-                '"UseTaggedPDF":{"type":"boolean","value":"true"},'
-                '"ExportBookmarks":{"type":"boolean","value":"true"},'
-                '"EmbedStandardFonts":{"type":"boolean","value":"true"},'
-                '"UseLosslessCompression":{"type":"boolean","value":"true"},'
-                '"ReduceImageResolution":{"type":"boolean","value":"false"}'
-            '}'
-        )
+        convert_to_arg = 'pdf:writer_pdf_Export'
     else:
         convert_to_arg = tgt_ext
 
