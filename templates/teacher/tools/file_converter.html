@@ -1,0 +1,448 @@
+{% extends "base.html" %}
+{% block title %}{{ _('tool_file_converter_title') }}{% endblock %}
+
+{% block extra_css %}
+<style>
+.tool-wrap { max-width: 780px; margin: 0 auto; }
+
+/* ── Steps ── */
+.fc-steps { display: flex; align-items: center; gap: 0; margin-bottom: 2rem; }
+.fc-step  {
+    display: flex; align-items: center; gap: .4rem;
+    font-size: .82rem; font-weight: 600; color: var(--text-muted);
+    transition: color .2s; white-space: nowrap;
+}
+.fc-step.active { color: var(--c-cyan); }
+.fc-step.done   { color: var(--c-teal); }
+.fc-step-num {
+    width: 22px; height: 22px; border-radius: 50%; border: 2px solid currentColor;
+    display: flex; align-items: center; justify-content: center;
+    font-size: .68rem; font-weight: 700; flex-shrink: 0; transition: background .2s;
+}
+.fc-step.active .fc-step-num { background: rgba(100,200,255,.15); }
+.fc-step.done   .fc-step-num { background: rgba(62,232,192,.15); border-color: var(--c-teal); }
+.fc-step-line {
+    flex: 1; height: 1px; background: var(--glass-border-strong);
+    margin: 0 .4rem; min-width: 10px;
+}
+@media (max-width: 480px) {
+    .fc-step { font-size: .68rem; gap: .3rem; }
+    .fc-step-num { width: 18px; height: 18px; font-size: .6rem; }
+    .fc-step-line { margin: 0 .25rem; min-width: 6px; }
+    .fc-steps { margin-bottom: 1.4rem; }
+}
+
+/* ── Upload zone ── */
+.fc-drop {
+    border: 2px dashed var(--glass-border-strong);
+    border-radius: var(--r-lg); padding: 3rem 2rem;
+    text-align: center; cursor: pointer; transition: border-color .2s, background .2s;
+    background: var(--glass-bg);
+}
+.fc-drop:hover, .fc-drop.dragover {
+    border-color: var(--c-cyan); background: rgba(100,200,255,.06);
+}
+.fc-drop-icon { color: var(--text-muted); margin-bottom: .75rem; }
+.fc-drop-title { font-size: 1rem; font-weight: 700; margin-bottom: .35rem; }
+.fc-drop-sub   { font-size: .82rem; color: var(--text-muted); }
+.fc-drop input[type=file] { display: none; }
+.fc-formats {
+    display: flex; flex-wrap: wrap; gap: .35rem;
+    justify-content: center; margin-top: 1rem;
+}
+.fc-fmt-tag {
+    font-size: .68rem; font-weight: 700; padding: 2px 8px;
+    border-radius: 20px; border: 1px solid var(--glass-border-strong);
+    color: var(--text-muted); letter-spacing: .04em;
+}
+
+/* ── File info bar ── */
+.fc-file-bar {
+    display: none; align-items: center; gap: .75rem;
+    padding: .75rem 1rem; border-radius: var(--r-md);
+    background: rgba(62,232,192,.08); border: 1px solid rgba(62,232,192,.2);
+    margin-bottom: 1.5rem;
+}
+.fc-file-bar.show { display: flex; }
+.fc-file-icon { color: var(--c-teal); flex-shrink: 0; }
+.fc-file-name { font-weight: 700; font-size: .9rem; word-break: break-all; }
+.fc-file-meta { font-size: .78rem; color: var(--text-muted); margin-top: 2px; }
+.fc-file-badge {
+    margin-left: auto; font-size: .72rem; font-weight: 800;
+    padding: 3px 10px; border-radius: 20px; letter-spacing: .06em;
+    background: rgba(62,232,192,.15); color: var(--c-teal); flex-shrink: 0;
+}
+.fc-change-btn {
+    background: none; border: none; color: var(--text-muted);
+    cursor: pointer; font-size: .78rem; text-decoration: underline;
+    padding: 0; flex-shrink: 0;
+}
+.fc-change-btn:hover { color: var(--text); }
+
+/* ── Target format selector ── */
+.fc-targets { display: none; margin-bottom: 1.5rem; }
+.fc-targets.show { display: block; }
+.fc-targets-label {
+    font-size: .82rem; font-weight: 700; color: var(--text-muted);
+    text-transform: uppercase; letter-spacing: .08em; margin-bottom: .75rem;
+}
+.fc-target-chips { display: flex; flex-wrap: wrap; gap: .5rem; }
+.fc-chip {
+    padding: .45rem 1.1rem; border-radius: var(--r-pill);
+    background: var(--glass-bg); border: 1px solid var(--glass-border-strong);
+    font-size: .88rem; font-weight: 700; cursor: pointer; transition: all .15s;
+    color: var(--text-muted); letter-spacing: .04em;
+}
+.fc-chip:hover  { border-color: var(--c-cyan); color: var(--c-cyan); background: rgba(100,200,255,.08); }
+.fc-chip.active { border-color: var(--c-cyan); color: var(--c-cyan); background: rgba(100,200,255,.12); }
+
+/* ── Convert button ── */
+.fc-convert-wrap { display: none; }
+.fc-convert-wrap.show { display: flex; align-items: center; gap: 1rem; flex-wrap: wrap; }
+
+/* ── Progress ── */
+.fc-progress-wrap {
+    display: none; margin-top: 1.5rem;
+    background: var(--glass-bg); border: 1px solid var(--glass-border-strong);
+    border-radius: var(--r-md); padding: 1.25rem 1.25rem .9rem;
+}
+.fc-progress-wrap.show { display: block; }
+.fc-progress-label { font-size: .82rem; color: var(--text-muted); margin-bottom: .6rem; }
+.fc-progress-bar-wrap {
+    height: 6px; border-radius: 3px;
+    background: rgba(255,255,255,.08); overflow: hidden;
+}
+.fc-progress-bar {
+    height: 100%; width: 0%; border-radius: 3px;
+    background: linear-gradient(90deg, var(--c-cyan), var(--c-teal));
+    transition: width .3s ease;
+}
+
+/* ── Result ── */
+.fc-result {
+    display: none; margin-top: 1.5rem; padding: 1.25rem;
+    border-radius: var(--r-md); text-align: center;
+    border: 1px solid rgba(62,232,192,.25); background: rgba(62,232,192,.06);
+}
+.fc-result.show { display: block; }
+.fc-result-icon { color: var(--c-teal); margin-bottom: .5rem; }
+.fc-result-title {
+    font-weight: 700; font-size: .95rem; margin-bottom: .25rem;
+    overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+    max-width: 100%; padding: 0 .5rem; box-sizing: border-box;
+}
+.fc-result-sub   { font-size: .82rem; color: var(--text-muted); margin-bottom: 1rem; }
+.fc-result-actions { display: flex; justify-content: center; gap: .75rem; flex-wrap: wrap; }
+
+/* ── Error ── */
+.fc-error {
+    display: none; margin-top: 1rem; padding: .85rem 1rem;
+    border-radius: var(--r-md); font-size: .88rem;
+    border: 1px solid rgba(255,90,90,.25); background: rgba(255,90,90,.07);
+    color: #ff8a8a;
+}
+.fc-error.show { display: block; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="card tool-wrap">
+    <div style="margin-bottom:1.2rem">
+        <a href="{{ root_path }}/teacher/tools" class="btn btn-secondary btn-sm">&larr; {{ _('tools') }}</a>
+    </div>
+
+    <h2 style="margin:0 0 .3rem">{{ _('tool_file_converter_title') }}</h2>
+    <p style="color:var(--text-muted);font-size:.9rem;margin:0 0 1.8rem">{{ _('tool_file_converter_desc') }}</p>
+
+    <!-- Steps -->
+    <div class="fc-steps">
+        <div class="fc-step active" id="step1">
+            <div class="fc-step-num">1</div>
+            <span>{{ _('fc_step1') }}</span>
+        </div>
+        <div class="fc-step-line"></div>
+        <div class="fc-step" id="step2">
+            <div class="fc-step-num">2</div>
+            <span>{{ _('fc_step2') }}</span>
+        </div>
+        <div class="fc-step-line"></div>
+        <div class="fc-step" id="step3">
+            <div class="fc-step-num">3</div>
+            <span>{{ _('fc_step3') }}</span>
+        </div>
+    </div>
+
+    <!-- Upload zone -->
+    <div class="fc-drop" id="fcDrop" onclick="document.getElementById('fcInput').click()">
+        <div class="fc-drop-icon">
+            <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+                <polyline points="17 8 12 3 7 8"/>
+                <line x1="12" y1="3" x2="12" y2="15"/>
+            </svg>
+        </div>
+        <div class="fc-drop-title">{{ _('fc_drop_title') }}</div>
+        <div class="fc-drop-sub">{{ _('fc_drop_sub') }}</div>
+        <div class="fc-formats">
+            <span class="fc-fmt-tag">DOCX</span>
+            <span class="fc-fmt-tag">PDF</span>
+            <span class="fc-fmt-tag">TXT</span>
+            <span class="fc-fmt-tag">XLSX</span>
+            <span class="fc-fmt-tag">CSV</span>
+            <span class="fc-fmt-tag">JPG</span>
+            <span class="fc-fmt-tag">PNG</span>
+            <span class="fc-fmt-tag">WebP</span>
+            <span class="fc-fmt-tag">BMP</span>
+            <span class="fc-fmt-tag">PPTX</span>
+            <span class="fc-fmt-tag">ODT</span>
+        </div>
+        <input type="file" id="fcInput" accept=".docx,.pdf,.txt,.xlsx,.csv,.jpg,.jpeg,.png,.webp,.bmp,.pptx,.odt,.ods,.odp">
+    </div>
+
+    <!-- File info bar -->
+    <div class="fc-file-bar" id="fcFileBar">
+        <div class="fc-file-icon">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+                <polyline points="14 2 14 8 20 8"/>
+            </svg>
+        </div>
+        <div>
+            <div class="fc-file-name" id="fcFileName"></div>
+            <div class="fc-file-meta" id="fcFileMeta"></div>
+        </div>
+        <div class="fc-file-badge" id="fcFileBadge"></div>
+        <button class="fc-change-btn" onclick="resetTool()">{{ _('fc_change_file') }}</button>
+    </div>
+
+    <!-- Target format selector -->
+    <div class="fc-targets" id="fcTargets">
+        <div class="fc-targets-label">{{ _('fc_choose_target') }}</div>
+        <div class="fc-target-chips" id="fcChips"></div>
+    </div>
+
+    <!-- Convert button -->
+    <div class="fc-convert-wrap" id="fcConvertWrap">
+        <button class="btn btn-primary" id="fcConvertBtn" onclick="startConvert()">
+            {{ _('fc_convert_btn') }}
+        </button>
+        <span style="font-size:.82rem;color:var(--text-muted)" id="fcConvertHint"></span>
+    </div>
+
+    <!-- Progress -->
+    <div class="fc-progress-wrap" id="fcProgress">
+        <div class="fc-progress-label" id="fcProgressLabel">{{ _('fc_converting') }}</div>
+        <div class="fc-progress-bar-wrap">
+            <div class="fc-progress-bar" id="fcProgressBar"></div>
+        </div>
+    </div>
+
+    <!-- Error -->
+    <div class="fc-error" id="fcError"></div>
+
+    <!-- Result -->
+    <div class="fc-result" id="fcResult">
+        <div class="fc-result-icon">
+            <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+                <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/>
+                <polyline points="22 4 12 14.01 9 11.01"/>
+            </svg>
+        </div>
+        <div class="fc-result-title" id="fcResultTitle"></div>
+        <div class="fc-result-sub" id="fcResultSub"></div>
+        <div class="fc-result-actions">
+            <a class="btn btn-primary" id="fcDownloadBtn" download>{{ _('fc_download') }}</a>
+            <button class="btn btn-secondary" onclick="resetTool()">{{ _('fc_convert_another') }}</button>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+const CONV_MAP = {
+    docx: [['pdf','PDF'],['txt','TXT']],
+    pdf:  [['docx','DOCX'],['txt','TXT']],
+    txt:  [['pdf','PDF'],['docx','DOCX']],
+    xlsx: [['csv','CSV']],
+    csv:  [['xlsx','XLSX']],
+    jpg:  [['png','PNG'],['webp','WebP'],['bmp','BMP'],['pdf','PDF']],
+    jpeg: [['png','PNG'],['webp','WebP'],['bmp','BMP'],['pdf','PDF']],
+    png:  [['jpg','JPG'],['webp','WebP'],['bmp','BMP'],['pdf','PDF']],
+    webp: [['jpg','JPG'],['png','PNG'],['bmp','BMP']],
+    bmp:  [['jpg','JPG'],['png','PNG'],['webp','WebP']],
+    pptx: [['pdf','PDF']],
+    odt:  [['pdf','PDF'],['docx','DOCX']],
+    ods:  [['xlsx','XLSX'],['csv','CSV']],
+    odp:  [['pdf','PDF']],
+};
+
+let currentFile = null;
+let currentSrc  = null;
+let currentTgt  = null;
+
+function formatBytes(b) {
+    if (b < 1024) return b + ' B';
+    if (b < 1048576) return (b/1024).toFixed(1) + ' KB';
+    return (b/1048576).toFixed(1) + ' MB';
+}
+
+function setStep(n) {
+    [1,2,3].forEach(function(i) {
+        const el = document.getElementById('step'+i);
+        el.classList.remove('active','done');
+        if (i < n) el.classList.add('done');
+        else if (i === n) el.classList.add('active');
+    });
+}
+
+function showError(msg) {
+    const el = document.getElementById('fcError');
+    el.textContent = msg;
+    el.classList.add('show');
+    document.getElementById('fcProgress').classList.remove('show');
+    document.getElementById('fcConvertBtn').disabled = false;
+}
+
+function hideError() {
+    document.getElementById('fcError').classList.remove('show');
+}
+
+function onFileSelected(file) {
+    if (!file) return;
+    const ext = file.name.split('.').pop().toLowerCase();
+    if (!CONV_MAP[ext]) {
+        showError(ext.toUpperCase() + ' formati qo\'llab-quvvatlanmaydi.');
+        return;
+    }
+    hideError();
+    currentFile = file;
+    currentSrc  = ext;
+    currentTgt  = null;
+
+    // Hide drop, show file bar
+    document.getElementById('fcDrop').style.display = 'none';
+    const bar = document.getElementById('fcFileBar');
+    bar.classList.add('show');
+    document.getElementById('fcFileName').textContent = file.name;
+    document.getElementById('fcFileMeta').textContent = formatBytes(file.size);
+    document.getElementById('fcFileBadge').textContent = ext.toUpperCase();
+
+    // Build target chips
+    const chips = document.getElementById('fcChips');
+    chips.innerHTML = '';
+    CONV_MAP[ext].forEach(function(pair) {
+        const btn = document.createElement('button');
+        btn.className = 'fc-chip';
+        btn.textContent = pair[1];
+        btn.dataset.tgt = pair[0];
+        btn.addEventListener('click', function() {
+            document.querySelectorAll('.fc-chip').forEach(function(c){ c.classList.remove('active'); });
+            btn.classList.add('active');
+            currentTgt = pair[0];
+            const hint = document.getElementById('fcConvertHint');
+            hint.textContent = (ext.toUpperCase()) + ' → ' + pair[1];
+            document.getElementById('fcConvertWrap').classList.add('show');
+            document.getElementById('fcResult').classList.remove('show');
+            hideError();
+            setStep(3);
+        });
+        chips.appendChild(btn);
+    });
+    document.getElementById('fcTargets').classList.add('show');
+    document.getElementById('fcConvertWrap').classList.remove('show');
+    setStep(2);
+}
+
+function startConvert() {
+    if (!currentFile || !currentTgt) return;
+    hideError();
+    document.getElementById('fcResult').classList.remove('show');
+    document.getElementById('fcConvertBtn').disabled = true;
+
+    // Show progress
+    const prog = document.getElementById('fcProgress');
+    const bar  = document.getElementById('fcProgressBar');
+    prog.classList.add('show');
+    bar.style.width = '0%';
+
+    // Animate progress bar
+    let pct = 0;
+    const ticker = setInterval(function() {
+        pct = Math.min(pct + (Math.random() * 12 + 4), 88);
+        bar.style.width = pct + '%';
+    }, 300);
+
+    const fd = new FormData();
+    fd.append('file', currentFile);
+    fd.append('target', currentTgt);
+
+    fetch('{{ root_path }}/teacher/tools/file-converter', {
+        method: 'POST',
+        body: fd,
+    })
+    .then(function(res) {
+        clearInterval(ticker);
+        if (!res.ok) {
+            return res.json().then(function(d){ throw new Error(d.detail || 'Xato'); });
+        }
+        bar.style.width = '100%';
+        return res.blob().then(function(blob) {
+            const url = URL.createObjectURL(blob);
+            const outName = currentFile.name.replace(/\.[^.]+$/, '') + '_converted.' + currentTgt;
+            const dlBtn = document.getElementById('fcDownloadBtn');
+            dlBtn.href = url;
+            dlBtn.download = outName;
+
+            const titleEl = document.getElementById('fcResultTitle');
+            titleEl.textContent = outName;
+            titleEl.title = outName;
+            document.getElementById('fcResultSub').textContent = formatBytes(blob.size);
+
+            setTimeout(function() {
+                prog.classList.remove('show');
+                document.getElementById('fcResult').classList.add('show');
+                document.getElementById('fcConvertBtn').disabled = false;
+                setStep(3);
+            }, 400);
+        });
+    })
+    .catch(function(err) {
+        clearInterval(ticker);
+        showError(err.message);
+        document.getElementById('fcConvertBtn').disabled = false;
+    });
+}
+
+function resetTool() {
+    currentFile = null;
+    currentSrc  = null;
+    currentTgt  = null;
+    document.getElementById('fcInput').value = '';
+    document.getElementById('fcDrop').style.display = '';
+    document.getElementById('fcFileBar').classList.remove('show');
+    document.getElementById('fcTargets').classList.remove('show');
+    document.getElementById('fcConvertWrap').classList.remove('show');
+    document.getElementById('fcProgress').classList.remove('show');
+    document.getElementById('fcResult').classList.remove('show');
+    hideError();
+    setStep(1);
+}
+
+// File input change
+document.getElementById('fcInput').addEventListener('change', function(e) {
+    if (e.target.files[0]) onFileSelected(e.target.files[0]);
+});
+
+// Drag & drop
+const drop = document.getElementById('fcDrop');
+drop.addEventListener('dragover', function(e) { e.preventDefault(); drop.classList.add('dragover'); });
+drop.addEventListener('dragleave', function()  { drop.classList.remove('dragover'); });
+drop.addEventListener('drop', function(e) {
+    e.preventDefault();
+    drop.classList.remove('dragover');
+    const f = e.dataTransfer.files[0];
+    if (f) onFileSelected(f);
+});
+</script>
+{% endblock %}

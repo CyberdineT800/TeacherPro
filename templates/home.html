@@ -1125,46 +1125,37 @@ footer{
             <div class="mpanel" id="tab5">
               <div class="mn"><span class="mn-brand">TeacherPro</span><div class="mn-links"><span class="mn-link">Bosh sahifa</span><span class="mn-link a">Vositalar</span></div></div>
               <div class="mb">
-                <div class="mp-title" style="margin-bottom:10px">O'qituvchi vositalari</div>
-                <div class="mtool-grid">
+                <div class="mp-title" style="margin-bottom:10px">Fayl konvertori</div>
+                <!-- Simulated file converter UI -->
+                <div style="border:1.5px dashed rgba(100,200,255,.3);border-radius:8px;padding:10px 12px;text-align:center;margin-bottom:8px;background:rgba(100,200,255,.04)">
+                  <div style="font-size:.65rem;color:var(--muted);margin-bottom:4px">Fayl yuklandi</div>
+                  <div style="display:flex;align-items:center;gap:7px;justify-content:center">
+                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" style="color:var(--teal)"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+                    <span style="font-size:.72rem;font-weight:700;color:var(--text)">dars_matni.docx</span>
+                    <span style="font-size:.6rem;font-weight:800;padding:1px 6px;border-radius:20px;background:rgba(62,232,192,.15);color:var(--teal)">DOCX</span>
+                  </div>
+                </div>
+                <div style="font-size:.62rem;color:var(--muted);text-transform:uppercase;letter-spacing:.07em;margin-bottom:5px">Maqsad format</div>
+                <div style="display:flex;gap:5px;margin-bottom:8px">
+                  <div style="padding:3px 10px;border-radius:20px;border:1px solid var(--cyan);color:var(--cyan);font-size:.68rem;font-weight:700;background:rgba(100,200,255,.1)">PDF</div>
+                  <div style="padding:3px 10px;border-radius:20px;border:1px solid var(--hair);color:var(--muted);font-size:.68rem;font-weight:700">TXT</div>
+                </div>
+                <button class="mbtn mbtn-p" style="width:100%;font-size:.7rem">Konvertatsiya qilish &rarr;</button>
+                <div style="margin-top:6px">
+                  <div style="font-size:.6rem;color:var(--muted);margin-bottom:3px">Bajarilmoqda...</div>
+                  <div style="height:4px;border-radius:2px;background:rgba(255,255,255,.07);overflow:hidden">
+                    <div style="height:100%;width:78%;border-radius:2px;background:linear-gradient(90deg,var(--cyan),var(--teal))"></div>
+                  </div>
+                </div>
+                <div class="mtool-grid" style="margin-top:8px">
                   <div class="mtool-card active">
-                    <div class="mtool-icon">
-                      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M4 6h16M4 12h8m-8 6h16"/></svg>
-                    </div>
-                    <div>
-                      <div class="mtool-name">Skript konvertori</div>
-                      <div class="mtool-sub">Kirill &harr; Lotin &middot; TXT, DOCX, PDF</div>
-                    </div>
+                    <div class="mtool-icon"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M4 6h16M4 12h8m-8 6h16"/></svg></div>
+                    <div><div class="mtool-name">Skript konvertori</div><div class="mtool-sub">Kirill &harr; Lotin</div></div>
                     <div class="mtool-badge">Tayyor</div>
                   </div>
                   <div class="mtool-card active">
-                    <div class="mtool-icon">
-                      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M3 3h18v4H3z"/><path d="M3 10h7v4H3z"/><path d="M3 17h14v4H3z"/></svg>
-                    </div>
-                    <div>
-                      <div class="mtool-name">So'z hisoblagich</div>
-                      <div class="mtool-sub">So'z, belgi, gap soni</div>
-                    </div>
-                    <div class="mtool-badge">Tayyor</div>
-                  </div>
-                  <div class="mtool-card active">
-                    <div class="mtool-icon">
-                      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="12" y1="18" x2="12" y2="12"/><line x1="9" y1="15" x2="15" y2="15"/></svg>
-                    </div>
-                    <div>
-                      <div class="mtool-name">PDF birlashtirish</div>
-                      <div class="mtool-sub">10 tagacha PDF &middot; tartib sozlash</div>
-                    </div>
-                    <div class="mtool-badge">Tayyor</div>
-                  </div>
-                  <div class="mtool-card active">
-                    <div class="mtool-icon">
-                      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
-                    </div>
-                    <div>
-                      <div class="mtool-name">Rasm → PDF</div>
-                      <div class="mtool-sub">JPG, PNG, WebP &middot; bir tugmada</div>
-                    </div>
+                    <div class="mtool-icon"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg></div>
+                    <div><div class="mtool-name">Rasm → PDF</div><div class="mtool-sub">JPG, PNG, WebP</div></div>
                     <div class="mtool-badge">Tayyor</div>
                   </div>
                 </div>

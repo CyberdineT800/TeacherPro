@@ -15,21 +15,53 @@ log = logging.getLogger("teacher.tools")
 router = APIRouter(prefix="/teacher", dependencies=[Depends(require_login)])
 templates = Jinja2Templates(directory="templates")
 
+_MAX_CONV_SIZE = 15 * 1024 * 1024   # 15 MB
 _MAX_PDF_SIZE  = 10 * 1024 * 1024   # 10 MB per file
 _MAX_IMG_SIZE  =  8 * 1024 * 1024   # 8 MB per image
 _MAX_PDF_FILES = 10
 _MAX_IMG_FILES = 20
 
+_MAX_FC_SIZE = 50 * 1024 * 1024  # 50 MB
 
-# ── Hub ───────────────────────────────────────────────────────────────────────
+_IMG_EXTS = {'jpg', 'jpeg', 'png', 'webp', 'bmp'}
+
+_FC_MAP = {
+    'docx': ['pdf', 'txt'],
+    'pdf':  ['docx', 'txt'],
+    'txt':  ['pdf', 'docx'],
+    'xlsx': ['csv'],
+    'csv':  ['xlsx'],
+    'jpg':  ['png', 'webp', 'bmp', 'pdf'],
+    'jpeg': ['png', 'webp', 'bmp', 'pdf'],
+    'png':  ['jpg', 'webp', 'bmp', 'pdf'],
+    'webp': ['jpg', 'png', 'bmp'],
+    'bmp':  ['jpg', 'png', 'webp'],
+    'pptx': ['pdf'],
+    'odt':  ['pdf', 'docx'],
+    'ods':  ['xlsx', 'csv'],
+    'odp':  ['pdf'],
+}
+
+_FC_MIME = {
+    'pdf':  'application/pdf',
+    'docx': 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+    'xlsx': 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+    'pptx': 'application/vnd.openxmlformats-officedocument.presentationml.presentation',
+    'csv':  'text/csv; charset=utf-8',
+    'txt':  'text/plain; charset=utf-8',
+    'jpg':  'image/jpeg',
+    'jpeg': 'image/jpeg',
+    'png':  'image/png',
+    'webp': 'image/webp',
+    'bmp':  'image/bmp',
+}
+
+
 
 @router.get("/tools", response_class=HTMLResponse)
 async def teacher_tools_hub(request: Request):
     context = await get_template_context(request)
     return templates.TemplateResponse("teacher/tools/hub.html", context)
-
-
-# ── Script converter (GET only — conversion is pure client-side JS) ──────────
 
 @router.get("/tools/script-converter", response_class=HTMLResponse)
 async def tools_script_converter(request: Request):
@@ -37,15 +69,11 @@ async def tools_script_converter(request: Request):
     return templates.TemplateResponse("teacher/tools/script_converter.html", context)
 
 
-# ── Word counter (GET only — pure client-side JS) ────────────────────────────
-
 @router.get("/tools/word-counter", response_class=HTMLResponse)
 async def tools_word_counter(request: Request):
     context = await get_template_context(request)
     return templates.TemplateResponse("teacher/tools/word_counter.html", context)
 
-
-# ── PDF merge ─────────────────────────────────────────────────────────────────
 
 @router.get("/tools/pdf-merge", response_class=HTMLResponse)
 async def tools_pdf_merge_page(request: Request):
@@ -80,8 +108,6 @@ async def tools_pdf_merge(
                  "Content-Length": str(len(merged))},
     )
 
-
-# ── Image → PDF ───────────────────────────────────────────────────────────────
 
 @router.get("/tools/image-to-pdf", response_class=HTMLResponse)
 async def tools_image_to_pdf_page(request: Request):
@@ -119,8 +145,6 @@ async def tools_image_to_pdf(
     )
 
 
-# ── QR code generator ─────────────────────────────────────────────────────────
-
 @router.get("/tools/qr", response_class=HTMLResponse)
 async def tools_qr_page(request: Request):
     context = await get_template_context(request)
@@ -144,7 +168,6 @@ async def tools_qr_generate(
         raise HTTPException(400, detail="Matn 2000 ta belgidan oshmasligi kerak.")
     size = max(100, min(800, size))
     error_level = error_level.upper() if error_level.upper() in ("L", "M", "Q", "H") else "M"
-    # Sanitize hex colors
     import re as _re
     if not _re.match(r'^#[0-9a-fA-F]{6}$', fg_color): fg_color = "#000000"
     if not _re.match(r'^#[0-9a-fA-F]{6}$', bg_color): bg_color = "#ffffff"
@@ -155,8 +178,6 @@ async def tools_qr_generate(
         headers={"Content-Length": str(len(img_bytes))},
     )
 
-
-# ── CPU-bound helpers (run in threadpool) ─────────────────────────────────────
 
 def _merge_pdfs(raw_files: list) -> bytes:
     from pypdf import PdfWriter, PdfReader
@@ -231,8 +252,6 @@ def _make_qr(text: str, size: int,
     return out.getvalue()
 
 
-# ── Uzbek script conversion mappings ─────────────────────────────────────────
-
 import re as _re_conv
 
 _KL_MULTI = [
@@ -306,13 +325,11 @@ def _py_l2k(text: str) -> str:
 
 def _do_convert_txt(data: bytes, mode: str) -> bytes:
     fn = _py_k2l if mode == "k2l" else _py_l2k
-    # Detect encoding: try UTF-8, fall back to Windows-1251 (common for Cyrillic), then latin-1
     for enc in ("utf-8-sig", "utf-8", "cp1251", "iso-8859-5", "latin-1"):
         try:
             text = data.decode(enc)
-            # Sanity-check: UTF-8 decode succeeded but cp1251 chars are more plausible?
             if enc == "utf-8" and text.count("�") > len(text) * 0.05:
-                continue  # too many replacement chars → try next encoding
+                continue  
             break
         except (UnicodeDecodeError, LookupError):
             continue
@@ -451,7 +468,6 @@ def _do_convert_pdf(data: bytes, mode: str):
 
     fn = _py_k2l if mode == "k2l" else _py_l2k
 
-    # ── shared helpers ────────────────────────────────────────────────────────
     def _get_obj(x):
         return x.get_object() if hasattr(x, 'get_object') else x
 
@@ -463,12 +479,10 @@ def _do_convert_pdf(data: bytes, mode: str):
             current = 0
             for item in diffs:
                 v = _get_obj(item)
-                # Integer item sets the next byte index
                 try:
                     current = int(v); continue
                 except (TypeError, ValueError):
                     pass
-                # Name item  e.g. /uni0410 or /uXXXX
                 name = str(v).lstrip('/')
                 ch = None
                 if name.startswith('uni') and len(name) >= 7:
@@ -548,7 +562,6 @@ def _do_convert_pdf(data: bytes, mode: str):
                     except Exception:
                         pass
                 if not g2u:
-                    # Fallback: /Encoding with /Differences array
                     try:
                         enc_ref = font_obj.get('/Encoding')
                         if enc_ref is not None:
@@ -580,7 +593,6 @@ def _do_convert_pdf(data: bytes, mode: str):
         n_conv = [0]
 
         while i < len(raw):
-            # Track current font (e.g. "/F1 12 Tf")
             m = re.match(rb'/([^\s/\[\]()<>{}]+)\s+[\d.]+\s+Tf', raw[i:])
             if m:
                 cur_font[0] = m.group(1).decode('latin-1')
@@ -588,7 +600,6 @@ def _do_convert_pdf(data: bytes, mode: str):
                 i += m.end()
                 continue
 
-            # Parenthesis-encoded string "(…)"
             if raw[i:i+1] == b'(':
                 j, depth = i + 1, 1
                 while j < len(raw) and depth > 0:
@@ -644,7 +655,6 @@ def _do_convert_pdf(data: bytes, mode: str):
                 i = j
                 continue
 
-            # Hex-encoded string "<…>"
             if raw[i:i+1] == b'<' and i + 1 < len(raw) and raw[i+1:i+2] != b'<':
                 end = raw.find(b'>', i + 1)
                 if end != -1:
@@ -671,9 +681,7 @@ def _do_convert_pdf(data: bytes, mode: str):
             i += 1
 
         return bytes(result), n_conv[0]
-
-    # Run Phase 1 per-page using pikepdf (handles ALL PDF filter/compression types;
-    # pypdf's PdfWriter.set_data() raises PdfReadError on non-FlateDecode streams)
+    
     try:
         import pikepdf as _pk1
         _pdf1 = _pk1.open(BytesIO(data))
@@ -753,7 +761,6 @@ def _do_convert_pdf(data: bytes, mode: str):
                                     _n += _cnt
                             except Exception:
                                 pass
-                        # recurse into nested XObjects
                         _n += _process_xobjects1(_xo_res, depth + 1)
                     except Exception:
                         pass
@@ -767,15 +774,12 @@ def _do_convert_pdf(data: bytes, mode: str):
                 if _pg_res is None:
                     continue
 
-                # Build CMap from page-level fonts
                 _cmaps1 = _build_cmaps1(_pg_res)
 
-                # Process direct page /Contents streams
                 _co1 = _pg1.get('/Contents')
                 if _co1 is not None and _cmaps1:
                     _total1 += _process_content_streams1(_co1, _cmaps1)
 
-                # Process Form XObjects (recursive)
                 _total1 += _process_xobjects1(_pg_res)
             except Exception:
                 continue
@@ -784,7 +788,6 @@ def _do_convert_pdf(data: bytes, mode: str):
             _out1 = BytesIO()
             _pdf1.save(_out1)
             return _out1.getvalue(), _total1
-        # Diagnostic: log what fonts and XObjects were found so we can debug 422s
         try:
             for _pgi, _pg_d in enumerate(_pdf1.pages):
                 _res_d = _pg_d.get('/Resources')
@@ -827,7 +830,6 @@ def _do_convert_pdf(data: bytes, mode: str):
             (False, True):  '/usr/share/fonts/truetype/dejavu/DejaVuSans-Oblique.ttf',
             (True,  True):  '/usr/share/fonts/truetype/dejavu/DejaVuSans-BoldOblique.ttf',
         }
-        # Windows / macOS fallbacks (Arial covers both Cyrillic and Latin)
         _TTF_WIN = {
             (False, False): 'C:/Windows/Fonts/arial.ttf',
             (True,  False): 'C:/Windows/Fonts/arialbd.ttf',
@@ -851,9 +853,8 @@ def _do_convert_pdf(data: bytes, mode: str):
         _p2_subst_ctr = [0]
 
         for _p2_page in _p2_src.pages:
-            # Build CMap per font
-            _p2_fcmaps  = {}   # font_key -> (g2u, u2g)
-            _p2_fstyles = {}   # font_key -> (is_bold, is_italic)
+            _p2_fcmaps  = {}   
+            _p2_fstyles = {}  
             try:
                 _p2_fonts = _p2_page.Resources.Font
             except AttributeError:
@@ -868,7 +869,6 @@ def _do_convert_pdf(data: bytes, mode: str):
                     except Exception:
                         pass
                 if not _g2u:
-                    # Fallback: /Encoding /Differences
                     try:
                         _enc = _fo.get('/Encoding')
                         if _enc is not None:
@@ -916,7 +916,6 @@ def _do_convert_pdf(data: bytes, mode: str):
             if not _p2_fcmaps:
                 continue
 
-            # Read page content bytes
             try:
                 _p2_co = _p2_page.get('/Contents')
                 if _p2_co is None:
@@ -929,9 +928,8 @@ def _do_convert_pdf(data: bytes, mode: str):
             except Exception:
                 continue
 
-            # Scan: find which fonts need substitution and collect all chars
-            _p2_needs   = set()   # font keys that need substitution
-            _p2_allch   = {}      # font_key -> set of all chars after fn()
+            _p2_needs   = set()  
+            _p2_allch   = {}     
             _p2_cf = [None]
             _p2_ii = 0
             while _p2_ii < len(_p2_raw):
@@ -975,13 +973,11 @@ def _do_convert_pdf(data: bytes, mode: str):
             if not _p2_needs:
                 continue
 
-            # Build font replacements for each font that needs substitution
-            _p2_repl = {}   # old_key -> (new_key_str, new_u2g, old_g2u)
+            _p2_repl = {}   
             for _fk in _p2_needs:
                 _style   = _p2_fstyles.get(_fk, (False, False))
                 _ttfp    = _TTF_VARIANTS.get(_style) or _TTF_VARIANTS[(False, False)]
                 if not _os.path.exists(_ttfp):
-                    # Try Windows / macOS fallback paths
                     _ttfp = (_TTF_WIN.get(_style) or _TTF_WIN[(False, False)])
                     if not _os.path.exists(_ttfp):
                         _ttfp = (_TTF_MAC.get(_style) or _TTF_MAC[(False, False)])
@@ -1037,7 +1033,6 @@ def _do_convert_pdf(data: bytes, mode: str):
             if not _p2_repl:
                 continue
 
-            # Rewrite content stream: swap font selectors + re-encode text bytes
             def _p2_rewrite(raw_b: bytes) -> tuple:
                 res = bytearray(); _cf2 = [None]; _n2 = [0]; i2 = 0
                 while i2 < len(raw_b):
@@ -1086,7 +1081,6 @@ def _do_convert_pdf(data: bytes, mode: str):
                     res.append(raw_b[i2]); i2 += 1
                 return bytes(res), _n2[0]
 
-            # Apply rewrite to this page's content stream(s)
             try:
                 _p2_co2 = _p2_page.get('/Contents')
                 if isinstance(_p2_co2, _pikepdf.Array):
@@ -1122,9 +1116,6 @@ def _do_convert_pdf(data: bytes, mode: str):
     # cp866 bytes in parenthesis strings, with no ToUnicode CMap.
     # We patch the bytes in-place so the entire PDF structure is untouched:
     # images, fonts, colours, layout and metadata all survive unchanged.
-
-    # Characters produced by k2l conversion that may not exist in cp125x.
-    # Map them to the closest ASCII equivalent before re-encoding.
     _FALLBACK = {
         '\u02BB': "'", '\u02BC': "'",
         '\u2018': "'", '\u2019': "'",
@@ -1152,7 +1143,6 @@ def _do_convert_pdf(data: bytes, mode: str):
             n_conv = 0
 
             while i < len(raw):
-                # Parenthesis string "(…)"
                 if raw[i:i+1] == b'(':
                     j, depth = i + 1, 1
                     while j < len(raw) and depth > 0:
@@ -1165,7 +1155,6 @@ def _do_convert_pdf(data: bytes, mode: str):
                         else:
                             j += 1
                     raw_str = _pdf_unescape(raw[i+1:j-1])
-                    # Only attempt high-byte strings (potential Cyrillic)
                     if any(b >= 0x80 for b in raw_str):
                         try:
                             text = raw_str.decode(enc)
@@ -1182,8 +1171,6 @@ def _do_convert_pdf(data: bytes, mode: str):
                     i = j
                     continue
 
-                # Hex string "<…>" — try as single-byte legacy encoding
-                # (even-length hex, at least one high byte >= 0x80)
                 if raw[i:i+1] == b'<' and i + 1 < len(raw) and raw[i+1:i+2] != b'<':
                     end = raw.find(b'>', i + 1)
                     if end != -1:
@@ -1234,18 +1221,17 @@ def _do_convert_pdf(data: bytes, mode: str):
                 j = i + 1
                 depth = 1
                 while j < len(raw) and depth > 0:
-                    if raw[j] == 92:    # backslash escape
+                    if raw[j] == 92:   
                         j += 2
-                    elif raw[j] == 40:  # '('
+                    elif raw[j] == 40:  
                         depth += 1
                         j += 1
-                    elif raw[j] == 41:  # ')'
+                    elif raw[j] == 41:  
                         depth -= 1
                         j += 1
                     else:
                         j += 1
                 inner = _pdf_unescape(raw[i + 1:j - 1])
-                # must be even-length and contain at least one Cyrillic U+04xx pair
                 if len(inner) >= 2 and len(inner) % 2 == 0:
                     try:
                         text = inner.decode('utf-16-be')
@@ -1272,14 +1258,9 @@ def _do_convert_pdf(data: bytes, mode: str):
         return result_data5, n5
     log.debug('PDF phase-5: no UTF-16-BE Cyrillic paren strings found')
 
-    # All phases exhausted — PDF is likely scanned or uses an unsupported encoding
     log.warning('PDF conversion: all phases returned 0 for mode=%s — '
                 'PDF may be scanned, use custom encoding, or have no Cyrillic text', mode)
     return data, 0
-
-# ── Script convert file (format-preserving) ───────────────────────────────────────────────
-
-_MAX_CONV_SIZE = 15 * 1024 * 1024   # 15 MB
 
 
 @router.post("/tools/convert-file")
@@ -1314,7 +1295,6 @@ async def tools_convert_file(
     elif ext == "pdf":
         result, n_conv = await run_in_threadpool(_do_convert_pdf, data, mode)
         if n_conv == 0:
-            # Auto-retry with opposite mode (user may have selected wrong direction)
             opposite = "l2k" if mode == "k2l" else "k2l"
             result2, n_conv2 = await run_in_threadpool(_do_convert_pdf, data, opposite)
             if n_conv2 > 0:
@@ -1344,4 +1324,750 @@ async def tools_convert_file(
         content=result,
         media_type=media_type,
         headers={"Content-Disposition": f'attachment; filename="{out_name}"'},
+    )
+
+
+def _find_libreoffice():
+    import shutil, os
+    for c in [
+        'libreoffice', 'soffice',
+        r'C:\Program Files\LibreOffice\program\soffice.exe',
+        r'C:\Program Files (x86)\LibreOffice\program\soffice.exe',
+        '/usr/bin/libreoffice', '/usr/bin/soffice',
+        '/usr/local/bin/libreoffice',
+    ]:
+        if shutil.which(c) or os.path.isfile(c):
+            return c
+    return None
+
+
+_WIN_BUILTIN_FONTS = {
+    'arial', 'arial black', 'arial narrow',
+    'calibri', 'calibri light',
+    'cambria', 'cambria math',
+    'candara', 'consolas', 'constantia', 'corbel',
+    'comic sans ms', 'courier new', 'courier',
+    'ebrima', 'franklin gothic medium',
+    'gabriola', 'gadugi', 'georgia',
+    'impact', 'lucida console', 'lucida sans unicode',
+    'malgun gothic', 'microsoft sans serif', 'microsoft yahei',
+    'ms gothic', 'ms pgothic', 'ms ui gothic',
+    'palatino linotype', 'segoe print', 'segoe script',
+    'segoe ui', 'segoe ui light', 'segoe ui semibold', 'segoe ui symbol',
+    'sylfaen', 'symbol',
+    'tahoma', 'times new roman', 'times', 'trebuchet ms',
+    'verdana', 'webdings', 'wingdings',
+    'aptos', 'aptos display', 'bahnschrift',
+}
+
+
+def _available_fonts() -> set:
+    """Return the set of font family names installed on the host (lower-cased).
+    Works on Linux (fc-list) and Windows (scan %WINDIR%\\Fonts).  The result is
+    cached for the lifetime of the process.  Empty set on failure (treated as
+    'all fonts are present' so we never over-substitute)."""
+    global _AVAILABLE_FONTS_CACHE
+    try:
+        return _AVAILABLE_FONTS_CACHE  # type: ignore[name-defined]
+    except NameError:
+        pass
+
+    fonts: set = set()
+
+    try:
+        import subprocess
+        out = subprocess.run(
+            ['fc-list', ':', 'family'],
+            capture_output=True, text=True, timeout=10,
+        )
+        if out.returncode == 0:
+            for line in out.stdout.splitlines():
+                for fam in line.split(','):
+                    fonts.add(fam.strip().lower())
+    except Exception as _e:
+        log.debug("fc-list unavailable: %s", _e)
+
+    import sys as _sys, os as _os
+    if _sys.platform == 'win32':
+        try:
+            from fontTools.ttLib import TTFont  # type: ignore
+            _HAVE_FT = True
+        except Exception:
+            _HAVE_FT = False
+
+        win_dirs = []
+        if _os.environ.get('WINDIR'):
+            win_dirs.append(_os.path.join(_os.environ['WINDIR'], 'Fonts'))
+        if _os.environ.get('LOCALAPPDATA'):
+            win_dirs.append(_os.path.join(
+                _os.environ['LOCALAPPDATA'], 'Microsoft', 'Windows', 'Fonts'))
+
+        for d in win_dirs:
+            if not _os.path.isdir(d):
+                continue
+            for fn in _os.listdir(d):
+                lower = fn.lower()
+                if not lower.endswith(('.ttf', '.otf', '.ttc', '.fon')):
+                    continue
+                if _HAVE_FT:
+                    try:
+                        tt = TTFont(_os.path.join(d, fn), lazy=True,
+                                    fontNumber=0)
+                        for rec in tt['name'].names:  # type: ignore[attr-defined]
+                            if rec.nameID in (1, 16): 
+                                try:
+                                    fonts.add(str(rec).strip().lower())
+                                except Exception:
+                                    pass
+                        tt.close()
+                        continue
+                    except Exception:
+                        pass
+                stem = _os.path.splitext(fn)[0]
+                stem = stem.replace('-', '').replace('_', '')
+                fonts.add(stem.lower())
+
+        if not fonts:
+            fonts |= _WIN_BUILTIN_FONTS
+
+    globals()['_AVAILABLE_FONTS_CACHE'] = fonts
+    return fonts
+
+
+def _flatten_letter_spacing(data: bytes) -> bytes:
+    """Zero-out positive *character* spacing inside a DOCX so the resulting
+    PDF doesn't show ugly inter-letter gaps.
+
+    Word's "Format -> Font -> Advanced -> Spacing: Expanded by N pt" setting
+    is stored as `<w:spacing w:val="N"/>` inside a run-properties block
+    (`<w:rPr>`).  Positive `N` values appear faint on screen but render as
+    wide letter spacing in any PDF export (whether via Word, docx2pdf, or
+    LibreOffice).  This routine flips all such positive values to 0, leaving
+    paragraph-level spacing (`<w:spacing w:before=".." w:after=".." w:line="..">`)
+    completely untouched.
+
+    Returns the original bytes on any unexpected failure so the conversion
+    pipeline degrades gracefully.
+    """
+    import zipfile, io, re as _re
+
+    _SPACING_RE = _re.compile(rb'<w:spacing(\s[^/>]*)/>')
+    _VAL_RE     = _re.compile(rb'\bw:val="(-?\d+)"')
+    _PARA_KEYS  = (b'w:before', b'w:after', b'w:line', b'w:beforeAutospacing',
+                   b'w:afterAutospacing', b'w:beforeLines', b'w:afterLines',
+                   b'w:lineRule')
+
+    def _repl(m: '_re.Match[bytes]') -> bytes:
+        attrs = m.group(1)
+        if any(k in attrs for k in _PARA_KEYS):
+            return m.group(0)
+        mv = _VAL_RE.search(attrs)
+        if not mv:
+            return m.group(0)
+        try:
+            val = int(mv.group(1))
+        except ValueError:
+            return m.group(0)
+        if val <= 0:
+            return m.group(0)
+        return b'<w:spacing w:val="0"/>'
+
+    try:
+        buf = io.BytesIO(data)
+        out = io.BytesIO()
+        n_changed = 0
+        with zipfile.ZipFile(buf, 'r') as zin, \
+             zipfile.ZipFile(out, 'w', zipfile.ZIP_DEFLATED) as zout:
+            for item in zin.infolist():
+                raw = zin.read(item.filename)
+                if (item.filename.startswith('word/')
+                        and item.filename.endswith('.xml')):
+                    new = _SPACING_RE.sub(_repl, raw)
+                    if new != raw:
+                        n_changed += 1
+                    raw = new
+                zout.writestr(item, raw)
+        if n_changed:
+            log.info("letter-spacing flatten: rewrote %d XML part(s) in DOCX",
+                     n_changed)
+        return out.getvalue()
+    except Exception as _e:
+        log.warning("letter-spacing flatten failed: %s — using original bytes",
+                    _e)
+        return data
+
+
+def _substitute_fonts_for_lo(data: bytes) -> bytes:
+    """Replace Windows/Mac-only fonts inside a DOCX with metric-compatible
+    equivalents so LibreOffice can render the document with the SAME line
+    widths, line wrapping, and overall layout as MS Word.
+
+    Critical pairings (metric-compatible, glyph widths identical):
+      - Calibri / Calibri Light  → Carlito    (Google's Calibri metric clone)
+      - Cambria / Cambria Math   → Caladea    (Google's Cambria metric clone)
+      - Arial                     → Liberation Sans   (Arial metric clone)
+      - Times New Roman           → Liberation Serif  (Times metric clone)
+      - Courier New / Consolas    → Liberation Mono   (Courier metric clone)
+
+    Using non-metric-compatible fallbacks (e.g. Calibri → Liberation Sans)
+    causes character widths to differ — LibreOffice tries to preserve word
+    boundaries but ends up inserting visible inter-letter gaps in the PDF.
+    This was the root cause of the 'X a l q a r o' spacing bug.
+    """
+    import zipfile, io, re as _re
+
+    _avail = _available_fonts()
+
+    def _pick(*candidates: str) -> str:
+        """Return the first candidate font that exists on the system.
+        Falls back to the last candidate if none are installed so the
+        substitution is still applied and LibreOffice's own fallback chain
+        takes over."""
+        for c in candidates:
+            if c.lower() in _avail:
+                return c
+        return candidates[-1]
+
+    _CAL_SANS  = _pick('Carlito', 'Liberation Sans')          # Calibri-equivalent
+    _CAM_SERIF = _pick('Caladea', 'Liberation Serif')         # Cambria-equivalent
+    _ARI_SANS  = _pick('Liberation Sans', 'DejaVu Sans')      # Arial-equivalent
+    _TNR_SERIF = _pick('Liberation Serif', 'DejaVu Serif')    # Times-equivalent
+    _MONO      = _pick('Liberation Mono', 'DejaVu Sans Mono') # Courier-equivalent
+    _SANS_NAR  = _pick('Liberation Sans Narrow', _ARI_SANS)
+
+    _CANDIDATE_SUBS = {
+        r'Calibri Light':       _CAL_SANS,
+        r'Calibri':             _CAL_SANS,
+        r'Cambria Math':        _CAM_SERIF,
+        r'Cambria':             _CAM_SERIF,
+        r'Aptos Display':       _CAL_SANS,
+        r'Aptos':               _CAL_SANS,
+        r'Arial Narrow':        _SANS_NAR,
+        r'Arial Black':         _ARI_SANS,
+        r'Arial':               _ARI_SANS,
+        r'Times New Roman':     _TNR_SERIF,
+        r'Times':               _TNR_SERIF,
+        r'Courier New':         _MONO,
+        r'Courier':             _MONO,
+        r'Consolas':            _MONO,
+        r'Lucida Console':      _MONO,
+        r'Lucida Sans Unicode': _ARI_SANS,
+        r'Lucida Sans':         _ARI_SANS,
+        r'Century Gothic':      _ARI_SANS,
+        r'Comic Sans MS':       _ARI_SANS,
+        r'Franklin Gothic Medium': _ARI_SANS,
+        r'Franklin Gothic':     _ARI_SANS,
+        r'Garamond':            _TNR_SERIF,
+        r'Georgia':             _TNR_SERIF,
+        r'Helvetica Neue':      _ARI_SANS,
+        r'Helvetica':           _ARI_SANS,
+        r'Palatino Linotype':   _TNR_SERIF,
+        r'Palatino':            _TNR_SERIF,
+        r'Segoe UI Light':      _CAL_SANS,
+        r'Segoe UI Semibold':   _CAL_SANS,
+        r'Segoe UI':            _CAL_SANS,
+        r'Tahoma':              _ARI_SANS,
+        r'Trebuchet MS':        _ARI_SANS,
+        r'Verdana':             _ARI_SANS,
+        r'MS Sans Serif':       _ARI_SANS,
+        r'MS Serif':            _TNR_SERIF,
+        r'MS Reference Sans Serif': _ARI_SANS,
+        r'Book Antiqua':        _TNR_SERIF,
+        r'Bookman Old Style':   _TNR_SERIF,
+        r'Symbol':              _TNR_SERIF,
+        r'Wingdings':           _TNR_SERIF,
+        r'Webdings':            _TNR_SERIF,
+    }
+
+    if _avail:  
+        _SUBS = {
+            k: v for k, v in _CANDIDATE_SUBS.items()
+            if k.lower() not in _avail and v.lower() in _avail
+        }
+    else:
+        _SUBS = dict(_CANDIDATE_SUBS)
+
+    if not _SUBS:
+        log.info("font-subst: all source fonts present on host, skipping")
+        return data
+
+    _sorted_keys = sorted(_SUBS.keys(), key=len, reverse=True)
+    _pattern = _re.compile(
+        r'(?<![A-Za-z])(' + '|'.join(_re.escape(k) for k in _sorted_keys) + r')(?![A-Za-z])',
+        _re.IGNORECASE,
+    )
+
+    def _apply_subs(xml_bytes: bytes) -> bytes:
+        try:
+            text = xml_bytes.decode('utf-8')
+        except Exception:
+            return xml_bytes
+        def _repl(m):
+            orig = m.group(1)
+            for k, v in _SUBS.items():
+                if orig.lower() == k.lower():
+                    return v
+            return orig
+        return _pattern.sub(_repl, text).encode('utf-8')
+
+    buf = io.BytesIO(data)
+    out = io.BytesIO()
+    try:
+        with zipfile.ZipFile(buf, 'r') as zin, zipfile.ZipFile(out, 'w', zipfile.ZIP_DEFLATED) as zout:
+            for item in zin.infolist():
+                raw = zin.read(item.filename)
+                if item.filename.startswith('word/') and item.filename.endswith('.xml'):
+                    raw = _apply_subs(raw)
+                zout.writestr(item, raw)
+        return out.getvalue()
+    except Exception:
+        return data  
+
+
+def _libreoffice_convert(data: bytes, src_ext: str, tgt_ext: str) -> bytes:
+    import subprocess, tempfile, os
+
+    lo = _find_libreoffice()
+    if not lo:
+        raise ValueError(
+            "LibreOffice topilmadi. Ushbu konvertatsiya uchun serverda "
+            "LibreOffice o'rnatilgan bo'lishi kerak."
+        )
+    if src_ext == 'docx':
+        data = _substitute_fonts_for_lo(data)
+
+    if tgt_ext == 'pdf':
+        convert_to_arg = (
+            'pdf:writer_pdf_Export:'
+            '{'
+                '"SelectPdfVersion":{"type":"long","value":"17"},'
+                '"UseTaggedPDF":{"type":"boolean","value":"true"},'
+                '"ExportBookmarks":{"type":"boolean","value":"true"},'
+                '"EmbedStandardFonts":{"type":"boolean","value":"true"},'
+                '"UseLosslessCompression":{"type":"boolean","value":"true"},'
+                '"ReduceImageResolution":{"type":"boolean","value":"false"}'
+            '}'
+        )
+    else:
+        convert_to_arg = tgt_ext
+
+    with tempfile.TemporaryDirectory() as tmp:
+        src_path = os.path.join(tmp, f'input.{src_ext}')
+        with open(src_path, 'wb') as f:
+            f.write(data)
+
+        profile_dir = os.path.join(tmp, 'lo_profile')
+        user_install = f'-env:UserInstallation=file://{profile_dir}'
+
+        try:
+            proc = subprocess.run(
+                [lo, user_install, '--headless', '--norestore', '--nologo',
+                 '--nofirststartwizard', '--convert-to', convert_to_arg,
+                 '--outdir', tmp, src_path],
+                timeout=180, check=False, capture_output=True,
+            )
+        except subprocess.TimeoutExpired:
+            raise ValueError(
+                "Konvertatsiya 180 soniyadan ortiq vaqt oldi. "
+                "Faylni kichikroq qiling yoki keyinroq urinib ko'ring."
+            )
+
+        out_path = os.path.join(tmp, f'input.{tgt_ext}')
+        if proc.returncode != 0 or not os.path.exists(out_path):
+            stderr = proc.stderr.decode('utf-8', errors='replace')[:500]
+            stdout = proc.stdout.decode('utf-8', errors='replace')[:500]
+            log.error(
+                "LibreOffice convert failed (%s→%s, rc=%d): stderr=%s stdout=%s",
+                src_ext, tgt_ext, proc.returncode, stderr, stdout,
+            )
+            raise ValueError(
+                "Konvertatsiya muvaffaqiyatsiz yakunlandi. "
+                "Fayl format xato yoki buzilgan bo'lishi mumkin."
+            )
+        with open(out_path, 'rb') as f:
+            return f.read()
+
+
+def _pdf_to_docx_smart(data: bytes) -> bytes:
+    """Convert PDF to DOCX using PyMuPDF with TEXT_INHIBIT_SPACES for clean text extraction.
+    Handles Word-generated PDFs with TJ kerning arrays that cause spurious spaces."""
+    try:
+        try:
+            import fitz
+        except ImportError:
+            import pymupdf as fitz  # type: ignore[no-redef]
+        from docx import Document as _DocxDoc
+        from docx.shared import Pt as _Pt, RGBColor as _RGB, Cm as _Cm
+        from docx.enum.text import WD_ALIGN_PARAGRAPH as _WDA
+        import os
+
+        src = fitz.open(stream=data, filetype='pdf')
+        doc = _DocxDoc()
+
+        for section in doc.sections:
+            section.top_margin    = _Cm(2.0)
+            section.bottom_margin = _Cm(2.0)
+            section.left_margin   = _Cm(2.5)
+            section.right_margin  = _Cm(2.5)
+
+        for p in doc.paragraphs:
+            p._element.getparent().remove(p._element)
+
+        import sys as _sys
+        if _sys.platform == 'win32':
+            _FC_FONT = 'Arial'
+        elif os.path.exists('/usr/share/fonts/truetype/liberation/LiberationSans-Regular.ttf'):
+            _FC_FONT = 'Liberation Sans'
+        elif os.path.exists('/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf'):
+            _FC_FONT = 'DejaVu Sans'
+        else:
+            _FC_FONT = 'Arial'
+
+        _FONT_SUBS: dict = {} if _sys.platform == 'win32' else {
+            'arial':           'Liberation Sans',
+            'arial narrow':    'Liberation Sans Narrow',
+            'calibri':         'Liberation Sans',
+            'calibri light':   'Liberation Sans',
+            'cambria':         'Liberation Serif',
+            'cambria math':    'Liberation Serif',
+            'century gothic':  'Liberation Sans',
+            'comic sans ms':   'Liberation Sans',
+            'consolas':        'Liberation Mono',
+            'courier new':     'Liberation Mono',
+            'courier':         'Liberation Mono',
+            'georgia':         'Liberation Serif',
+            'helvetica':       'Liberation Sans',
+            'tahoma':          'Liberation Sans',
+            'times new roman': 'Liberation Serif',
+            'times':           'Liberation Serif',
+            'trebuchet ms':    'Liberation Sans',
+            'verdana':         'Liberation Sans',
+        }
+
+        for page_num, page in enumerate(src):
+            if page_num > 0:
+                doc.add_page_break()
+
+            flags = fitz.TEXT_INHIBIT_SPACES | fitz.TEXT_PRESERVE_WHITESPACE
+            blocks = page.get_text('dict', flags=flags)['blocks']
+
+            for block in blocks:
+                if block.get('type') != 0:
+                    continue
+
+                lines = block.get('lines', [])
+                if not lines:
+                    continue
+
+                page_w = page.rect.width
+                block_x0 = block['bbox'][0]
+                block_x1 = block['bbox'][2]
+                block_cx = (block_x0 + block_x1) / 2
+                align = _WDA.LEFT
+                if abs(block_cx - page_w / 2) < page_w * 0.1:
+                    align = _WDA.CENTER
+                elif block_x1 > page_w * 0.8 and block_x0 > page_w * 0.5:
+                    align = _WDA.RIGHT
+
+                para = doc.add_paragraph()
+                para.alignment = align
+
+                for li, line in enumerate(lines):
+                    if li > 0:
+                        para.add_run('\n')
+
+                    for span in line.get('spans', []):
+                        text = span.get('text', '').rstrip('\n')
+                        if not text:
+                            continue
+
+                        run = para.add_run(text)
+
+                        fsize = span.get('size', 11)
+                        run.font.size = _Pt(round(fsize, 1))
+
+                        f = span.get('flags', 0)
+                        is_bold   = bool(f & 16)
+                        is_italic = bool(f & 2)
+                        run.bold   = is_bold
+                        run.italic = is_italic
+
+                        font_raw = span.get('font', _FC_FONT)
+                        font_name = font_raw.split(',')[0].split('-')[0].replace('MT', '').strip()
+                        font_name = font_name or _FC_FONT
+                        font_name = _FONT_SUBS.get(font_name.lower(), font_name) or _FC_FONT
+                        run.font.name = font_name
+
+                        try:
+                            from docx.oxml.ns import qn as _qn
+                            from lxml import etree as _etree
+                            _rPr = run._r.get_or_add_rPr()
+
+                            _rFonts = _rPr.find(_qn('w:rFonts'))
+                            if _rFonts is None:
+                                _rFonts = _etree.SubElement(_rPr, _qn('w:rFonts'))
+                            _rFonts.set(_qn('w:ascii'),    font_name)
+                            _rFonts.set(_qn('w:hAnsi'),    font_name)
+                            _rFonts.set(_qn('w:cs'),       font_name)
+                            _rFonts.set(_qn('w:eastAsia'), font_name)
+
+                            def _ensure_cs_elem(tag, present):
+                                el = _rPr.find(_qn(tag))
+                                if present and el is None:
+                                    _etree.SubElement(_rPr, _qn(tag))
+                                elif not present and el is not None:
+                                    _rPr.remove(el)
+                            _ensure_cs_elem('w:bCs', is_bold)
+                            _ensure_cs_elem('w:iCs', is_italic)
+
+                            sz_half = str(round(fsize * 2))
+                            _szCs = _rPr.find(_qn('w:szCs'))
+                            if _szCs is None:
+                                _szCs = _etree.SubElement(_rPr, _qn('w:szCs'))
+                            _szCs.set(_qn('w:val'), sz_half)
+                        except Exception:
+                            pass
+
+                        color_int = span.get('color', 0)
+                        if color_int:
+                            r = (color_int >> 16) & 0xFF
+                            g = (color_int >> 8)  & 0xFF
+                            b =  color_int        & 0xFF
+                            run.font.color.rgb = _RGB(r, g, b)
+
+        out = BytesIO()
+        doc.save(out)
+        return out.getvalue()
+
+    except Exception as _fitz_err:
+        import traceback as _tb
+        _msg = _tb.format_exc()
+        log.error("_pdf_to_docx_smart FAILED: %s\n%s", _fitz_err, _msg)
+        print(f"\n[PDF->DOCX ERROR] {_fitz_err}\n{_msg}", flush=True)
+        try:
+            from pdf2docx import Converter as _Cv
+            import tempfile, os
+            with tempfile.TemporaryDirectory() as tmp:
+                sp = os.path.join(tmp, 'in.pdf')
+                dp = os.path.join(tmp, 'out.docx')
+                with open(sp, 'wb') as f:
+                    f.write(data)
+                cv = _Cv(sp)
+                cv.convert(dp)
+                cv.close()
+                with open(dp, 'rb') as f:
+                    return f.read()
+        except ImportError:
+            raise ValueError(
+                "pymupdf yoki pdf2docx kutubxonasi o'rnatilmagan. "
+                "pip install pymupdf pdf2docx"
+            )
+
+
+def _do_format_convert(data: bytes, src_ext: str, tgt_ext: str) -> bytes:
+    """Convert file bytes from src_ext format to tgt_ext format."""
+    src = src_ext.lower().lstrip('.')
+    tgt = tgt_ext.lower().lstrip('.')
+    if src == 'jpeg':
+        src = 'jpg'
+    if tgt == 'jpeg':
+        tgt = 'jpg'
+    if src == tgt:
+        return data
+
+    if src in _IMG_EXTS and tgt in _IMG_EXTS:
+        from PIL import Image
+        img = Image.open(BytesIO(data))
+        if img.mode in ('RGBA', 'LA', 'P') and tgt in ('jpg', 'bmp'):
+            img = img.convert('RGB')
+        out = BytesIO()
+        fmt = {'jpg': 'JPEG', 'png': 'PNG', 'webp': 'WEBP', 'bmp': 'BMP'}[tgt]
+        img.save(out, format=fmt, quality=92)
+        return out.getvalue()
+
+    if src in _IMG_EXTS and tgt == 'pdf':
+        from PIL import Image
+        img = Image.open(BytesIO(data))
+        if img.mode in ('RGBA', 'LA', 'P'):
+            img = img.convert('RGB')
+        out = BytesIO()
+        img.save(out, format='PDF', resolution=150)
+        return out.getvalue()
+
+    if src == 'pdf' and tgt == 'txt':
+        import pypdf
+        reader = pypdf.PdfReader(BytesIO(data))
+        pages = []
+        for page in reader.pages:
+            text = page.extract_text()
+            if text:
+                pages.append(text)
+        if not pages:
+            raise ValueError("PDF matn qatlamsiz (skanerlangan). Matnli PDF yuboring.")
+        return '\n\n'.join(pages).encode('utf-8')
+
+    if src == 'pdf' and tgt == 'docx':
+        return _pdf_to_docx_smart(data)
+
+    if src == 'docx' and tgt == 'txt':
+        from docx import Document
+        doc = Document(BytesIO(data))
+        text = '\n'.join(p.text for p in doc.paragraphs)
+        return text.encode('utf-8')
+
+    if src == 'txt' and tgt == 'docx':
+        from docx import Document
+        text = data.decode('utf-8', errors='replace')
+        doc = Document()
+        for line in text.splitlines():
+            doc.add_paragraph(line)
+        out = BytesIO()
+        doc.save(out)
+        return out.getvalue()
+
+    if src == 'txt' and tgt == 'pdf':
+        import os
+        from reportlab.lib.pagesizes import A4
+        from reportlab.lib.styles import getSampleStyleSheet
+        from reportlab.lib.units import cm
+        from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer
+        from reportlab.pdfbase import pdfmetrics
+        from reportlab.pdfbase.ttfonts import TTFont
+
+        text = data.decode('utf-8', errors='replace')
+        out = BytesIO()
+        doc = SimpleDocTemplate(out, pagesize=A4,
+                                leftMargin=2*cm, rightMargin=2*cm,
+                                topMargin=2*cm, bottomMargin=2*cm)
+        styles = getSampleStyleSheet()
+
+        for fp in [
+            '/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf',
+            'C:/Windows/Fonts/arial.ttf',
+            '/Library/Fonts/Arial.ttf',
+        ]:
+            if os.path.exists(fp):
+                pdfmetrics.registerFont(TTFont('_TxtPdfFont', fp))
+                styles['Normal'].fontName = '_TxtPdfFont'
+                break
+
+        story = []
+        for line in text.splitlines() or ['']:
+            if line.strip():
+                story.append(Paragraph(
+                    line.replace('&', '&amp;').replace('<', '&lt;').replace('>', '&gt;'),
+                    styles['Normal'],
+                ))
+            else:
+                story.append(Spacer(1, 12))
+        doc.build(story)
+        return out.getvalue()
+
+    if src == 'xlsx' and tgt == 'csv':
+        from openpyxl import load_workbook
+        import csv, io as _io
+        wb = load_workbook(BytesIO(data), data_only=True)
+        ws = wb.active
+        buf = _io.StringIO()
+        writer = csv.writer(buf)
+        for row in ws.iter_rows(values_only=True):
+            writer.writerow(['' if v is None else v for v in row])
+        return buf.getvalue().encode('utf-8-sig')
+
+    if src == 'csv' and tgt == 'xlsx':
+        from openpyxl import Workbook
+        import csv, io as _io
+        text = data.decode('utf-8-sig', errors='replace')
+        wb = Workbook()
+        ws = wb.active
+        for row in csv.reader(_io.StringIO(text)):
+            ws.append(row)
+        out = BytesIO()
+        wb.save(out)
+        return out.getvalue()
+
+    if src == 'docx' and tgt == 'pdf':
+        import sys as _sys, tempfile as _tf, os as _os
+        data = _flatten_letter_spacing(data)
+        if _sys.platform == 'win32':
+            try:
+                import docx2pdf as _d2p
+                with _tf.TemporaryDirectory() as _tmp:
+                    _sp = _os.path.join(_tmp, 'input.docx')
+                    with open(_sp, 'wb') as f:
+                        f.write(data)
+                    _d2p.convert(_sp)
+                    _dp = _sp.replace('.docx', '.pdf')
+                    if _os.path.exists(_dp):
+                        log.info("DOCX-PDF: MS Word (docx2pdf) used successfully")
+                        with open(_dp, 'rb') as f:
+                            return f.read()
+                    log.warning("DOCX-PDF: docx2pdf ran but PDF not found at %s, trying LibreOffice", _dp)
+            except ImportError:
+                log.info("DOCX-PDF: docx2pdf not installed, trying LibreOffice")
+            except Exception as _e:
+                log.warning("DOCX-PDF: docx2pdf failed (%s), trying LibreOffice", _e)
+        log.info("DOCX-PDF: using LibreOffice")
+        return _libreoffice_convert(data, src, tgt)
+
+    lo_pairs = {
+        ('pptx', 'pdf'),
+        ('odt', 'pdf'), ('odt', 'docx'),
+        ('ods', 'xlsx'), ('ods', 'csv'),
+        ('odp', 'pdf'),
+    }
+    if (src, tgt) in lo_pairs:
+        return _libreoffice_convert(data, src, tgt)
+
+    raise ValueError(
+        f"'{src.upper()}' dan '{tgt.upper()}' ga konvertatsiya qo'llab-quvvatlanmaydi."
+    )
+
+
+@router.get("/tools/file-converter", response_class=HTMLResponse)
+async def tools_file_converter_page(request: Request):
+    context = await get_template_context(request)
+    return templates.TemplateResponse("teacher/tools/file_converter.html", context)
+
+
+@router.post("/tools/file-converter")
+@limiter.limit("15/minute")
+async def tools_file_converter(
+    request: Request,
+    file: UploadFile = File(...),
+    target: str = Form(...),
+):
+    data = await file.read()
+    if len(data) > _MAX_FC_SIZE:
+        raise HTTPException(400, detail="Fayl hajmi 50 MB dan oshmasligi kerak.")
+
+    fname = file.filename or "file"
+    src_ext = fname.rsplit('.', 1)[-1].lower() if '.' in fname else ''
+    tgt_ext = target.lower().lstrip('.')
+    base = fname.rsplit('.', 1)[0] if '.' in fname else fname
+
+    if src_ext not in _FC_MAP:
+        raise HTTPException(400, detail=f"'{src_ext.upper()}' fayl formati qo'llab-quvvatlanmaydi.")
+    if tgt_ext not in _FC_MAP.get(src_ext, []):
+        raise HTTPException(400, detail=f"'{src_ext.upper()}' dan '{tgt_ext.upper()}' ga konvertatsiya mumkin emas.")
+
+    try:
+        result = await run_in_threadpool(_do_format_convert, data, src_ext, tgt_ext)
+    except ValueError as e:
+        raise HTTPException(422, detail=str(e))
+    except Exception as e:
+        log.exception("File converter error: %s -> %s", src_ext, tgt_ext)
+        raise HTTPException(500, detail=f"Konvertatsiya xatosi: {e}")
+
+    out_ext = 'jpg' if tgt_ext == 'jpeg' else tgt_ext
+    media_type = _FC_MIME.get(tgt_ext, 'application/octet-stream')
+    out_name = f"{base}_converted.{out_ext}"
+
+    return StreamingResponse(
+        BytesIO(result),
+        media_type=media_type,
+        headers={
+            "Content-Disposition": f'attachment; filename="{out_name}"',
+            "Content-Length": str(len(result)),
+        },
     )
