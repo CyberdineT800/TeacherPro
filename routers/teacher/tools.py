@@ -1659,12 +1659,33 @@ def _libreoffice_convert(data: bytes, src_ext: str, tgt_ext: str) -> bytes:
         profile_dir = os.path.join(tmp, 'lo_profile')
         user_install = f'-env:UserInstallation=file://{profile_dir}'
 
+        lo_home  = os.path.join(tmp, 'lo_home')
+        lo_cache = os.path.join(lo_home, '.cache')
+        lo_cfg   = os.path.join(lo_home, '.config')
+        os.makedirs(lo_cache, exist_ok=True)
+        os.makedirs(lo_cfg,   exist_ok=True)
+        env = os.environ.copy()
+        env['HOME']            = lo_home
+        env['XDG_CACHE_HOME']  = lo_cache
+        env['XDG_CONFIG_HOME'] = lo_cfg
+        env['XDG_DATA_HOME']   = os.path.join(lo_home, '.local', 'share')
+        env['XDG_RUNTIME_DIR'] = os.path.join(lo_home, '.runtime')
+        env['TMPDIR']          = tmp
+        env.setdefault('LANG',     'C.UTF-8')
+        env.setdefault('LC_ALL',   'C.UTF-8')
+        os.makedirs(env['XDG_DATA_HOME'],   exist_ok=True)
+        os.makedirs(env['XDG_RUNTIME_DIR'], exist_ok=True)
+        try:
+            os.chmod(env['XDG_RUNTIME_DIR'], 0o700)
+        except OSError:
+            pass
+
         try:
             proc = subprocess.run(
                 [lo, user_install, '--headless', '--norestore', '--nologo',
                  '--nofirststartwizard', '--convert-to', convert_to_arg,
                  '--outdir', tmp, src_path],
-                timeout=180, check=False, capture_output=True,
+                timeout=180, check=False, capture_output=True, env=env,
             )
         except subprocess.TimeoutExpired:
             raise ValueError(
