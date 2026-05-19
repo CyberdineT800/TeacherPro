@@ -1643,9 +1643,6 @@ def _libreoffice_convert(data: bytes, src_ext: str, tgt_ext: str) -> bytes:
         with open(src_path, 'wb') as f:
             f.write(data)
 
-        profile_dir = os.path.join(tmp, 'lo_profile')
-        user_install = f'-env:UserInstallation=file://{profile_dir}'
-
         lo_home  = os.path.join(tmp, 'home')
         lo_cache = os.path.join(lo_home, '.cache')
         lo_cfg   = os.path.join(lo_home, '.config')
@@ -1670,7 +1667,7 @@ def _libreoffice_convert(data: bytes, src_ext: str, tgt_ext: str) -> bytes:
         env.setdefault('LC_ALL', 'C.UTF-8')
 
         cmd = [
-            lo, user_install,
+            lo,
             '--headless', '--norestore', '--nologo', '--nolockcheck',
             '--convert-to', convert_to_arg,
             '--outdir', tmp,
