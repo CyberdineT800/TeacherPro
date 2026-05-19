@@ -1636,58 +1636,29 @@ def _libreoffice_convert(data: bytes, src_ext: str, tgt_ext: str) -> bytes:
     if src_ext == 'docx':
         data = _substitute_fonts_for_lo(data)
 
-    _infilter_map = {
-        'docx': 'Microsoft Word 2007-2019 XML',
-        'doc':  'MS Word 97',
-        'pptx': 'Impress MS PowerPoint 2007 XML',
-        'odt':  'writer8',
-        'ods':  'calc8',
-        'odp':  'impress8',
-        'txt':  'Text',
-    }
-
     convert_to_arg = 'pdf' if tgt_ext == 'pdf' else tgt_ext
 
     with tempfile.TemporaryDirectory() as tmp:
         src_path = os.path.join(tmp, f'input.{src_ext}')
         with open(src_path, 'wb') as f:
             f.write(data)
-
+            
         profile_dir = os.path.join(tmp, 'lo_profile')
         os.makedirs(profile_dir, exist_ok=True)
         user_install = f'-env:UserInstallation=file://{profile_dir}'
 
-        lo_home  = os.path.join(tmp, 'lo_home')
-        lo_cache = os.path.join(lo_home, '.cache')
-        lo_cfg   = os.path.join(lo_home, '.config')
-        os.makedirs(lo_cache, exist_ok=True)
-        os.makedirs(lo_cfg,   exist_ok=True)
         env = os.environ.copy()
-        env['HOME']            = lo_home
-        env['XDG_CACHE_HOME']  = lo_cache
-        env['XDG_CONFIG_HOME'] = lo_cfg
-        env['XDG_DATA_HOME']   = os.path.join(lo_home, '.local', 'share')
-        env['XDG_RUNTIME_DIR'] = os.path.join(lo_home, '.runtime')
-        env['TMPDIR']          = tmp
+        env['TMPDIR'] = tmp
         env.setdefault('LANG',   'C.UTF-8')
         env.setdefault('LC_ALL', 'C.UTF-8')
-        os.makedirs(env['XDG_DATA_HOME'],   exist_ok=True)
-        os.makedirs(env['XDG_RUNTIME_DIR'], exist_ok=True)
-        try:
-            os.chmod(env['XDG_RUNTIME_DIR'], 0o700)
-        except OSError:
-            pass
 
         cmd = [
             lo, user_install,
             '--headless', '--norestore', '--nologo', '--nolockcheck',
             '--convert-to', convert_to_arg,
             '--outdir', tmp,
+            src_path,
         ]
-        infilter = _infilter_map.get(src_ext)
-        if infilter:
-            cmd += ['--infilter', infilter]
-        cmd.append(src_path)
 
         try:
             proc = subprocess.run(
