@@ -1624,6 +1624,86 @@ def _substitute_fonts_for_lo(data: bytes) -> bytes:
         return data  
 
 
+def _pptx_to_pdf_python(data: bytes) -> bytes:
+    from pptx import Presentation
+    from reportlab.pdfgen import canvas
+    from reportlab.lib import colors
+    import io
+
+    EMU_TO_PT = 72.0 / 914400.0
+
+    prs = Presentation(io.BytesIO(data))
+    pw = prs.slide_width * EMU_TO_PT
+    ph = prs.slide_height * EMU_TO_PT
+
+    buf = io.BytesIO()
+    c = canvas.Canvas(buf, pagesize=(pw, ph))
+
+    for slide in prs.slides:
+        c.setFillColorRGB(1, 1, 1)
+        c.rect(0, 0, pw, ph, fill=1, stroke=0)
+
+        for shape in sorted(slide.shapes, key=lambda s: (s.top or 0, s.left or 0)):
+            if not shape.has_text_frame:
+                continue
+            sx = (shape.left or 0) * EMU_TO_PT
+            sy_top = (shape.top or 0) * EMU_TO_PT
+            sw = (shape.width or 0) * EMU_TO_PT
+            sh = (shape.height or 0) * EMU_TO_PT
+            sy_rl = ph - sy_top
+
+            cur_y = sy_rl - 4
+            for para in shape.text_frame.paragraphs:
+                line_text = para.text
+                if not line_text:
+                    cur_y -= 6
+                    continue
+
+                font_sz = 12.0
+                bold = False
+                rgb = (0.0, 0.0, 0.0)
+                for run in para.runs:
+                    if run.font.size:
+                        font_sz = run.font.size.pt
+                    if run.font.bold is True:
+                        bold = True
+                    try:
+                        if run.font.color and run.font.color.type:
+                            r = run.font.color.rgb
+                            rgb = (r[0] / 255.0, r[1] / 255.0, r[2] / 255.0)
+                    except Exception:
+                        pass
+
+                line_h = font_sz * 1.25
+                cur_y -= line_h
+                if cur_y < sy_rl - sh:
+                    break
+
+                c.setFont('Helvetica-Bold' if bold else 'Helvetica', font_sz)
+                c.setFillColorRGB(*rgb)
+
+                max_chars = max(1, int(sw / max(font_sz * 0.55, 1)))
+                words = line_text.split()
+                line = ''
+                for word in words:
+                    test = (line + ' ' + word).strip()
+                    if len(test) > max_chars and line:
+                        c.drawString(sx + 4, cur_y, line)
+                        cur_y -= line_h
+                        if cur_y < sy_rl - sh:
+                            break
+                        line = word
+                    else:
+                        line = test
+                if line and cur_y >= sy_rl - sh:
+                    c.drawString(sx + 4, cur_y, line)
+
+        c.showPage()
+
+    c.save()
+    return buf.getvalue()
+
+
 def _libreoffice_convert(data: bytes, src_ext: str, tgt_ext: str) -> bytes:
     import subprocess, tempfile, os
 
@@ -2029,8 +2109,14 @@ def _do_format_convert(data: bytes, src_ext: str, tgt_ext: str) -> bytes:
                 log.warning("DOCX-PDF: docx2pdf failed (%s), trying LibreOffice", _e)
         return _libreoffice_convert(data, src, tgt)
 
+    if src == 'pptx' and tgt == 'pdf':
+        try:
+            return _pptx_to_pdf_python(data)
+        except Exception as _e:
+            log.warning("PPTX->PDF: python fallback failed (%s), trying LibreOffice", _e)
+        return _libreoffice_convert(data, src, tgt)
+
     lo_pairs = {
-        ('pptx', 'pdf'),
         ('odt', 'pdf'), ('odt', 'docx'),
         ('ods', 'xlsx'), ('ods', 'csv'),
         ('odp', 'pdf'),
