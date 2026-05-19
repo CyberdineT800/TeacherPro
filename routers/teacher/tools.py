@@ -2000,6 +2000,18 @@ def _do_format_convert(data: bytes, src_ext: str, tgt_ext: str) -> bytes:
 
     if src == 'docx' and tgt == 'pdf':
         import sys as _sys, tempfile as _tf, os as _os
+        try:
+            try:
+                import fitz
+            except ImportError:
+                import pymupdf as fitz
+            doc = fitz.open(stream=data, filetype='docx')
+            pdf_bytes = doc.convert_to_pdf()
+            doc.close()
+            if pdf_bytes:
+                return pdf_bytes
+        except Exception as _e:
+            log.warning("DOCX->PDF: PyMuPDF failed (%s), trying LibreOffice", _e)
         data = _flatten_letter_spacing(data)
         if _sys.platform == 'win32':
             try:
@@ -2011,15 +2023,10 @@ def _do_format_convert(data: bytes, src_ext: str, tgt_ext: str) -> bytes:
                     _d2p.convert(_sp)
                     _dp = _sp.replace('.docx', '.pdf')
                     if _os.path.exists(_dp):
-                        log.info("DOCX-PDF: MS Word (docx2pdf) used successfully")
                         with open(_dp, 'rb') as f:
                             return f.read()
-                    log.warning("DOCX-PDF: docx2pdf ran but PDF not found at %s, trying LibreOffice", _dp)
-            except ImportError:
-                log.info("DOCX-PDF: docx2pdf not installed, trying LibreOffice")
             except Exception as _e:
                 log.warning("DOCX-PDF: docx2pdf failed (%s), trying LibreOffice", _e)
-        log.info("DOCX-PDF: using LibreOffice")
         return _libreoffice_convert(data, src, tgt)
 
     lo_pairs = {
