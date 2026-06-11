@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="stylesheet" href="Styles/style.css">
+  <title>Ingliz tili</title>
+</head>
+<body>
+  <header>
+    <div class="container">
+      <div class="nav">
+        <nav>
+          <ul>
+            <li><a href="index.html">Harflar!</a></li>
+            <li class="current"><a href="fillTheLetter.html">Sinov!</a></li>
+          </ul>
+        </nav>
+      </div>
+    </div>
+  </header>
+  <div class="wrapper">
+      <div class="question">
+        <img src="" class="responsive" id="hint">
+        <h1  id="letter1" style="color:#FE4A49"></h1>
+        <h1  id="letter2" style="color:#FE4A49"></h1>
+        <h1  id="letter3" style="color:#FE4A49"></h1>
+        <h1  id="letter4" style="color:#FE4A49"></h1>
+        <h1  id="letter5" style="color:#FE4A49"></h1>
+        <h1  id="letter6" style="color:#FE4A49"></h1>
+        <h1  id="letter7" style="color:#FE4A49"></h1>
+        <h1  id="letter8" style="color:#FE4A49"></h1>
+      </div>
+      <div class="answer-options">
+        <div class="options" style="background-color: #FE4A49;">
+          <h1 id="option1">R</h1>
+        </div>
+        <div class="options" style="background-color: #2AB7CA;">
+          <h1 id="option2">F</h1>
+        </div>
+        <div class="options" style="background-color: #FED766;">
+          <h1 id="option3">W</h1>
+        </div>
+      </div>
+  </div>
+     <div id="quiz-container">
+         <div class="questions">
+             <h2 id="question"></h2>
+             <ol type="A">
+                 <li class="option"><span id="option1" onclick="calcScore(this)"></span></li>
+                 <li class="option"><span id="option2" onclick="calcScore(this)"></span></li>
+                 <li class="option"><span id="option3" onclick="calcScore(this)"></span></li>
+             </ol>
+             <h4 id="stat"></h4>
+         </div>
+     </div>
+  <script src="Scripts/spells.js"></script>
+</body>
+</html>

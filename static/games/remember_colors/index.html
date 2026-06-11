@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Ranglarni eslab qol</title>
+    <link rel="stylesheet" href="style.css" />
+    <style>
+      html { height: 100%; }
+      body {
+        height: 100% !important;
+        min-height: unset !important;
+        overflow-y: auto;
+        display: flex !important;
+        flex-direction: column !important;
+        justify-content: center !important;
+        align-items: center !important;
+      }
+    </style>
+  </head>
+  <body>
+    <h1>Ranglarni eslab qol!</h1>
+    <div id="game-container">
+      <div class="color-btn" id="yashil"></div>
+      <div class="color-btn" id="qizil"></div>
+      <div class="color-btn" id="sariq"></div>
+      <div class="color-btn" id="moviy"></div>
+    </div>
+
+    <div id="custom-dialog" style="display: none;">
+      <div class="dialog-content">
+        <h2>O'yin tugadi!</h2>
+        <p id="dialog-message"></p>
+        <button id="dialog-ok">OK</button>
+      </div>
+    </div>
+
+    <div id="game-status">
+      <p class="my-text" id="sequence" style="display: none;">
+        Ketma-ketlik: <span id="sequence-display">-</span>
+      </p>
+      <p class="my-text" id="clicks" style="display: none;">
+        Urinishlar soni: <span id="click-count">0</span>
+      </p>
+      <p class="my-text" id="status" style="display: none;">
+        Holat: <span id="status">Kutilmoqda...</span>
+      </p>
+    </div>
+
+    <button id="start-btn">Boshlash</button>
+    <p id="level-message" style="display: none;"></p>
+
+    <script src="script.js"></script>
+  </body>
+</html>

@@ -113,4 +113,169 @@
 
     </div>
 </div>
+
+<!-- ── Mini-Games section ──────────────────────────────────────────────── -->
+<div class="card" style="margin-top:1.25rem">
+    <div class="gh-header">
+        <div>
+            <h2 style="margin:0">{{ _('mini_games_section_title') }}</h2>
+            <p style="margin:.35rem 0 0; color:var(--text-muted); font-size:.9rem">{{ _('mini_games_section_sub') }}</p>
+        </div>
+    </div>
+
+    <div class="gh-grid">
+
+        <!-- 2048 -->
+        <div class="gh-card available">
+            <span class="gh-status active">{{ _('available') }}</span>
+            <h3 class="gh-title">{{ _('mg_2048_title') }}</h3>
+            <p class="gh-desc">{{ _('mg_2048_desc') }}</p>
+            <div class="gh-chips">
+                <span class="gh-chip">{{ _('mg_chip_logic') }}</span>
+                <span class="gh-chip">{{ _('mg_chip_numbers') }}</span>
+                <span class="gh-chip">{{ _('mg_chip_strategy') }}</span>
+            </div>
+            <div class="gh-spacer"></div>
+            <div class="gh-actions">
+                <a href="{{ root_path }}/teacher/games/mini/2048" class="btn btn-primary">{{ _('play_game') }}</a>
+            </div>
+        </div>
+
+        <!-- Balloon Pop Maths -->
+        <div class="gh-card available">
+            <span class="gh-status active">{{ _('available') }}</span>
+            <h3 class="gh-title">{{ _('mg_balloon_title') }}</h3>
+            <p class="gh-desc">{{ _('mg_balloon_desc') }}</p>
+            <div class="gh-chips">
+                <span class="gh-chip">{{ _('mg_chip_maths') }}</span>
+                <span class="gh-chip">{{ _('mg_chip_speed') }}</span>
+            </div>
+            <div class="gh-spacer"></div>
+            <div class="gh-actions">
+                <a href="{{ root_path }}/teacher/games/mini/balloon-pop-maths" class="btn btn-primary">{{ _('play_game') }}</a>
+            </div>
+        </div>
+
+        <!-- Catch the Beaver -->
+        <div class="gh-card available">
+            <span class="gh-status active">{{ _('available') }}</span>
+            <h3 class="gh-title">{{ _('mg_beaver_title') }}</h3>
+            <p class="gh-desc">{{ _('mg_beaver_desc') }}</p>
+            <div class="gh-chips">
+                <span class="gh-chip">{{ _('mg_chip_reaction') }}</span>
+                <span class="gh-chip">{{ _('mg_chip_speed') }}</span>
+            </div>
+            <div class="gh-spacer"></div>
+            <div class="gh-actions">
+                <a href="{{ root_path }}/teacher/games/mini/catch-beaver" class="btn btn-primary">{{ _('play_game') }}</a>
+            </div>
+        </div>
+
+        <!-- Guess the Number -->
+        <div class="gh-card available">
+            <span class="gh-status active">{{ _('available') }}</span>
+            <h3 class="gh-title">{{ _('mg_guess_title') }}</h3>
+            <p class="gh-desc">{{ _('mg_guess_desc') }}</p>
+            <div class="gh-chips">
+                <span class="gh-chip">{{ _('mg_chip_logic') }}</span>
+                <span class="gh-chip">{{ _('mg_chip_attempts_10') }}</span>
+            </div>
+            <div class="gh-spacer"></div>
+            <div class="gh-actions">
+                <a href="{{ root_path }}/teacher/games/mini/guess-number" class="btn btn-primary">{{ _('play_game') }}</a>
+            </div>
+        </div>
+
+        <!-- Kids English -->
+        <div class="gh-card available">
+            <span class="gh-status active">{{ _('available') }}</span>
+            <h3 class="gh-title">{{ _('mg_english_title') }}</h3>
+            <p class="gh-desc">{{ _('mg_english_desc') }}</p>
+            <div class="gh-chips">
+                <span class="gh-chip">{{ _('mg_chip_english') }}</span>
+                <span class="gh-chip">{{ _('mg_chip_vocabulary') }}</span>
+            </div>
+            <div class="gh-spacer"></div>
+            <div class="gh-actions">
+                <a href="{{ root_path }}/teacher/games/mini/kids-english" class="btn btn-primary">{{ _('play_game') }}</a>
+            </div>
+        </div>
+
+        <!-- Maze -->
+        <div class="gh-card available">
+            <span class="gh-status active">{{ _('available') }}</span>
+            <h3 class="gh-title">{{ _('mg_maze_title') }}</h3>
+            <p class="gh-desc">{{ _('mg_maze_desc') }}</p>
+            <div class="gh-chips">
+                <span class="gh-chip">{{ _('mg_chip_navigation') }}</span>
+                <span class="gh-chip">{{ _('mg_chip_two_levels') }}</span>
+            </div>
+            <div class="gh-spacer"></div>
+            <div class="gh-actions">
+                <a href="{{ root_path }}/teacher/games/mini/maze" class="btn btn-primary">{{ _('play_game') }}</a>
+            </div>
+        </div>
+
+        <!-- Minesweeper -->
+        <div class="gh-card available">
+            <span class="gh-status active">{{ _('available') }}</span>
+            <h3 class="gh-title">{{ _('mg_minesweeper_title') }}</h3>
+            <p class="gh-desc">{{ _('mg_minesweeper_desc') }}</p>
+            <div class="gh-chips">
+                <span class="gh-chip">{{ _('mg_chip_logic') }}</span>
+                <span class="gh-chip">{{ _('mg_chip_classic') }}</span>
+            </div>
+            <div class="gh-spacer"></div>
+            <div class="gh-actions">
+                <a href="{{ root_path }}/teacher/games/mini/minesweeper" class="btn btn-primary">{{ _('play_game') }}</a>
+            </div>
+        </div>
+
+        <!-- Remember Colors -->
+        <div class="gh-card available">
+            <span class="gh-status active">{{ _('available') }}</span>
+            <h3 class="gh-title">{{ _('mg_colors_title') }}</h3>
+            <p class="gh-desc">{{ _('mg_colors_desc') }}</p>
+            <div class="gh-chips">
+                <span class="gh-chip">{{ _('mg_chip_memory') }}</span>
+                <span class="gh-chip">{{ _('mg_chip_colors') }}</span>
+            </div>
+            <div class="gh-spacer"></div>
+            <div class="gh-actions">
+                <a href="{{ root_path }}/teacher/games/mini/remember-colors" class="btn btn-primary">{{ _('play_game') }}</a>
+            </div>
+        </div>
+
+        <!-- Twins -->
+        <div class="gh-card available">
+            <span class="gh-status active">{{ _('available') }}</span>
+            <h3 class="gh-title">{{ _('mg_twins_title') }}</h3>
+            <p class="gh-desc">{{ _('mg_twins_desc') }}</p>
+            <div class="gh-chips">
+                <span class="gh-chip">{{ _('mg_chip_memory') }}</span>
+                <span class="gh-chip">{{ _('mg_chip_pairs') }}</span>
+            </div>
+            <div class="gh-spacer"></div>
+            <div class="gh-actions">
+                <a href="{{ root_path }}/teacher/games/mini/twins" class="btn btn-primary">{{ _('play_game') }}</a>
+            </div>
+        </div>
+
+        <!-- Word Match -->
+        <div class="gh-card available">
+            <span class="gh-status active">{{ _('available') }}</span>
+            <h3 class="gh-title">{{ _('mg_wordmatch_title') }}</h3>
+            <p class="gh-desc">{{ _('mg_wordmatch_desc') }}</p>
+            <div class="gh-chips">
+                <span class="gh-chip">{{ _('mg_chip_vocabulary') }}</span>
+                <span class="gh-chip">{{ _('mg_chip_uz_en') }}</span>
+            </div>
+            <div class="gh-spacer"></div>
+            <div class="gh-actions">
+                <a href="{{ root_path }}/teacher/games/mini/word-match" class="btn btn-primary">{{ _('play_game') }}</a>
+            </div>
+        </div>
+
+    </div>
+</div>
 {% endblock %}

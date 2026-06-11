@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html lang="en" dir="ltr">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>2048</title>
+    <link rel="stylesheet" href="style.css" />
+    <style>
+      html, body { height: 100%; }
+      body {
+        min-height: 100vh !important;
+        overflow-y: auto;
+        display: flex !important;
+        flex-direction: column !important;
+        justify-content: center !important;
+        align-items: center !important;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <div class="info">
+        <h1>2048</h1>
+        <div class="score-container">
+          <div class="score-title">Hisob</div>
+          <span id="score">0</span>
+        </div>
+      </div>
+      <span id="result">Raqamlarni birlashtirish orqali <b>2048</b> hosil qiling!</span>
+
+      <div class="game-area">
+        <div class="grid"></div>
+
+        <div class="controls">
+          <button id="refresh-button" title="Yangi o'yin">&#10227;</button>
+          <div class="dpad">
+            <button id="up-button" class="control-btn">&#8593;</button>
+            <button id="left-button" class="control-btn">&#8592;</button>
+            <button id="down-button" class="control-btn">&#8595;</button>
+            <button id="right-button" class="control-btn">&#8594;</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <script src="script.js" charset="utf-8"></script>
+  </body>
+</html>

@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Minesweeper</title>
+    <link rel="stylesheet" href="style.css" />
+    <script src="script.js"></script>
+    <style>
+      html, body { height: 100%; }
+      body {
+        min-height: 100vh !important;
+        overflow-y: auto;
+        display: flex !important;
+        flex-direction: column !important;
+        justify-content: center !important;
+        align-items: center !important;
+      }
+    </style>
+  </head>
+
+  <body>
+    <h1>Tuzoqlar soni: <span id="mines-count">0</span></h1>
+
+    <div class="page-layout">
+      <div class="rules-container">
+        <h2>O'yin qoidalari</h2>
+        <ul>
+          <li>Katakcha ustiga bosib, uning ostida nima borligini ko'ring.</li>
+          <li>Raqamlar bu katakchaga qancha tuzoq qo'shni ekanligini ko'rsatadi.</li>
+          <li>Shubhali kataklarni belgilash uchun bayroq tugmasidan foydalaning.</li>
+          <li>G'alaba qozonish uchun tuzoqlardan tashqari barcha katakchalarni tozalang.</li>
+          <li>Agar tuzoqli katakchani bossangiz, yutqazasiz!</li>
+          <li>Yangi o'yinni boshlash uchun yangilash tugmasidan foydalaning.</li>
+        </ul>
+      </div>
+
+      <div class="game-container">
+        <div id="board"></div>
+        <div class="controls">
+          <button id="flag-button" title="Bayroq">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+              <path d="M5 3v18M5 3l14 5-14 5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+            </svg>
+          </button>
+          <button id="refresh-button" title="Yangilash">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                 stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <polyline points="23 4 23 10 17 10"/>
+              <path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/>
+            </svg>
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <div id="game-dialog" class="dialog">
+      <div class="dialog-content">
+        <p id="dialog-message"></p>
+        <button id="dialog-close">Yopish</button>
+      </div>
+    </div>
+  </body>
+</html>

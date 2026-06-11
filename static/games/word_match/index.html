@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html lang="uz">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>So'zlarni Moslashtirish</title>
+    <link rel="stylesheet" href="style.css">
+    <style>
+      html, body { height: 100%; }
+      body {
+        min-height: 100vh !important;
+        overflow-y: auto;
+        display: flex !important;
+        flex-direction: column !important;
+        justify-content: center !important;
+        align-items: center !important;
+      }
+    </style>
+</head>
+<body>
+    <h2>O'zbek so'zlarini inglizcha tarjimasiga moslashtiring</h2>
+
+    <div class="game-container">
+        <div class="column" id="words-column"></div>
+        <div class="column" id="emojis-column"></div>
+    </div>
+
+    <button class="retry-button" id="retry-button">Qaytadan</button>
+
+    <canvas id="connection-canvas"></canvas>
+
+    <div class="dialog" id="error-dialog">
+        <p class="error-message">Noto'g'ri, qayta urinib ko'ring!</p>
+        <button id="dialog-close">Yopish</button>
+    </div>
+
+    <div class="dialog" id="win-dialog">
+        <p class="success-message">Ofarin! Barcha so'zlarni to'g'ri moslashtirdingiz!</p>
+        <button id="win-dialog-close">Yopish</button>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+</html>

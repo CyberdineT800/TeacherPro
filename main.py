@@ -207,6 +207,7 @@ async def add_template_context(request: Request, call_next):
 
             # ── Teacher: games hub (game-agnostic) ──────────────────────────
             'teacher_games_hub': '/teacher/games',
+            'teacher_mini_game_play': '/teacher/games/mini/{game_id}',
 
             # ── Teacher: tools hub ───────────────────────────────────────────
             'teacher_tools_hub':      '/teacher/tools',
