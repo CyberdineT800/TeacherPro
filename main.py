@@ -227,6 +227,10 @@ async def add_template_context(request: Request, call_next):
             'quiz_race_join_landing': '/play/quiz-race',
             'quiz_race_join_game': '/play/quiz-race/{code}',
 
+            # ── Public: Mini-Games ───────────────────────────────────────────
+            'public_games_hub': '/games',
+            'public_mini_game_play': '/games/{game_id}',
+
             # ── Public: Home & Announcements ─────────────────────────────────
             'home': '/',
             'admin_announcements': '/admin/announcements',

@@ -608,5 +608,9 @@
   "mg_chip_memory": "Memory",
   "mg_chip_colors": "Colors",
   "mg_chip_pairs": "Pairs",
-  "mg_chip_uz_en": "UZ / EN"
+  "mg_chip_uz_en": "UZ / EN",
+
+  "home_games_nav": "Games",
+  "home_play_games": "Play Games",
+  "pg_games_subtitle": "Browser games for students — no sign-in needed"
 }

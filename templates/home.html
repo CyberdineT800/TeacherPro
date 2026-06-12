@@ -837,6 +837,7 @@ footer{
       <a href="#showcase" class="nav-pill">{{ _('home_showcase_label') }}</a>
       <a href="#stats" class="nav-pill">{{ _('home_stats_label') }}</a>
       <a href="#announcements" class="nav-pill">{{ _('home_ann_label') }}</a>
+      <a href="{{ root_path }}/games" class="nav-pill">{{ _('home_games_nav') }}</a>
     </div>
 
     <div class="nav-right" id="navRight">
@@ -866,6 +867,7 @@ footer{
     <a href="#showcase" class="nav-pill">{{ _('home_showcase_label') }}</a>
     <a href="#stats" class="nav-pill">{{ _('home_stats_label') }}</a>
     <a href="#announcements" class="nav-pill">{{ _('home_ann_label') }}</a>
+    <a href="{{ root_path }}/games" class="nav-pill">{{ _('home_games_nav') }}</a>
     <div class="lang-sw" style="align-self:flex-start">
       <button class="lang-btn{% if current_language == 'uz' %} on{% endif %}" onclick="setLang('uz')">UZ</button>
       <button class="lang-btn{% if current_language == 'ru' %} on{% endif %}" onclick="setLang('ru')">RU</button>
@@ -902,9 +904,9 @@ footer{
         <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M15 3h4a2 2 0 012 2v14a2 2 0 01-2 2h-4"/><polyline points="10 17 15 12 10 7"/><line x1="15" y1="12" x2="3" y2="12"/></svg>
         {{ _('home_login') }}
       </a>
-      <a href="#features" class="btn-ghost">
-        {{ _('home_more') }}
-        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><line x1="12" y1="5" x2="12" y2="19"/><polyline points="19 12 12 19 5 12"/></svg>
+      <a href="{{ root_path }}/games" class="btn-ghost">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><rect x="2" y="6" width="20" height="12" rx="2"/><path d="M8 12h2m1-1v2M16 12h.01M18 12h.01"/></svg>
+        {{ _('home_play_games') }}
       </a>
     </div>
   </div>

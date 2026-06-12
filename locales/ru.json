@@ -607,5 +607,9 @@
   "mg_chip_memory": "Память",
   "mg_chip_colors": "Цвета",
   "mg_chip_pairs": "Пары",
-  "mg_chip_uz_en": "UZ / EN"
+  "mg_chip_uz_en": "UZ / EN",
+
+  "home_games_nav": "Игры",
+  "home_play_games": "Играть",
+  "pg_games_subtitle": "Браузерные игры для учеников — авторизация не нужна"
 }

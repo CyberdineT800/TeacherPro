@@ -607,5 +607,9 @@
   "mg_chip_memory": "Xotira",
   "mg_chip_colors": "Ranglar",
   "mg_chip_pairs": "Juftlar",
-  "mg_chip_uz_en": "UZ / EN"
+  "mg_chip_uz_en": "UZ / EN",
+
+  "home_games_nav": "O'yinlar",
+  "home_play_games": "O'yinlarni ochish",
+  "pg_games_subtitle": "O'quvchilar uchun brauzer o'yinlari — tizimga kirish shart emas"
 }
