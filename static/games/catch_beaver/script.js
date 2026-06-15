@@ -74,4 +74,14 @@ function bonk(e) {
   scoreBoard.textContent = score;
 }
 
-moles.forEach((mole) => mole.addEventListener("click", bonk));
+function bonkTouch(e) {
+  e.preventDefault();
+  score++;
+  this.classList.remove("up");
+  scoreBoard.textContent = score;
+}
+
+moles.forEach((mole) => {
+  mole.addEventListener("click", bonk);
+  mole.addEventListener("touchstart", bonkTouch, { passive: false });
+});

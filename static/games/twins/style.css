@@ -9,7 +9,7 @@ body{
   display: flex;
   align-items: center;
   justify-content: center;
-  min-height: 100vh;
+  min-height: 100%;
   background: #6563FF;
 }
 .wrapper{
@@ -206,5 +206,24 @@ body{
   .game-info {
     flex-direction: column;
     gap: 10px;
+  }
+}
+
+@media screen and (max-width: 380px) {
+  .wrapper {
+    padding: 14px;
+  }
+
+  .cards {
+    width: 272px;
+    height: 272px;
+  }
+
+  .card .front-view img {
+    width: 13px;
+  }
+
+  .card .back-view img {
+    max-width: 30px;
   }
 }

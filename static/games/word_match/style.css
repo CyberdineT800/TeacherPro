@@ -4,7 +4,7 @@ body {
     margin: 0;
     padding: 20px;
     text-align: center;
-    min-height: 100vh;
+    min-height: 100%;
     display: flex;
     flex-direction: column;
     justify-content: center;
@@ -98,4 +98,28 @@ canvas {
 }
 .retry-button:hover {
     background-color: #2980b9;
+}
+
+@media (max-width: 480px) {
+  body {
+    padding: 12px;
+  }
+
+  h2 {
+    font-size: 1.1rem;
+    margin-bottom: 12px;
+  }
+
+  .game-container {
+    gap: 16px;
+  }
+
+  .column {
+    width: 138px;
+  }
+
+  .cell {
+    font-size: 13px;
+    height: 44px;
+  }
 }

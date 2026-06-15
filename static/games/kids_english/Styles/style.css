@@ -170,3 +170,55 @@ nav a{
   transition: 2s;
   box-shadow: 2px 2px 6px 0px rgba(0, 0, 0, 0.9);
 }
+
+/* Mobile: Harflar (Letters) grid */
+@media(max-width:480px){
+  .grid-container {
+    grid-template-columns: repeat(2, 47%);
+    grid-auto-rows: 28vw;
+    grid-gap: 2vw;
+  }
+
+  .grid-item h1 {
+    font-size: 4.5vw;
+    padding-left: 5%;
+  }
+
+  .responsive {
+    max-width: 65px;
+  }
+}
+
+/* Mobile: Sinov (fillTheLetter) layout */
+@media(max-width:480px){
+  .wrapper {
+    display: flex;
+    flex-direction: column;
+  }
+
+  .question {
+    font-size: 7vw;
+    min-height: 100px;
+    margin: 8px 8px 0 8px;
+  }
+
+  .question h1 {
+    font-size: 36px;
+    padding: 12px;
+  }
+
+  .answer-options {
+    display: flex;
+    flex-direction: row;
+    justify-content: center;
+    gap: 10px;
+    margin: 10px 8px;
+    font-size: 7vw;
+  }
+
+  .options {
+    flex: 1;
+    max-width: 90px;
+    min-height: 64px;
+  }
+}

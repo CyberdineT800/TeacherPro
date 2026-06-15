@@ -228,10 +228,10 @@ const holes = [
   y: hole.row * (wallW + pathW) + (wallW / 2 + pathW / 2),
 }));
 
-joystickHeadElement.addEventListener("mousedown", function (event) {
+function startJoystick(startX, startY) {
   if (!gameInProgress) {
-    mouseStartX = event.clientX;
-    mouseStartY = event.clientY;
+    mouseStartX = startX;
+    mouseStartY = startY;
     gameInProgress = true;
     window.requestAnimationFrame(main);
     noteElement.style.opacity = 0;
@@ -240,12 +240,12 @@ joystickHeadElement.addEventListener("mousedown", function (event) {
           cursor: grabbing;
         `;
   }
-});
+}
 
-window.addEventListener("mousemove", function (event) {
+function moveJoystick(currentX, currentY) {
   if (gameInProgress) {
-    const mouseDeltaX = -Math.minmax(mouseStartX - event.clientX, 15);
-    const mouseDeltaY = -Math.minmax(mouseStartY - event.clientY, 15);
+    const mouseDeltaX = -Math.minmax(mouseStartX - currentX, 15);
+    const mouseDeltaY = -Math.minmax(mouseStartY - currentY, 15);
 
     joystickHeadElement.style.cssText = `
           left: ${mouseDeltaX}px;
@@ -269,7 +269,37 @@ window.addEventListener("mousemove", function (event) {
     frictionX = gravity * Math.cos((rotationY / 180) * Math.PI) * friction;
     frictionY = gravity * Math.cos((rotationX / 180) * Math.PI) * friction;
   }
+}
+
+joystickHeadElement.addEventListener("mousedown", function (event) {
+  startJoystick(event.clientX, event.clientY);
 });
+
+window.addEventListener("mousemove", function (event) {
+  moveJoystick(event.clientX, event.clientY);
+});
+
+// Touch on joystick head (existing behavior, larger target now)
+joystickHeadElement.addEventListener("touchstart", function (event) {
+  event.preventDefault();
+  const touch = event.touches[0];
+  startJoystick(touch.clientX, touch.clientY);
+}, { passive: false });
+
+// Swipe directly on the maze (intuitive tilt control for mobile)
+mazeElement.addEventListener("touchstart", function (event) {
+  event.preventDefault();
+  const touch = event.touches[0];
+  startJoystick(touch.clientX, touch.clientY);
+}, { passive: false });
+
+window.addEventListener("touchmove", function (event) {
+  if (gameInProgress) {
+    event.preventDefault();
+    const touch = event.touches[0];
+    moveJoystick(touch.clientX, touch.clientY);
+  }
+}, { passive: false });
 
 window.addEventListener("keydown", function (event) {
   if (event.key != " ") return;

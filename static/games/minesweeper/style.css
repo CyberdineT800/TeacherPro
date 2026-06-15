@@ -3,7 +3,7 @@ body {
   font-weight: bold;
   text-align: center;
   padding: 10px;
-  min-height: 100vh;
+  min-height: 100%;
   display: flex;
   flex-direction: column;
   justify-content: center;
@@ -151,4 +151,56 @@ body {
 .rules-container li {
   margin-bottom: 8px;
   font-weight: normal;
+}
+
+@media (max-width: 480px) {
+  body {
+    padding: 8px;
+  }
+
+  .page-layout {
+    gap: 16px;
+    padding: 8px;
+  }
+
+  /* Stack controls below the board so nothing overflows horizontally */
+  .game-container {
+    flex-direction: column;
+    align-items: center;
+  }
+
+  #board {
+    width: 296px;
+    height: 296px;
+  }
+
+  #board div {
+    width: 34px;
+    height: 34px;
+    font-size: 18px;
+  }
+
+  .controls {
+    flex-direction: row;
+    margin-left: 0;
+    margin-top: 10px;
+    gap: 12px;
+  }
+
+  #flag-button,
+  #refresh-button {
+    width: 56px;
+    height: 56px;
+    font-size: 26px;
+  }
+
+  #refresh-button {
+    margin-top: 0;
+  }
+
+  .rules-container {
+    max-width: 100%;
+    min-width: unset;
+    width: 296px;
+  }
 }
