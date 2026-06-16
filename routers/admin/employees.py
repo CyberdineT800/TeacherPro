@@ -98,8 +98,6 @@ async def add_employee(
     db: AsyncSession = Depends(get_db),
     current_admin: Employee = Depends(require_admin),
 ):
-    # School admins create only school-scoped staff for their own school —
-    # they cannot grant admin rights or assign another school.
     if not current_admin.is_super_admin:
         school_id = current_admin.school_id
         is_admin = False

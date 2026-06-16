@@ -37,7 +37,6 @@ async def classes_list(
         except ValueError:
             pass
 
-    # School admins are locked to their own school regardless of query params.
     if not current_admin.is_super_admin:
         sid = current_admin.school_id
 
@@ -47,11 +46,12 @@ async def classes_list(
         base_q = base_q.where(SchoolClass.school_id == sid)
         count_q = count_q.where(SchoolClass.school_id == sid)
     elif not current_admin.is_super_admin:
-        # School admin without an assigned school sees nothing.
         base_q = base_q.where(SchoolClass.id == -1)
         count_q = count_q.where(SchoolClass.id == -1)
     else:
         base_q = base_q.order_by(SchoolClass.created_at.desc())
+
+    base_q = base_q.order_by(SchoolClass.name.asc())
 
     total = (await db.execute(count_q)).scalar()
     pg = page_info(total, page, per_page, request)
