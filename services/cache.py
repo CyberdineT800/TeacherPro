@@ -104,6 +104,7 @@ def _emp_to_dict(emp) -> dict:
         'last_name':                 emp.last_name,
         'email':                     getattr(emp, 'email', None),
         'is_admin':                  bool(emp.is_admin),
+        'is_super_admin':            bool(getattr(emp, 'is_super_admin', False)),
         'is_active':                 bool(emp.is_active),
         'school_id':                 emp.school_id,
         'staff_title_id':            emp.staff_title_id,
