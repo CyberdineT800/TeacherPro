@@ -8,14 +8,53 @@ from sqlalchemy import select, delete, func
 
 from services.cache import cache_del_admin_stats, cache_del_home_stats
 from models import get_db, School, Employee, SchoolClass, Student, Exam, Question, ExamResult
-from dependencies import require_admin, flash, get_template_context, page_info
+from dependencies import require_admin, require_super_admin, flash, get_template_context, page_info
 
 router = APIRouter(prefix="/admin", dependencies=[Depends(require_admin)])
 templates = Jinja2Templates(directory="templates")
 
 
+@router.get("/my-school", response_class=HTMLResponse)
+async def my_school_page(request: Request, db: AsyncSession = Depends(get_db),
+                         current_admin: Employee = Depends(require_admin)):
+    """School admin's own-school profile editor."""
+    if not current_admin.school_id:
+        flash(request, 'Sizga maktab biriktirilmagan', 'warning')
+        return RedirectResponse(url="/admin/dashboard", status_code=303)
+    school = (await db.execute(
+        select(School).where(School.id == current_admin.school_id)
+    )).scalar_one_or_none()
+    if not school:
+        flash(request, 'Maktab topilmadi', 'danger')
+        return RedirectResponse(url="/admin/dashboard", status_code=303)
+    context = await get_template_context(request)
+    context.update({'school': school, 'my_school': True})
+    return templates.TemplateResponse('admin/school_form.html', context)
+
+
+@router.post("/my-school")
+async def my_school_save(
+    request: Request,
+    name: str = Form(...), address: str = Form(""),
+    phone: str = Form(""), email: str = Form(""),
+    db: AsyncSession = Depends(get_db),
+    current_admin: Employee = Depends(require_admin),
+):
+    school = (await db.execute(
+        select(School).where(School.id == current_admin.school_id)
+    )).scalar_one_or_none()
+    if not school:
+        flash(request, 'Maktab topilmadi', 'danger')
+        return RedirectResponse(url="/admin/dashboard", status_code=303)
+    school.name, school.address, school.phone, school.email = name, address, phone, email
+    await db.commit()
+    flash(request, "Maktab ma'lumotlari yangilandi", 'success')
+    return RedirectResponse(url="/admin/dashboard", status_code=303)
+
+
 @router.get("/schools", response_class=HTMLResponse)
-async def schools_list(request: Request, page: int = 1, db: AsyncSession = Depends(get_db)):
+async def schools_list(request: Request, page: int = 1, db: AsyncSession = Depends(get_db),
+                       _su: Employee = Depends(require_super_admin)):
     per_page = 10
     total = (await db.execute(select(func.count(School.id)))).scalar()
     pg = page_info(total, page, per_page, request)
@@ -30,7 +69,7 @@ async def schools_list(request: Request, page: int = 1, db: AsyncSession = Depen
 
 
 @router.get("/schools/add", response_class=HTMLResponse)
-async def add_school_page(request: Request):
+async def add_school_page(request: Request, _su: Employee = Depends(require_super_admin)):
     context = await get_template_context(request)
     context['school'] = None
     return templates.TemplateResponse('admin/school_form.html', context)
@@ -41,7 +80,8 @@ async def add_school(
     request: Request,
     name: str = Form(...), address: str = Form(""),
     phone: str = Form(""), email: str = Form(""),
-    db: AsyncSession = Depends(get_db)
+    db: AsyncSession = Depends(get_db),
+    _su: Employee = Depends(require_super_admin),
 ):
     db.add(School(name=name, address=address, phone=phone, email=email))
     await db.commit()
@@ -52,7 +92,8 @@ async def add_school(
 
 
 @router.get("/schools/edit/{id}", response_class=HTMLResponse)
-async def edit_school_page(request: Request, id: int, db: AsyncSession = Depends(get_db)):
+async def edit_school_page(request: Request, id: int, db: AsyncSession = Depends(get_db),
+                           _su: Employee = Depends(require_super_admin)):
     school = (await db.execute(select(School).where(School.id == id))).scalar_one_or_none()
     if not school:
         flash(request, 'Maktab topilmadi', 'danger')
@@ -67,7 +108,8 @@ async def edit_school(
     request: Request, id: int,
     name: str = Form(...), address: str = Form(""),
     phone: str = Form(""), email: str = Form(""),
-    db: AsyncSession = Depends(get_db)
+    db: AsyncSession = Depends(get_db),
+    _su: Employee = Depends(require_super_admin),
 ):
     school = (await db.execute(select(School).where(School.id == id))).scalar_one_or_none()
     if not school:
@@ -80,7 +122,8 @@ async def edit_school(
 
 
 @router.post("/schools/delete/{id}")
-async def delete_school(request: Request, id: int, db: AsyncSession = Depends(get_db)):
+async def delete_school(request: Request, id: int, db: AsyncSession = Depends(get_db),
+                        _su: Employee = Depends(require_super_admin)):
     school = (await db.execute(select(School).where(School.id == id))).scalar_one_or_none()
     if not school:
         flash(request, 'Maktab topilmadi', 'danger')

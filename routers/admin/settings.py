@@ -9,10 +9,10 @@ from sqlalchemy import select, func
 from models import (
     get_db, Subject, Quarter, ExamName, ExamType, QuestionType, StaffTitle, Exam,
 )
-from dependencies import require_admin, flash, get_template_context, page_info
+from dependencies import require_super_admin, flash, get_template_context, page_info
 from language import language_manager
 
-router = APIRouter(prefix="/admin", dependencies=[Depends(require_admin)])
+router = APIRouter(prefix="/admin", dependencies=[Depends(require_super_admin)])
 templates = Jinja2Templates(directory="templates")
 
 

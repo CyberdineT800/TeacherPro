@@ -9,6 +9,7 @@
         <a href="{{ url_for('add_class') }}" class="btn btn-success">+ {{ _('new_class') }}</a>
     </div>
 
+    {% if session.is_super_admin %}
     <div class="filter-box">
         <form method="GET">
             <div class="form-group" style="margin-bottom:0;">
@@ -24,6 +25,7 @@
             </div>
         </form>
     </div>
+    {% endif %}
 
     {% if classes %}
     {% include '_pagination.html' %}

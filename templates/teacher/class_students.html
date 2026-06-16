@@ -1,0 +1,57 @@
+{% extends "base.html" %}
+
+{% block title %}{{ school_class.name if school_class else _('students') }}{% endblock %}
+
+{% block content %}
+<div class="card">
+    <div class="list-header">
+        <h2>{{ _('students') }}{% if school_class %} — {{ school_class.name }}{% endif %}</h2>
+        <a href="{{ url_for('teacher_my_classes') }}" class="btn btn-secondary">{{ _('back_to_classes') }}</a>
+    </div>
+
+    {% if school_class %}
+    <div class="exam-info-box">
+        <p><strong>{{ _('class') }}:</strong> {{ school_class.name }}</p>
+        <p><strong>{{ _('school') }}:</strong> {{ school_class.school.name if school_class.school else '' }}</p>
+        <p><strong>{{ _('class_leader') }}:</strong> {{ school_class.leader_first_name or '' }} {{ school_class.leader_last_name or '' }}</p>
+    </div>
+    {% endif %}
+
+    {% if students %}
+    <div class="table-container">
+        <table>
+            <thead>
+                <tr>
+                    <th width="60">{{ _('number') }}</th>
+                    <th>{{ _('first_name') }}</th>
+                    <th>{{ _('last_name') }}</th>
+                    <th>{{ _('gender') }}</th>
+                    <th>{{ _('group') }}</th>
+                    <th>{{ _('actions') }}</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for student in students %}
+                <tr>
+                    <td class="row-number">{{ loop.index }}</td>
+                    <td>{{ student.first_name }}</td>
+                    <td>{{ student.last_name }}</td>
+                    <td>
+                      <span class="gender-pill {% if student.gender == 1 %}g-m{% else %}g-f{% endif %}">
+                        {% if student.gender == 1 %}{{ _('male') }}{% else %}{{ _('female') }}{% endif %}
+                      </span>
+                    </td>
+                    <td>{{ student.group_number }}-{{ _('group') }}</td>
+                    <td class="action-buttons">
+                        <a href="{{ url_for('teacher_edit_student', id=student.id) }}" class="btn btn-primary btn-sm">{{ _('edit') }}</a>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% else %}
+    <div class="no-data"><p>{{ _('no_students_in_class') }}</p></div>
+    {% endif %}
+</div>
+{% endblock %}

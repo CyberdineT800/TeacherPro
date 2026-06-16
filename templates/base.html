@@ -54,6 +54,7 @@
                     class="nav-link {% if 'admin/dashboard' in request.url.path %}active{% endif %}">
                     {{ _('dashboard') }}
                 </a>
+                {% if session.is_super_admin %}
                 <a href="{{ url_for('schools_list') }}"
                     class="nav-link {% if 'admin/schools' in request.url.path %}active{% endif %}">
                     {{ _('schools') }}
@@ -93,6 +94,24 @@
                     </div>
                 </div>
                 {% else %}
+                <a href="{{ url_for('employees_list') }}"
+                    class="nav-link {% if 'admin/employees' in request.url.path %}active{% endif %}">
+                    {{ _('employees') }}
+                </a>
+                <a href="{{ url_for('classes_list') }}"
+                    class="nav-link {% if 'admin/classes' in request.url.path %}active{% endif %}">
+                    {{ _('classes') }}
+                </a>
+                <a href="{{ url_for('students_list') }}"
+                    class="nav-link {% if 'admin/students' in request.url.path %}active{% endif %}">
+                    {{ _('students') }}
+                </a>
+                <a href="{{ url_for('admin_my_school') }}"
+                    class="nav-link {% if 'admin/my-school' in request.url.path %}active{% endif %}">
+                    {{ _('my_school') }}
+                </a>
+                {% endif %}
+                {% else %}
                 <a href="{{ url_for('teacher_dashboard') }}"
                     class="nav-link {% if 'teacher/dashboard' in request.url.path %}active{% endif %}">
                     {{ _('dashboard') }}
@@ -100,6 +119,10 @@
                 <a href="{{ url_for('create_exam') }}"
                     class="nav-link {% if 'create-exam' in request.url.path %}active{% endif %}">
                     {{ _('create_exam') }}
+                </a>
+                <a href="{{ url_for('teacher_my_classes') }}"
+                    class="nav-link {% if '/teacher/classes' in request.url.path or '/teacher/students' in request.url.path %}active{% endif %}">
+                    {{ _('my_classes') }}
                 </a>
                 {% if session.ai_enabled %}
                 <a href="{{ url_for('teacher_ai_list') }}"

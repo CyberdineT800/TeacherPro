@@ -31,7 +31,7 @@
 
         <div class="form-actions">
             <button type="submit" class="btn btn-success">{{ _('save') }}</button>
-            <a href="{{ url_for('schools_list') }}" class="btn btn-secondary">{{ _('cancel') }}</a>
+            <a href="{% if my_school %}{{ url_for('admin_dashboard') }}{% else %}{{ url_for('schools_list') }}{% endif %}" class="btn btn-secondary">{{ _('cancel') }}</a>
         </div>
     </form>
 </div>

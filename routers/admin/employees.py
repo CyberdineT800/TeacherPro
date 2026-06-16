@@ -21,10 +21,17 @@ router = APIRouter(prefix="/admin", dependencies=[Depends(require_admin)])
 templates = Jinja2Templates(directory="templates")
 
 
+def _no_access(request: Request):
+    """Redirect a school admin who tried to reach an out-of-scope record."""
+    flash(request, "Bu amal uchun ruxsat yo'q", 'danger')
+    return RedirectResponse(url="/admin/employees", status_code=303)
+
+
 @router.get("/employees", response_class=HTMLResponse)
 async def employees_list(
     request: Request, school_id: Optional[str] = None, page: int = 1,
-    db: AsyncSession = Depends(get_db)
+    db: AsyncSession = Depends(get_db),
+    current_admin: Employee = Depends(require_admin),
 ):
     per_page = 10
     sid = None
@@ -34,14 +41,22 @@ async def employees_list(
         except ValueError:
             pass
 
+    # School admins are locked to their own school regardless of query params.
+    if not current_admin.is_super_admin:
+        sid = current_admin.school_id
+
     base_q = select(Employee).options(
         selectinload(Employee.school), selectinload(Employee.staff_title)
     )
     count_q = select(func.count(Employee.id))
-    
+
     if sid:
         base_q = base_q.where(Employee.school_id == sid).order_by(Employee.last_name, Employee.first_name)
         count_q = count_q.where(Employee.school_id == sid)
+    elif not current_admin.is_super_admin:
+        # School admin without an assigned school sees nothing.
+        base_q = base_q.where(Employee.id == -1)
+        count_q = count_q.where(Employee.id == -1)
     else:
         base_q = base_q.order_by(Employee.created_at.desc())
 
@@ -56,10 +71,14 @@ async def employees_list(
 
 
 @router.get("/employees/add", response_class=HTMLResponse)
-async def add_employee_page(request: Request, db: AsyncSession = Depends(get_db)):
+async def add_employee_page(request: Request, db: AsyncSession = Depends(get_db),
+                            current_admin: Employee = Depends(require_admin)):
     schools = (await db.execute(select(School))).scalars().all()
     titles = (await db.execute(select(StaffTitle))).scalars().all()
-    classes = (await db.execute(select(SchoolClass))).scalars().all()
+    classes_q = select(SchoolClass)
+    if not current_admin.is_super_admin:
+        classes_q = classes_q.where(SchoolClass.school_id == current_admin.school_id)
+    classes = (await db.execute(classes_q)).scalars().all()
     subjects = (await db.execute(select(Subject))).scalars().all()
     context = await get_template_context(request)
     context.update({'employee': None, 'schools': schools, 'titles': titles,
@@ -76,8 +95,15 @@ async def add_employee(
     is_active: bool = Form(False), school_id: Optional[int] = Form(None),
     staff_title_id: Optional[int] = Form(None),
     assigned_classes: list = Form([]), assigned_subjects: list = Form([]),
-    db: AsyncSession = Depends(get_db)
+    db: AsyncSession = Depends(get_db),
+    current_admin: Employee = Depends(require_admin),
 ):
+    # School admins create only school-scoped staff for their own school —
+    # they cannot grant admin rights or assign another school.
+    if not current_admin.is_super_admin:
+        school_id = current_admin.school_id
+        is_admin = False
+
     emp = Employee(username=username, first_name=first_name, last_name=last_name,
                    email=email, is_admin=is_admin, is_active=is_active,
                    school_id=school_id, staff_title_id=staff_title_id)
@@ -96,7 +122,8 @@ async def add_employee(
 
 
 @router.get("/employees/edit/{id}", response_class=HTMLResponse)
-async def edit_employee_page(request: Request, id: int, db: AsyncSession = Depends(get_db)):
+async def edit_employee_page(request: Request, id: int, db: AsyncSession = Depends(get_db),
+                             current_admin: Employee = Depends(require_admin)):
     emp = (await db.execute(
         select(Employee)
         .options(selectinload(Employee.assigned_classes), selectinload(Employee.assigned_subjects))
@@ -105,9 +132,15 @@ async def edit_employee_page(request: Request, id: int, db: AsyncSession = Depen
     if not emp:
         flash(request, 'Xodim topilmadi', 'danger')
         return RedirectResponse(url="/admin/employees", status_code=303)
+    # School admins may only edit non-admin staff within their own school.
+    if not current_admin.is_super_admin and (emp.school_id != current_admin.school_id or emp.is_admin):
+        return _no_access(request)
     schools = (await db.execute(select(School))).scalars().all()
     titles = (await db.execute(select(StaffTitle))).scalars().all()
-    classes = (await db.execute(select(SchoolClass))).scalars().all()
+    classes_q = select(SchoolClass)
+    if not current_admin.is_super_admin:
+        classes_q = classes_q.where(SchoolClass.school_id == current_admin.school_id)
+    classes = (await db.execute(classes_q)).scalars().all()
     subjects = (await db.execute(select(Subject))).scalars().all()
     context = await get_template_context(request)
     context.update({'employee': emp, 'schools': schools, 'titles': titles,
@@ -123,12 +156,18 @@ async def edit_employee(
     is_admin: bool = Form(False), is_active: bool = Form(False),
     school_id: Optional[int] = Form(None), staff_title_id: Optional[int] = Form(None),
     assigned_classes: list = Form([]), assigned_subjects: list = Form([]),
-    password: str = Form(""), db: AsyncSession = Depends(get_db)
+    password: str = Form(""), db: AsyncSession = Depends(get_db),
+    current_admin: Employee = Depends(require_admin),
 ):
     emp = (await db.execute(select(Employee).where(Employee.id == id))).scalar_one_or_none()
     if not emp:
         flash(request, 'Xodim topilmadi', 'danger')
         return RedirectResponse(url="/admin/employees", status_code=303)
+    if not current_admin.is_super_admin:
+        if emp.school_id != current_admin.school_id or emp.is_admin:
+            return _no_access(request)
+        school_id = current_admin.school_id
+        is_admin = False
     emp.username = username
     emp.first_name = first_name
     emp.last_name = last_name
@@ -152,7 +191,8 @@ async def edit_employee(
 
 
 @router.post("/employees/delete/{id}")
-async def delete_employee(request: Request, id: int, db: AsyncSession = Depends(get_db)):
+async def delete_employee(request: Request, id: int, db: AsyncSession = Depends(get_db),
+                          current_admin: Employee = Depends(require_admin)):
     if id == request.session.get('user_id'):
         flash(request, "O'zingizni o'chira olmaysiz", 'danger')
         return RedirectResponse(url="/admin/employees", status_code=303)
@@ -160,6 +200,8 @@ async def delete_employee(request: Request, id: int, db: AsyncSession = Depends(
     if not emp:
         flash(request, 'Xodim topilmadi', 'danger')
         return RedirectResponse(url="/admin/employees", status_code=303)
+    if not current_admin.is_super_admin and (emp.school_id != current_admin.school_id or emp.is_admin):
+        return _no_access(request)
     try:
         for exam in (await db.execute(select(Exam).where(Exam.teacher_id == id))).scalars().all():
             # Delete exam_results first (references questions.id via FK)
@@ -179,7 +221,8 @@ async def delete_employee(request: Request, id: int, db: AsyncSession = Depends(
 
 
 @router.post("/employees/toggle-status/{id}")
-async def toggle_employee_status(request: Request, id: int, db: AsyncSession = Depends(get_db)):
+async def toggle_employee_status(request: Request, id: int, db: AsyncSession = Depends(get_db),
+                                 current_admin: Employee = Depends(require_admin)):
     if id == request.session.get('user_id'):
         flash(request, "O'zingizni faolligini o'zgartira olmaysiz", 'danger')
         return RedirectResponse(url="/admin/employees", status_code=303)
@@ -187,6 +230,8 @@ async def toggle_employee_status(request: Request, id: int, db: AsyncSession = D
     if not emp:
         flash(request, 'Xodim topilmadi', 'danger')
         return RedirectResponse(url="/admin/employees", status_code=303)
+    if not current_admin.is_super_admin and (emp.school_id != current_admin.school_id or emp.is_admin):
+        return _no_access(request)
     emp.is_active = not emp.is_active
     emp.updated_at = datetime.utcnow()
     await db.commit()

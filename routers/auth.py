@@ -46,9 +46,12 @@ async def login(
         # Set session data
         request.session['user_id'] = employee.id
         request.session['is_admin'] = employee.is_admin
+        request.session['is_super_admin'] = bool(employee.is_super_admin)
+        request.session['school_id'] = employee.school_id
         request.session['username'] = employee.username
         request.session['full_name'] = f"{employee.first_name} {employee.last_name}"
         request.session['ai_enabled'] = bool(employee.ai_enabled)
+        request.session['games_enabled'] = bool(employee.games_enabled)
         
         # Update last login time
         employee.updated_at = datetime.utcnow()

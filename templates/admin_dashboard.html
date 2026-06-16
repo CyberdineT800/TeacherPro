@@ -16,6 +16,7 @@
     <h2>{{ _('admin') }} {{ _('dashboard') }}</h2>
 
     <div class="stats-grid">
+        {% if session.is_super_admin %}
         <a href="{{ url_for('schools_list') }}" class="stat-card" style="text-decoration:none;cursor:pointer;">
             <div class="stat-icon school-icon">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"
@@ -35,6 +36,7 @@
                 </svg>
             </div>
         </a>
+        {% endif %}
 
         <a href="{{ url_for('employees_list') }}" class="stat-card" style="text-decoration:none;cursor:pointer;">
             <div class="stat-icon employee-icon">
@@ -104,6 +106,7 @@
 
     <h3>{{ _('quick_actions') }}</h3>
     <div class="actions-grid">
+        {% if session.is_super_admin %}
         <a href="{{ url_for('admin_announcements') }}" class="action-btn">
             <span class="action-icon">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" width="22" height="22">
@@ -120,6 +123,7 @@
             </span>
             <span class="action-text">{{ _('schools') }}</span>
         </a>
+        {% endif %}
         <a href="{{ url_for('employees_list') }}" class="action-btn">
             <span class="action-icon">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" width="22" height="22">
@@ -149,6 +153,17 @@
             </span>
             <span class="action-text">{{ _('students') }}</span>
         </a>
+        {% if not session.is_super_admin %}
+        <a href="{{ url_for('admin_my_school') }}" class="action-btn">
+            <span class="action-icon">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" width="22" height="22">
+                    <path d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"/>
+                </svg>
+            </span>
+            <span class="action-text">{{ _('my_school') }}</span>
+        </a>
+        {% endif %}
+        {% if session.is_super_admin %}
         <a href="{{ url_for('subjects_list') }}" class="action-btn secondary">
             <span class="action-icon">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" width="22" height="22">
@@ -240,6 +255,7 @@
             </span>
             <span class="action-text">{{ _('ai_admin_settings') }}</span>
         </a>
+        {% endif %}
     </div>
 </div>
 {% endblock %}

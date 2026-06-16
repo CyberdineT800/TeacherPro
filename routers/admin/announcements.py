@@ -13,14 +13,14 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from config import RedirectResponse
 from models import get_db, Announcement
-from dependencies import require_admin, flash, get_template_context
+from dependencies import require_super_admin, flash, get_template_context
 from services.ai_shared import translate
 from services.cache import cache_del_home_announcements
 
 
 
 log = logging.getLogger("admin.announcements")
-router = APIRouter(prefix="/admin", dependencies=[Depends(require_admin)])
+router = APIRouter(prefix="/admin", dependencies=[Depends(require_super_admin)])
 templates = Jinja2Templates(directory="templates")
 
 UPLOADS_DIR = os.path.join("static", "uploads")

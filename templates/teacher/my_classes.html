@@ -1,0 +1,51 @@
+{% extends "base.html" %}
+
+{% block title %}{{ _('my_classes') }}{% endblock %}
+
+{% block content %}
+<div class="card">
+    <div class="list-header">
+        <h2>{{ _('my_classes') }}</h2>
+    </div>
+
+    {% if classes %}
+    <div class="table-container">
+        <table>
+            <thead>
+                <tr>
+                    <th width="60">{{ _('number') }}</th>
+                    <th>{{ _('name') }}</th>
+                    <th>{{ _('school') }}</th>
+                    <th>{{ _('class_leader') }}</th>
+                    <th>{{ _('student_count') }}</th>
+                    <th>{{ _('actions') }}</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for class in classes %}
+                <tr>
+                    <td class="row-number">{{ loop.index }}</td>
+                    <td><strong>{{ class.name }}</strong></td>
+                    <td>{{ class.school.name if class.school else '' }}</td>
+                    <td>
+                        {% if class.leader_first_name or class.leader_last_name %}
+                        {{ class.leader_first_name or '' }} {{ class.leader_last_name or '' }}
+                        {% if class.leader_phone %}<br><small class="muted-small">{{ class.leader_phone }}</small>{% endif %}
+                        {% else %}
+                        <span class="muted-small">{{ _('not_set') }}</span>
+                        {% endif %}
+                    </td>
+                    <td><span class="count-pill">{{ student_counts.get(class.id, 0) }}</span></td>
+                    <td class="action-buttons">
+                        <a href="{{ url_for('teacher_class_students', class_id=class.id) }}" class="btn btn-primary btn-sm">{{ _('students') }}</a>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% else %}
+    <div class="no-data"><p>{{ _('no_classes_assigned') }}</p></div>
+    {% endif %}
+</div>
+{% endblock %}

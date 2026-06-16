@@ -35,6 +35,7 @@
         </div>
 
         <div class="form-row">
+            {% if session.is_super_admin %}
             <div class="form-group">
                 <label for="school_id">{{ _('school') }}</label>
                 <select id="school_id" name="school_id">
@@ -46,6 +47,7 @@
                     {% endfor %}
                 </select>
             </div>
+            {% endif %}
             <div class="form-group">
                 <label for="staff_title_id">{{ _('staff_title') }}</label>
                 <select id="staff_title_id" name="staff_title_id">
@@ -89,10 +91,12 @@
         </div>
 
         <div class="checkbox-group">
+            {% if session.is_super_admin %}
             <div class="checkbox-item">
                 <input type="checkbox" id="is_admin" name="is_admin" {% if employee and employee.is_admin %}checked{% endif %}>
-                <label for="is_admin">{{ _('admin_rights') }}</label>
+                <label for="is_admin">{{ _('school_admin') }}</label>
             </div>
+            {% endif %}
             <div class="checkbox-item">
                 <input type="checkbox" id="is_active" name="is_active" {% if not employee or employee.is_active %}checked{% endif %}>
                 <label for="is_active">{{ _('active_employee') }}</label>
@@ -122,6 +126,8 @@
     const schoolSel = document.getElementById('school_id');
     const hint = document.getElementById('noSchoolHint');
     const group = document.getElementById('classCheckboxGroup');
+
+    if (!schoolSel) return;
 
     function filterClasses() {
         const sid = schoolSel.value;

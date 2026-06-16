@@ -9,7 +9,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, delete, func
 
 from services.cache import cache_del_admin_stats
-from models import get_db, School, SchoolClass, Student, Exam, Question, ExamResult
+from models import get_db, School, Employee, SchoolClass, Student, Exam, Question, ExamResult
 from dependencies import require_admin, flash, get_template_context, page_info
 from utils import process_student_excel
 
@@ -17,10 +17,17 @@ router = APIRouter(prefix="/admin", dependencies=[Depends(require_admin)])
 templates = Jinja2Templates(directory="templates")
 
 
+def _no_access(request: Request):
+    """Redirect a school admin who tried to reach an out-of-scope class."""
+    flash(request, "Bu amal uchun ruxsat yo'q", 'danger')
+    return RedirectResponse(url="/admin/classes", status_code=303)
+
+
 @router.get("/classes", response_class=HTMLResponse)
 async def classes_list(
     request: Request, school_id: Optional[str] = None, page: int = 1,
-    db: AsyncSession = Depends(get_db)
+    db: AsyncSession = Depends(get_db),
+    current_admin: Employee = Depends(require_admin),
 ):
     per_page = 10
     sid = None
@@ -30,11 +37,19 @@ async def classes_list(
         except ValueError:
             pass
 
+    # School admins are locked to their own school regardless of query params.
+    if not current_admin.is_super_admin:
+        sid = current_admin.school_id
+
     base_q = select(SchoolClass)
     count_q = select(func.count(SchoolClass.id))
     if sid:
         base_q = base_q.where(SchoolClass.school_id == sid)
         count_q = count_q.where(SchoolClass.school_id == sid)
+    elif not current_admin.is_super_admin:
+        # School admin without an assigned school sees nothing.
+        base_q = base_q.where(SchoolClass.id == -1)
+        count_q = count_q.where(SchoolClass.id == -1)
     else:
         base_q = base_q.order_by(SchoolClass.created_at.desc())
 
@@ -58,8 +73,12 @@ async def classes_list(
 
 
 @router.get("/classes/add", response_class=HTMLResponse)
-async def add_class_page(request: Request, db: AsyncSession = Depends(get_db)):
-    schools = (await db.execute(select(School))).scalars().all()
+async def add_class_page(request: Request, db: AsyncSession = Depends(get_db),
+                         current_admin: Employee = Depends(require_admin)):
+    schools_q = select(School)
+    if not current_admin.is_super_admin:
+        schools_q = schools_q.where(School.id == current_admin.school_id)
+    schools = (await db.execute(schools_q)).scalars().all()
     context = await get_template_context(request)
     context.update({'class_obj': None, 'schools': schools})
     return templates.TemplateResponse('admin/class_form.html', context)
@@ -73,8 +92,11 @@ async def add_class(
     leader_last_name: Optional[str] = Form(None),
     leader_phone: Optional[str] = Form(None),
     students_file: Optional[UploadFile] = File(None),
-    db: AsyncSession = Depends(get_db)
+    db: AsyncSession = Depends(get_db),
+    current_admin: Employee = Depends(require_admin),
 ):
+    if not current_admin.is_super_admin:
+        school_id = current_admin.school_id
     cls = SchoolClass(name=name, school_id=school_id,
                       leader_first_name=leader_first_name,
                       leader_last_name=leader_last_name,
@@ -96,12 +118,18 @@ async def add_class(
 
 
 @router.get("/classes/edit/{id}", response_class=HTMLResponse)
-async def edit_class_page(request: Request, id: int, db: AsyncSession = Depends(get_db)):
+async def edit_class_page(request: Request, id: int, db: AsyncSession = Depends(get_db),
+                          current_admin: Employee = Depends(require_admin)):
     cls = (await db.execute(select(SchoolClass).where(SchoolClass.id == id))).scalar_one_or_none()
     if not cls:
         flash(request, 'Sinf topilmadi', 'danger')
         return RedirectResponse(url="/admin/classes", status_code=303)
-    schools = (await db.execute(select(School))).scalars().all()
+    if not current_admin.is_super_admin and cls.school_id != current_admin.school_id:
+        return _no_access(request)
+    schools_q = select(School)
+    if not current_admin.is_super_admin:
+        schools_q = schools_q.where(School.id == current_admin.school_id)
+    schools = (await db.execute(schools_q)).scalars().all()
     context = await get_template_context(request)
     context.update({'class_obj': cls, 'schools': schools})
     return templates.TemplateResponse('admin/class_form.html', context)
@@ -114,12 +142,17 @@ async def edit_class(
     leader_first_name: Optional[str] = Form(None),
     leader_last_name: Optional[str] = Form(None),
     leader_phone: Optional[str] = Form(None),
-    db: AsyncSession = Depends(get_db)
+    db: AsyncSession = Depends(get_db),
+    current_admin: Employee = Depends(require_admin),
 ):
     cls = (await db.execute(select(SchoolClass).where(SchoolClass.id == id))).scalar_one_or_none()
     if not cls:
         flash(request, 'Sinf topilmadi', 'danger')
         return RedirectResponse(url="/admin/classes", status_code=303)
+    if not current_admin.is_super_admin:
+        if cls.school_id != current_admin.school_id:
+            return _no_access(request)
+        school_id = current_admin.school_id
     cls.name = name
     cls.school_id = school_id
     cls.leader_first_name = leader_first_name
@@ -131,11 +164,14 @@ async def edit_class(
 
 
 @router.post("/classes/delete/{id}")
-async def delete_class(request: Request, id: int, db: AsyncSession = Depends(get_db)):
+async def delete_class(request: Request, id: int, db: AsyncSession = Depends(get_db),
+                       current_admin: Employee = Depends(require_admin)):
     cls = (await db.execute(select(SchoolClass).where(SchoolClass.id == id))).scalar_one_or_none()
     if not cls:
         flash(request, 'Sinf topilmadi', 'danger')
         return RedirectResponse(url="/admin/classes", status_code=303)
+    if not current_admin.is_super_admin and cls.school_id != current_admin.school_id:
+        return _no_access(request)
     try:
         for exam in (await db.execute(select(Exam).where(Exam.class_id == id))).scalars().all():
             await db.execute(delete(Question).where(Question.exam_id == exam.id))

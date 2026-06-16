@@ -82,6 +82,7 @@ class Employee(Base):
     last_name = Column(String(100), nullable=False)
     email = Column(String(100))
     is_admin = Column(Boolean, default=False)
+    is_super_admin = Column(Boolean, default=False, nullable=False)
     is_active = Column(Boolean, default=True)
     school_id = Column(Integer, ForeignKey('schools.id'), nullable=True, index=True)
     staff_title_id = Column(Integer, ForeignKey('staff_titles.id'), nullable=True)

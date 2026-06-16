@@ -98,12 +98,25 @@ async def require_admin(
     request: Request,
     current_user: Employee = Depends(require_login)
 ) -> Employee:
-    """Require user to be admin"""
+    """Require user to be admin (super admin or school admin)"""
     if not current_user.is_admin:
         flash(request, 'Admin huquqi talab qilinadi', 'danger')
         raise HTTPException(
             status_code=status.HTTP_303_SEE_OTHER,
             headers={"Location": f"{ROOT_PATH}/login"}
+        )
+    return current_user
+
+async def require_super_admin(
+    request: Request,
+    current_user: Employee = Depends(require_admin)
+) -> Employee:
+    """Require user to be a super admin (full platform access)"""
+    if not current_user.is_super_admin:
+        flash(request, "Bu bo'lim faqat bosh administrator uchun", 'danger')
+        raise HTTPException(
+            status_code=status.HTTP_303_SEE_OTHER,
+            headers={"Location": f"{ROOT_PATH}/admin/dashboard"}
         )
     return current_user
 
@@ -164,5 +177,7 @@ async def get_template_context(request: Request, db: AsyncSession = None) -> Dic
             context['user'] = employee
             request.session['ai_enabled'] = bool(employee.ai_enabled)
             request.session['games_enabled'] = bool(employee.games_enabled)
+            request.session['is_super_admin'] = bool(employee.is_super_admin)
+            request.session['school_id'] = employee.school_id
 
     return context

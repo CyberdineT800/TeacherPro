@@ -18,7 +18,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload, defer
 
 from models import get_db, Employee, School, SchoolClass, Student, Subject, AIPresentation, AIQuestionSet
-from dependencies import require_admin, flash, get_template_context, page_info
+from dependencies import require_admin, require_super_admin, flash, get_template_context, page_info
 from services.ai_shared import translate, TEMPLATES, LANGUAGE_DISPLAY, TYPE_DISPLAY
 from services.cache import cache_get_admin_stats, cache_set_admin_stats
 
@@ -30,20 +30,34 @@ templates = Jinja2Templates(directory="templates")
 # ── Admin dashboard ──────────────────────────────────────────────────────────
 
 @router.get("/dashboard", response_class=HTMLResponse)
-async def admin_dashboard(request: Request, db: AsyncSession = Depends(get_db)):
-    # Try Redis cache first (TTL 60 s — stale counts are fine for a dashboard)
-    stats = await cache_get_admin_stats()
-    if stats is None:
-        # Sequential queries — asyncio.gather on a shared session causes
-        # "concurrent operations are not permitted" in SQLAlchemy async.
+async def admin_dashboard(request: Request, db: AsyncSession = Depends(get_db),
+                          current_admin: Employee = Depends(require_admin)):
+    if current_admin.is_super_admin:
+        # Try Redis cache first (TTL 60 s — stale counts are fine for a dashboard)
+        stats = await cache_get_admin_stats()
+        if stats is None:
+            # Sequential queries — asyncio.gather on a shared session causes
+            # "concurrent operations are not permitted" in SQLAlchemy async.
+            stats = {
+                'schools_count':   await db.scalar(select(func.count(School.id)))   or 0,
+                'employees_count': await db.scalar(select(func.count(Employee.id))) or 0,
+                'classes_count':   await db.scalar(select(func.count(SchoolClass.id))) or 0,
+                'students_count':  await db.scalar(select(func.count(Student.id)))  or 0,
+            }
+            await cache_set_admin_stats(stats)
+    else:
+        sid = current_admin.school_id
+        class_ids_subq = select(SchoolClass.id).where(SchoolClass.school_id == sid)
         stats = {
-            'schools_count':   await db.scalar(select(func.count(School.id)))   or 0,
-            'employees_count': await db.scalar(select(func.count(Employee.id))) or 0,
-            'classes_count':   await db.scalar(select(func.count(SchoolClass.id))) or 0,
-            'students_count':  await db.scalar(select(func.count(Student.id)))  or 0,
+            'schools_count':   0,
+            'employees_count': await db.scalar(
+                select(func.count(Employee.id)).where(Employee.school_id == sid)) or 0,
+            'classes_count':   await db.scalar(
+                select(func.count(SchoolClass.id)).where(SchoolClass.school_id == sid)) or 0,
+            'students_count':  await db.scalar(
+                select(func.count(Student.id)).where(Student.class_id.in_(class_ids_subq))) or 0,
         }
-        await cache_set_admin_stats(stats)
-    context = await get_template_context(request)
+    context = await get_template_context(request, db)
     context.update(stats)
     return templates.TemplateResponse('admin_dashboard.html', context)
 
@@ -53,7 +67,8 @@ async def admin_dashboard(request: Request, db: AsyncSession = Depends(get_db)):
 @router.get("/ai", response_class=HTMLResponse)
 async def admin_ai_list(
     request: Request, teacher_id: Optional[str] = None,
-    page: int = 1, db: AsyncSession = Depends(get_db)
+    page: int = 1, db: AsyncSession = Depends(get_db),
+    _su: Employee = Depends(require_super_admin),
 ):
     per_page = 6
     tid: Optional[int] = int(teacher_id) if teacher_id and teacher_id.strip().isdigit() else None
@@ -84,7 +99,8 @@ async def admin_ai_list(
 
 
 @router.get("/ai/settings", response_class=HTMLResponse)
-async def admin_ai_settings(request: Request, db: AsyncSession = Depends(get_db)):
+async def admin_ai_settings(request: Request, db: AsyncSession = Depends(get_db),
+                            _su: Employee = Depends(require_super_admin)):
     teachers = (await db.execute(
         select(Employee).options(selectinload(Employee.school))
         .where(Employee.is_admin.is_(False)).order_by(Employee.first_name)
@@ -106,7 +122,8 @@ async def admin_ai_settings_save(
     ai_enabled: Optional[str] = Form(None),
     ai_daily_limit: int = Form(3),
     ai_questions_daily_limit: int = Form(5),
-    db: AsyncSession = Depends(get_db)
+    db: AsyncSession = Depends(get_db),
+    _su: Employee = Depends(require_super_admin),
 ):
     teacher = (await db.execute(select(Employee).where(Employee.id == teacher_id))).scalar_one_or_none()
     if not teacher:
@@ -120,7 +137,8 @@ async def admin_ai_settings_save(
 
 
 @router.get("/ai/{pid}/download")
-async def admin_ai_download(pid: int, db: AsyncSession = Depends(get_db)):
+async def admin_ai_download(pid: int, db: AsyncSession = Depends(get_db),
+                           _su: Employee = Depends(require_super_admin)):
     from services.ai_shared import TEMPLATES as T
     from routers.teacher.ai_presentation import build_pptx as _build_pptx
     presentation = (await db.execute(
@@ -153,7 +171,8 @@ async def admin_ai_download(pid: int, db: AsyncSession = Depends(get_db)):
 @router.get("/ai-questions", response_class=HTMLResponse)
 async def admin_questions_list(
     request: Request, teacher_id: Optional[str] = None,
-    page: int = 1, db: AsyncSession = Depends(get_db)
+    page: int = 1, db: AsyncSession = Depends(get_db),
+    _su: Employee = Depends(require_super_admin),
 ):
     per_page = 6
     tid: Optional[int] = int(teacher_id) if teacher_id and teacher_id.strip().isdigit() else None

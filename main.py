@@ -41,7 +41,8 @@ async def seed_defaults():
         result = await db.execute(select(Employee).where(Employee.username == 'SysAdmin'))
         if not result.scalar_one_or_none():
             admin_user = Employee(
-                username='SysAdmin', first_name='Admin', last_name='User', is_admin=True
+                username='SysAdmin', first_name='Admin', last_name='User',
+                is_admin=True, is_super_admin=True
             )
             admin_user.set_password('Admin224236')
             db.add(admin_user)
@@ -55,7 +56,7 @@ async def seed_defaults():
         # Exam names
         en_result = await db.execute(select(ExamName))
         if not en_result.scalars().first():
-            for name in ['BSB-1', 'BSB-2', 'CHSB-1', 'CHSB-2', 'Loyiha ishi']:
+            for name in ['BSB', 'CHSB', 'Loyiha ishi']:
                 db.add(ExamName(name=name))
 
         # Exam types
@@ -160,6 +161,7 @@ async def add_template_context(request: Request, call_next):
             'students_list': '/admin/students',      'add_student': '/admin/students/add',
             'edit_student': '/admin/students/edit/{id}',
             'delete_student': '/admin/students/delete/{id}',
+            'admin_my_school': '/admin/my-school',
 
             # ── Admin: settings ─────────────────────────────────────────────
             'subjects_list': '/admin/subjects',
@@ -195,6 +197,9 @@ async def add_template_context(request: Request, call_next):
             # ── Teacher: core ───────────────────────────────────────────────
             'teacher_dashboard': '/teacher/dashboard',
             'create_exam': '/teacher/create-exam',
+            'teacher_my_classes': '/teacher/classes',
+            'teacher_class_students': '/teacher/classes/{class_id}/students',
+            'teacher_edit_student': '/teacher/students/{id}/edit',
             'enter_scores': '/teacher/enter-scores/{exam_id}',
             'view_results': '/teacher/results/{exam_id}',
             'download_results': '/teacher/download/{exam_id}/{format}',
